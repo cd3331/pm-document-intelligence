@@ -24,19 +24,14 @@ orchestrator = get_orchestrator()
 
 
 @router.get("/api/stats", response_class=HTMLResponse)
-async def get_stats(
-    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
-):
+async def get_stats(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """
     Returns statistics cards HTML
     Used by dashboard to show document counts and metrics
     """
     # Get document counts
     total_documents = (
-        db.query(func.count(Document.id))
-        .filter(Document.user_id == current_user.id)
-        .scalar()
-        or 0
+        db.query(func.count(Document.id)).filter(Document.user_id == current_user.id).scalar() or 0
     )
 
     completed_documents = (
@@ -150,13 +145,9 @@ async def get_documents_list(
         # Status badge classes
         status_class = ""
         if doc.status == "completed":
-            status_class = (
-                "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-            )
+            status_class = "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
         elif doc.status == "processing":
-            status_class = (
-                "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-            )
+            status_class = "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
         elif doc.status == "failed":
             status_class = "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
 
@@ -172,9 +163,7 @@ async def get_documents_list(
             icon_class = "fa-file-image text-green-500"
 
         created_at = (
-            doc.created_at.strftime("%b %d, %Y at %I:%M %p")
-            if doc.created_at
-            else "Unknown"
+            doc.created_at.strftime("%b %d, %Y at %I:%M %p") if doc.created_at else "Unknown"
         )
 
         html_parts.append(
@@ -316,9 +305,7 @@ async def get_document_actions(
     # Get action items for this document
     action_items = (
         db.query(ActionItem)
-        .filter(
-            ActionItem.document_id == document_id, ActionItem.user_id == current_user.id
-        )
+        .filter(ActionItem.document_id == document_id, ActionItem.user_id == current_user.id)
         .order_by(ActionItem.priority.desc(), ActionItem.created_at)
         .all()
     )
@@ -348,9 +335,7 @@ async def get_document_actions(
             "low": "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200",
         }.get(item.priority, "bg-gray-100")
 
-        due_date = (
-            item.due_date.strftime("%b %d, %Y") if item.due_date else "No due date"
-        )
+        due_date = item.due_date.strftime("%b %d, %Y") if item.due_date else "No due date"
 
         html += f"""
         <div class="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -406,9 +391,7 @@ async def get_processing_status(
         # Get progress from metadata
         progress = doc.metadata.get("progress", 0) if doc.metadata else 0
         current_step = (
-            doc.metadata.get("current_step", "Processing")
-            if doc.metadata
-            else "Processing"
+            doc.metadata.get("current_step", "Processing") if doc.metadata else "Processing"
         )
 
         html_parts.append(
@@ -514,19 +497,14 @@ async def search_documents(
                 query = query.filter(Document.status.in_(status_list))
 
             if date_from:
-                query = query.filter(
-                    Document.created_at >= datetime.fromisoformat(date_from)
-                )
+                query = query.filter(Document.created_at >= datetime.fromisoformat(date_from))
 
             if date_to:
-                query = query.filter(
-                    Document.created_at <= datetime.fromisoformat(date_to)
-                )
+                query = query.filter(Document.created_at <= datetime.fromisoformat(date_to))
 
             # Apply search
             query = query.filter(
-                Document.filename.ilike(f"%{q}%")
-                | Document.extracted_text.ilike(f"%{q}%")
+                Document.filename.ilike(f"%{q}%") | Document.extracted_text.ilike(f"%{q}%")
             )
 
             # Apply sorting
@@ -550,11 +528,7 @@ async def search_documents(
                         "document_type": doc.document_type,
                         "status": doc.status,
                         "created_at": doc.created_at.strftime("%b %d, %Y"),
-                        "excerpt": (
-                            doc.extracted_text[:200] + "..."
-                            if doc.extracted_text
-                            else ""
-                        ),
+                        "excerpt": (doc.extracted_text[:200] + "..." if doc.extracted_text else ""),
                         "tags": doc.metadata.get("tags", []) if doc.metadata else [],
                     }
                 )

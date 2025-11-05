@@ -119,15 +119,9 @@ class EntityExtraction(BaseModel):
     confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score")
     start_offset: int = Field(..., description="Start character offset in document")
     end_offset: int = Field(..., description="End character offset in document")
-    page_number: Optional[int] = Field(
-        None, description="Page number where entity appears"
-    )
-    context: Optional[str] = Field(
-        None, max_length=500, description="Surrounding context"
-    )
-    metadata: Dict[str, Any] = Field(
-        default_factory=dict, description="Additional metadata"
-    )
+    page_number: Optional[int] = Field(None, description="Page number where entity appears")
+    context: Optional[str] = Field(None, max_length=500, description="Surrounding context")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
 
     class Config:
         """Pydantic configuration."""
@@ -153,9 +147,7 @@ class EntitySummary(BaseModel):
     entity_type: EntityType = Field(..., description="Entity type")
     count: int = Field(..., description="Number of entities of this type")
     unique_values: List[str] = Field(..., description="Unique entity values")
-    most_common: Optional[str] = Field(
-        None, description="Most frequently mentioned entity"
-    )
+    most_common: Optional[str] = Field(None, description="Most frequently mentioned entity")
     frequency: Dict[str, int] = Field(
         default_factory=dict,
         description="Frequency count for each entity",
@@ -190,24 +182,16 @@ class ActionItemDetail(BaseModel):
     )
     assignee: Optional[str] = Field(None, description="Assigned person or team")
     due_date: Optional[datetime] = Field(None, description="Due date")
-    status: str = Field(
-        default="pending", description="Status (pending, in_progress, completed)"
-    )
+    status: str = Field(default="pending", description="Status (pending, in_progress, completed)")
     confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score")
-    page_number: Optional[int] = Field(
-        None, description="Page number where action appears"
-    )
-    context: Optional[str] = Field(
-        None, max_length=500, description="Surrounding context"
-    )
+    page_number: Optional[int] = Field(None, description="Page number where action appears")
+    context: Optional[str] = Field(None, max_length=500, description="Surrounding context")
     dependencies: List[str] = Field(
         default_factory=list,
         description="Dependencies (other action items)",
     )
     tags: List[str] = Field(default_factory=list, description="Action item tags")
-    estimated_effort: Optional[str] = Field(
-        None, description="Estimated effort (hours/days)"
-    )
+    estimated_effort: Optional[str] = Field(None, description="Estimated effort (hours/days)")
 
     @field_validator("tags")
     @classmethod
@@ -242,18 +226,10 @@ class ActionItemDetail(BaseModel):
 class SentimentAnalysis(BaseModel):
     """Detailed sentiment analysis."""
 
-    overall_sentiment: SentimentType = Field(
-        ..., description="Overall document sentiment"
-    )
-    positive_score: float = Field(
-        ..., ge=0.0, le=1.0, description="Positive sentiment score"
-    )
-    negative_score: float = Field(
-        ..., ge=0.0, le=1.0, description="Negative sentiment score"
-    )
-    neutral_score: float = Field(
-        ..., ge=0.0, le=1.0, description="Neutral sentiment score"
-    )
+    overall_sentiment: SentimentType = Field(..., description="Overall document sentiment")
+    positive_score: float = Field(..., ge=0.0, le=1.0, description="Positive sentiment score")
+    negative_score: float = Field(..., ge=0.0, le=1.0, description="Negative sentiment score")
+    neutral_score: float = Field(..., ge=0.0, le=1.0, description="Neutral sentiment score")
     mixed_score: float = Field(..., ge=0.0, le=1.0, description="Mixed sentiment score")
     confidence: float = Field(..., ge=0.0, le=1.0, description="Overall confidence")
 
@@ -300,9 +276,7 @@ class Topic(BaseModel):
 
     name: str = Field(..., description="Topic name")
     keywords: List[str] = Field(..., description="Topic keywords")
-    relevance_score: float = Field(
-        ..., ge=0.0, le=1.0, description="Topic relevance score"
-    )
+    relevance_score: float = Field(..., ge=0.0, le=1.0, description="Topic relevance score")
     mentions: int = Field(..., description="Number of mentions")
     page_numbers: List[int] = Field(
         default_factory=list,
@@ -352,9 +326,7 @@ class KeyPhrase(BaseModel):
 class RiskIndicator(BaseModel):
     """Risk indicator identified in document."""
 
-    category: str = Field(
-        ..., description="Risk category (budget, timeline, resource, etc.)"
-    )
+    category: str = Field(..., description="Risk category (budget, timeline, resource, etc.)")
     description: str = Field(..., description="Risk description")
     level: RiskLevel = Field(..., description="Risk level")
     confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score")
@@ -456,9 +428,7 @@ class AnalysisInDB(AnalysisBase):
     # Topics and themes
     topics: List[Topic] = Field(default_factory=list)
     key_phrases: List[KeyPhrase] = Field(default_factory=list)
-    top_keywords: List[str] = Field(
-        default_factory=list, description="Most important keywords"
-    )
+    top_keywords: List[str] = Field(default_factory=list, description="Most important keywords")
 
     # Risk indicators
     risks: List[RiskIndicator] = Field(default_factory=list)
@@ -548,9 +518,7 @@ class AnalysisStats(BaseModel):
 
     # Average scores
     average_confidence: float = Field(..., description="Average confidence score")
-    average_processing_time: float = Field(
-        ..., description="Average processing time in seconds"
-    )
+    average_processing_time: float = Field(..., description="Average processing time in seconds")
 
     # Sentiment distribution
     sentiment_distribution: Dict[str, int] = Field(
@@ -662,9 +630,7 @@ def determine_overall_risk_level(risks: List[RiskIndicator]) -> RiskLevel:
     return RiskLevel.LOW
 
 
-def sanitize_analysis_response(
-    analysis: AnalysisInDB, limit_results: int = 10
-) -> Analysis:
+def sanitize_analysis_response(analysis: AnalysisInDB, limit_results: int = 10) -> Analysis:
     """
     Convert AnalysisInDB to Analysis (summary version).
 
@@ -713,9 +679,7 @@ def sanitize_analysis_response(
         total_action_items=len(analysis.action_items),
         total_risks=len(analysis.risks),
         total_topics=len(analysis.topics),
-        overall_sentiment=(
-            analysis.sentiment.overall_sentiment if analysis.sentiment else None
-        ),
+        overall_sentiment=(analysis.sentiment.overall_sentiment if analysis.sentiment else None),
         overall_risk_level=analysis.overall_risk_level,
         overall_confidence=analysis.overall_confidence,
         top_entities=top_entities,

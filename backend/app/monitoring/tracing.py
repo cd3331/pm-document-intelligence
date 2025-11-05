@@ -119,9 +119,7 @@ def trace_span(
             raise
 
 
-def trace_function(
-    name: Optional[str] = None, attributes: Optional[Dict[str, Any]] = None
-):
+def trace_function(name: Optional[str] = None, attributes: Optional[Dict[str, Any]] = None):
     """
     Decorator to trace function execution
 
@@ -254,9 +252,7 @@ def trace_textract_operation(operation: str, pages: int):
 @contextmanager
 def trace_comprehend_operation(operation: str, text_length: int):
     """Trace Comprehend operation"""
-    with trace_aws_service_call(
-        "comprehend", operation, text_length=text_length
-    ) as span:
+    with trace_aws_service_call("comprehend", operation, text_length=text_length) as span:
         yield span
 
 
@@ -305,9 +301,7 @@ def trace_database_query(operation: str, table: Optional[str] = None):
     if table:
         attributes["db.table"] = table
 
-    with trace_span(
-        f"db.query.{operation}", kind=SpanKind.CLIENT, attributes=attributes
-    ) as span:
+    with trace_span(f"db.query.{operation}", kind=SpanKind.CLIENT, attributes=attributes) as span:
         yield span
 
 
@@ -330,9 +324,7 @@ def trace_agent_execution(agent_type: str, document_id: Optional[int] = None):
 @contextmanager
 def trace_agent_orchestration(num_agents: int):
     """Trace agent orchestration"""
-    with trace_span(
-        "agent.orchestration", attributes={"agent.count": num_agents}
-    ) as span:
+    with trace_span("agent.orchestration", attributes={"agent.count": num_agents}) as span:
         yield span
 
 

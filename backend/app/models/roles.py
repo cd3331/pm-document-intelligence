@@ -321,9 +321,7 @@ class CustomRole(Base):
     # Metadata
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
-    )
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     created_by = Column(UUID(as_uuid=True), nullable=False)
 
     # Relationships
@@ -413,14 +411,10 @@ class CustomRoleAssignment(Base):
     # Relationships
     custom_role = relationship("CustomRole", back_populates="assignments")
 
-    __table_args__ = (
-        Index("idx_custom_assignment_user_org", "user_id", "organization_id"),
-    )
+    __table_args__ = (Index("idx_custom_assignment_user_org", "user_id", "organization_id"),)
 
     def __repr__(self):
-        return (
-            f"<CustomRoleAssignment(role={self.custom_role_id}, user={self.user_id})>"
-        )
+        return f"<CustomRoleAssignment(role={self.custom_role_id}, user={self.user_id})>"
 
     @property
     def is_expired(self) -> bool:
@@ -450,9 +444,7 @@ class ResourcePermission(Base):
     )
 
     # Resource information
-    resource_type = Column(
-        String(50), nullable=False, index=True
-    )  # document, team, folder, etc.
+    resource_type = Column(String(50), nullable=False, index=True)  # document, team, folder, etc.
     resource_id = Column(UUID(as_uuid=True), nullable=False, index=True)
 
     # Permissions granted
@@ -470,9 +462,7 @@ class ResourcePermission(Base):
     expires_at = Column(DateTime, nullable=True)
 
     __table_args__ = (
-        Index(
-            "idx_resource_perm_user_resource", "user_id", "resource_type", "resource_id"
-        ),
+        Index("idx_resource_perm_user_resource", "user_id", "resource_type", "resource_id"),
     )
 
     def __repr__(self):
@@ -555,9 +545,7 @@ class PermissionCache(Base):
 # Utility functions for common permission checks
 
 
-def get_user_role_in_org(
-    user_id: uuid.UUID, organization_id: uuid.UUID, db
-) -> Optional[Role]:
+def get_user_role_in_org(user_id: uuid.UUID, organization_id: uuid.UUID, db) -> Optional[Role]:
     """
     Get user's role in an organization
     Helper function to retrieve role from OrganizationMember
@@ -583,9 +571,7 @@ def get_user_role_in_org(
         return None
 
 
-def get_user_permissions(
-    user_id: uuid.UUID, organization_id: uuid.UUID, db
-) -> Set[Permission]:
+def get_user_permissions(user_id: uuid.UUID, organization_id: uuid.UUID, db) -> Set[Permission]:
     """
     Get all permissions for a user in an organization
     Combines role permissions, custom role permissions, and resource permissions

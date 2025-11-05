@@ -443,9 +443,7 @@ class AuditLogger:
             query = query.filter(ComplianceEvent.status == status)
 
         if requires_reporting is not None:
-            query = query.filter(
-                ComplianceEvent.requires_reporting == requires_reporting
-            )
+            query = query.filter(ComplianceEvent.requires_reporting == requires_reporting)
 
         if start_date:
             query = query.filter(ComplianceEvent.occurred_at >= start_date)
@@ -549,9 +547,7 @@ class AuditLogger:
                     "user_id": str(log.user_id) if log.user_id else None,
                     "username": log.username,
                     "user_email": log.user_email,
-                    "organization_id": (
-                        str(log.organization_id) if log.organization_id else None
-                    ),
+                    "organization_id": (str(log.organization_id) if log.organization_id else None),
                     "action": log.action,
                     "category": log.category,
                     "resource_type": log.resource_type,
@@ -665,9 +661,7 @@ class AuditLogger:
             "total_events": total_events,
             "failed_events": failed_events,
             "sensitive_actions": sensitive_actions,
-            "events_by_category": {
-                category: count for category, count in events_by_category
-            },
+            "events_by_category": {category: count for category, count in events_by_category},
             "top_users": [
                 {"user_id": str(user_id), "username": username, "event_count": count}
                 for user_id, username, count in top_users
@@ -731,9 +725,7 @@ class AuditLogger:
                 {
                     "log_type": policy.log_type,
                     "organization_id": (
-                        str(policy.organization_id)
-                        if policy.organization_id
-                        else "system"
+                        str(policy.organization_id) if policy.organization_id else "system"
                     ),
                     "records_deleted": deleted,
                     "cutoff_date": cutoff_date.isoformat(),

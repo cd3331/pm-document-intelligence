@@ -151,9 +151,7 @@ class UsageResponse(BaseModel):
 # ============================================================================
 
 
-@router.post(
-    "", response_model=OrganizationResponse, status_code=status.HTTP_201_CREATED
-)
+@router.post("", response_model=OrganizationResponse, status_code=status.HTTP_201_CREATED)
 async def create_organization(
     org_data: OrganizationCreate,
     current_user: User = Depends(get_current_user),
@@ -245,9 +243,7 @@ async def get_organization(
     )
 
     team_count = (
-        db.query(func.count(Team.id))
-        .filter(Team.organization_id == organization.id)
-        .scalar()
+        db.query(func.count(Team.id)).filter(Team.organization_id == organization.id).scalar()
     )
 
     return OrganizationResponse(
@@ -452,9 +448,7 @@ async def update_member_role(
     )
 
     if not member:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Member not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
 
     # Prevent changing own role
     if target_user_id == current_user.id:
@@ -499,9 +493,7 @@ async def remove_member(
     try:
         target_user_id = uuid.UUID(user_id)
     except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user ID"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user ID")
 
     # Cannot remove self
     if target_user_id == current_user.id:
@@ -521,9 +513,7 @@ async def remove_member(
     )
 
     if not member:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Member not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
 
     # Check if current user can remove this member
     try:
@@ -696,9 +686,7 @@ async def cancel_invitation(
     try:
         inv_id = uuid.UUID(invitation_id)
     except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid invitation ID"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid invitation ID")
 
     invitation = (
         db.query(OrganizationInvitation)
@@ -710,9 +698,7 @@ async def cancel_invitation(
     )
 
     if not invitation:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Invitation not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invitation not found")
 
     if invitation.status != "pending":
         raise HTTPException(
@@ -760,9 +746,7 @@ async def create_team(
     # Check if team name already exists in organization
     existing = (
         db.query(Team)
-        .filter(
-            Team.organization_id == org_ctx.organization_id, Team.name == team_data.name
-        )
+        .filter(Team.organization_id == org_ctx.organization_id, Team.name == team_data.name)
         .first()
     )
 
@@ -784,9 +768,7 @@ async def create_team(
     db.flush()
 
     # Add creator as team member
-    team_member = TeamMember(
-        team_id=team.id, user_id=current_user.id, added_by=current_user.id
-    )
+    team_member = TeamMember(team_id=team.id, user_id=current_user.id, added_by=current_user.id)
 
     db.add(team_member)
 
@@ -835,9 +817,7 @@ async def list_teams(
     result = []
     for team in teams:
         member_count = (
-            db.query(func.count(TeamMember.id))
-            .filter(TeamMember.team_id == team.id)
-            .scalar()
+            db.query(func.count(TeamMember.id)).filter(TeamMember.team_id == team.id).scalar()
         )
 
         result.append(
@@ -866,9 +846,7 @@ async def get_team(
     try:
         team_uuid = uuid.UUID(team_id)
     except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid team ID"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid team ID")
 
     team = (
         db.query(Team)
@@ -877,14 +855,10 @@ async def get_team(
     )
 
     if not team:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Team not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Team not found")
 
     member_count = (
-        db.query(func.count(TeamMember.id))
-        .filter(TeamMember.team_id == team.id)
-        .scalar()
+        db.query(func.count(TeamMember.id)).filter(TeamMember.team_id == team.id).scalar()
     )
 
     return TeamResponse(
@@ -910,9 +884,7 @@ async def update_team(
     try:
         team_uuid = uuid.UUID(team_id)
     except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid team ID"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid team ID")
 
     team = (
         db.query(Team)
@@ -921,9 +893,7 @@ async def update_team(
     )
 
     if not team:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Team not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Team not found")
 
     # Update fields
     update_data = team_update.model_dump(exclude_unset=True)
@@ -961,9 +931,7 @@ async def delete_team(
     try:
         team_uuid = uuid.UUID(team_id)
     except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid team ID"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid team ID")
 
     team = (
         db.query(Team)
@@ -972,9 +940,7 @@ async def delete_team(
     )
 
     if not team:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Team not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Team not found")
 
     # Log audit event
     audit_logger = AuditLogger(db)
@@ -993,9 +959,7 @@ async def delete_team(
     return {"message": "Team deleted successfully"}
 
 
-@router.get(
-    "/{organization_id}/teams/{team_id}/members", response_model=List[MemberResponse]
-)
+@router.get("/{organization_id}/teams/{team_id}/members", response_model=List[MemberResponse])
 @require_permission(Permission.TEAM_READ)
 async def list_team_members(
     organization_id: str,
@@ -1008,9 +972,7 @@ async def list_team_members(
     try:
         team_uuid = uuid.UUID(team_id)
     except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid team ID"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid team ID")
 
     # Verify team exists and belongs to organization
     team = (
@@ -1020,9 +982,7 @@ async def list_team_members(
     )
 
     if not team:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Team not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Team not found")
 
     members = db.query(TeamMember).filter(TeamMember.team_id == team_uuid).all()
 
@@ -1060,9 +1020,7 @@ async def add_team_member(
         team_uuid = uuid.UUID(team_id)
         user_uuid = uuid.UUID(user_id)
     except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid ID format"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid ID format")
 
     # Verify team exists
     team = (
@@ -1072,9 +1030,7 @@ async def add_team_member(
     )
 
     if not team:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Team not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Team not found")
 
     # Verify user is organization member
     org_member = (
@@ -1107,9 +1063,7 @@ async def add_team_member(
         )
 
     # Add team member
-    team_member = TeamMember(
-        team_id=team_uuid, user_id=user_uuid, added_by=current_user.id
-    )
+    team_member = TeamMember(team_id=team_uuid, user_id=user_uuid, added_by=current_user.id)
 
     db.add(team_member)
 
@@ -1144,9 +1098,7 @@ async def remove_team_member(
         team_uuid = uuid.UUID(team_id)
         user_uuid = uuid.UUID(user_id)
     except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid ID format"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid ID format")
 
     # Get team member
     team_member = (
@@ -1156,9 +1108,7 @@ async def remove_team_member(
     )
 
     if not team_member:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Team member not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Team member not found")
 
     # Log audit event
     audit_logger = AuditLogger(db)

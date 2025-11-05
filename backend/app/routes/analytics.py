@@ -44,9 +44,7 @@ async def get_document_stats(
     - Documents by type and status
     - Time series data for trends
     """
-    analytics_requests_total.labels(
-        endpoint="documents/stats", user_id=current_user.id
-    ).inc()
+    analytics_requests_total.labels(endpoint="documents/stats", user_id=current_user.id).inc()
 
     with track_request_duration(method="GET", endpoint="/analytics/documents/stats"):
         try:
@@ -62,9 +60,7 @@ async def get_document_stats(
             if current_user.is_superuser:
                 base_query = db.query(Document)
             else:
-                base_query = db.query(Document).filter(
-                    Document.user_id == current_user.id
-                )
+                base_query = db.query(Document).filter(Document.user_id == current_user.id)
 
             # Apply filters
             query = base_query.filter(Document.created_at.between(start_date, end_date))
@@ -97,9 +93,7 @@ async def get_document_stats(
             completed_docs = documents_by_status.get("completed", 0)
             failed_docs = documents_by_status.get("failed", 0)
             total_processed = completed_docs + failed_docs
-            success_rate = (
-                (completed_docs / total_processed * 100) if total_processed > 0 else 0
-            )
+            success_rate = (completed_docs / total_processed * 100) if total_processed > 0 else 0
 
             # Average processing time (for completed documents)
             avg_processing_time = analytics_service.get_avg_processing_time(
@@ -152,9 +146,7 @@ async def get_document_insights(
     - Risk indicators
     - Action item completion rates
     """
-    analytics_requests_total.labels(
-        endpoint="documents/insights", user_id=current_user.id
-    ).inc()
+    analytics_requests_total.labels(endpoint="documents/insights", user_id=current_user.id).inc()
 
     with track_request_duration(method="GET", endpoint="/analytics/documents/insights"):
         try:
@@ -177,9 +169,7 @@ async def get_document_insights(
             return insights
 
         except Exception as e:
-            api_logger.error(
-                f"Error generating document insights: {str(e)}", exc_info=True
-            )
+            api_logger.error(f"Error generating document insights: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -204,9 +194,7 @@ async def get_user_activity(
     - Search queries analysis
     - Feature usage statistics
     """
-    analytics_requests_total.labels(
-        endpoint="users/activity", user_id=current_user.id
-    ).inc()
+    analytics_requests_total.labels(endpoint="users/activity", user_id=current_user.id).inc()
 
     with track_request_duration(method="GET", endpoint="/analytics/users/activity"):
         try:
@@ -239,14 +227,11 @@ async def get_user_activity(
             )
 
             top_users = [
-                {"username": username, "document_count": count}
-                for username, count in docs_per_user
+                {"username": username, "document_count": count} for username, count in docs_per_user
             ]
 
             # Search queries analysis
-            search_analytics = analytics_service.get_search_analytics(
-                start_date, end_date
-            )
+            search_analytics = analytics_service.get_search_analytics(start_date, end_date)
 
             # Feature usage statistics
             feature_usage = analytics_service.get_feature_usage(start_date, end_date)
@@ -286,9 +271,7 @@ async def get_user_behavior(
     - Common workflows
     - Feature adoption rates
     """
-    analytics_requests_total.labels(
-        endpoint="users/behavior", user_id=current_user.id
-    ).inc()
+    analytics_requests_total.labels(endpoint="users/behavior", user_id=current_user.id).inc()
 
     with track_request_duration(method="GET", endpoint="/analytics/users/behavior"):
         try:
@@ -303,14 +286,10 @@ async def get_user_behavior(
             peak_times = analytics_service.get_peak_usage_times(start_date, end_date)
 
             # Common workflows (sequence of actions)
-            common_workflows = analytics_service.get_common_workflows(
-                start_date, end_date
-            )
+            common_workflows = analytics_service.get_common_workflows(start_date, end_date)
 
             # Feature adoption rates
-            adoption_rates = analytics_service.get_feature_adoption_rates(
-                start_date, end_date
-            )
+            adoption_rates = analytics_service.get_feature_adoption_rates(start_date, end_date)
 
             return {
                 "peak_usage_times": peak_times,
@@ -349,9 +328,7 @@ async def get_cost_breakdown(
     - Costs by document type
     - Trends over time
     """
-    analytics_requests_total.labels(
-        endpoint="costs/breakdown", user_id=current_user.id
-    ).inc()
+    analytics_requests_total.labels(endpoint="costs/breakdown", user_id=current_user.id).inc()
 
     with track_request_duration(method="GET", endpoint="/analytics/costs/breakdown"):
         try:
@@ -373,9 +350,7 @@ async def get_cost_breakdown(
             if group_by == "service":
                 breakdown = {}
                 for entry in cost_entries:
-                    breakdown[entry.service] = (
-                        breakdown.get(entry.service, 0) + entry.total_cost
-                    )
+                    breakdown[entry.service] = breakdown.get(entry.service, 0) + entry.total_cost
 
             elif group_by == "day":
                 breakdown = {}
@@ -390,14 +365,10 @@ async def get_cost_breakdown(
 
             # Service-specific breakdown
             aws_cost = sum(
-                entry.total_cost
-                for entry in cost_entries
-                if entry.service.startswith("aws_")
+                entry.total_cost for entry in cost_entries if entry.service.startswith("aws_")
             )
             openai_cost = sum(
-                entry.total_cost
-                for entry in cost_entries
-                if entry.service.startswith("openai_")
+                entry.total_cost for entry in cost_entries if entry.service.startswith("openai_")
             )
 
             return {
@@ -432,9 +403,7 @@ async def get_cost_optimization(
     - Recommend cheaper alternatives
     - ROI calculations
     """
-    analytics_requests_total.labels(
-        endpoint="costs/optimization", user_id=current_user.id
-    ).inc()
+    analytics_requests_total.labels(endpoint="costs/optimization", user_id=current_user.id).inc()
 
     with track_request_duration(method="GET", endpoint="/analytics/costs/optimization"):
         try:
@@ -451,9 +420,9 @@ async def get_cost_optimization(
             ]
 
             if recent_openai_costs:
-                avg_cost_per_operation = sum(
-                    e.total_cost for e in recent_openai_costs
-                ) / len(recent_openai_costs)
+                avg_cost_per_operation = sum(e.total_cost for e in recent_openai_costs) / len(
+                    recent_openai_costs
+                )
 
                 if avg_cost_per_operation > 0.05:  # $0.05 per operation
                     suggestions.append(
@@ -526,9 +495,7 @@ async def get_cost_optimization(
                 },
                 "potential_total_savings": (
                     sum(
-                        float(
-                            s.get("potential_savings", "0%").replace("%", "").split()[0]
-                        )
+                        float(s.get("potential_savings", "0%").replace("%", "").split()[0])
                         for s in suggestions
                         if "potential_savings" in s
                     )
@@ -538,9 +505,7 @@ async def get_cost_optimization(
             }
 
         except Exception as e:
-            api_logger.error(
-                f"Error getting cost optimization: {str(e)}", exc_info=True
-            )
+            api_logger.error(f"Error getting cost optimization: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -565,9 +530,7 @@ async def get_api_performance(
     - Request volume
     - Slowest endpoints
     """
-    analytics_requests_total.labels(
-        endpoint="performance/api", user_id=current_user.id
-    ).inc()
+    analytics_requests_total.labels(endpoint="performance/api", user_id=current_user.id).inc()
 
     with track_request_duration(method="GET", endpoint="/analytics/performance/api"):
         try:
@@ -620,9 +583,7 @@ async def get_processing_performance(
         endpoint="performance/processing", user_id=current_user.id
     ).inc()
 
-    with track_request_duration(
-        method="GET", endpoint="/analytics/performance/processing"
-    ):
+    with track_request_duration(method="GET", endpoint="/analytics/performance/processing"):
         try:
             analytics_service = AnalyticsService(db)
 
@@ -632,16 +593,12 @@ async def get_processing_performance(
                 start_date = end_date - timedelta(days=7)
 
             # Processing performance metrics
-            performance = analytics_service.get_processing_performance(
-                start_date, end_date
-            )
+            performance = analytics_service.get_processing_performance(start_date, end_date)
 
             return performance
 
         except Exception as e:
-            api_logger.error(
-                f"Error getting processing performance: {str(e)}", exc_info=True
-            )
+            api_logger.error(f"Error getting processing performance: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -670,9 +627,7 @@ async def generate_report(
     - format: pdf, excel, json
     - email_to: Optional email address for delivery
     """
-    analytics_requests_total.labels(
-        endpoint="reports/generate", user_id=current_user.id
-    ).inc()
+    analytics_requests_total.labels(endpoint="reports/generate", user_id=current_user.id).inc()
 
     try:
         report_generator = ReportGenerator(db)
@@ -808,9 +763,7 @@ async def export_to_csv(
 
         # Get data based on type
         if data_type == "documents":
-            data = analytics_service.get_documents_for_export(
-                start_date, end_date, current_user
-            )
+            data = analytics_service.get_documents_for_export(start_date, end_date, current_user)
         elif data_type == "users" and current_user.is_superuser:
             data = analytics_service.get_users_for_export(start_date, end_date)
         elif data_type == "costs" and current_user.is_superuser:
@@ -824,9 +777,7 @@ async def export_to_csv(
         df.to_csv(stream, index=False)
 
         response = StreamingResponse(iter([stream.getvalue()]), media_type="text/csv")
-        response.headers["Content-Disposition"] = (
-            f"attachment; filename={data_type}_export.csv"
-        )
+        response.headers["Content-Disposition"] = f"attachment; filename={data_type}_export.csv"
 
         return response
 

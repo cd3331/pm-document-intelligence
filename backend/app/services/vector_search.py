@@ -83,9 +83,7 @@ class VectorSearch:
                 embedding_record = {
                     "document_id": document_id,
                     "user_id": user_id,
-                    "embedding": embedding_data[
-                        "embedding"
-                    ],  # pgvector will handle this
+                    "embedding": embedding_data["embedding"],  # pgvector will handle this
                     "chunk_index": embedding_data["chunk_index"],
                     "chunk_text": embedding_data["chunk_text"],
                     "tokens": embedding_data["tokens"],
@@ -234,9 +232,7 @@ class VectorSearch:
                             "document_type": row["document_type"],
                             "similarity_score": float(row["similarity_score"]),
                             "created_at": (
-                                row["created_at"].isoformat()
-                                if row["created_at"]
-                                else None
+                                row["created_at"].isoformat() if row["created_at"] else None
                             ),
                             "word_count": row["word_count"],
                             "matched_chunk": {
@@ -267,9 +263,7 @@ class VectorSearch:
                     ttl=300,  # Cache for 5 minutes
                 )
 
-            logger.info(
-                f"Semantic search: {len(search_results)} results, {duration:.2f}s"
-            )
+            logger.info(f"Semantic search: {len(search_results)} results, {duration:.2f}s")
 
             return result
 
@@ -565,9 +559,7 @@ class VectorSearch:
 
             deleted_count = len(results)
 
-            logger.info(
-                f"Deleted {deleted_count} embeddings for document {document_id}"
-            )
+            logger.info(f"Deleted {deleted_count} embeddings for document {document_id}")
 
             return deleted_count
 

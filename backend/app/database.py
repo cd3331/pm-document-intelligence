@@ -73,9 +73,7 @@ def get_supabase_client() -> Client:
                 supabase_key=settings.supabase.supabase_key,
             )
 
-            logger.info(
-                f"Supabase client initialized: {settings.supabase.supabase_url}"
-            )
+            logger.info(f"Supabase client initialized: {settings.supabase.supabase_url}")
 
         except Exception as e:
             logger.error(f"Failed to create Supabase client: {e}", exc_info=True)
@@ -276,9 +274,7 @@ async def execute_insert(
 
         if response.data:
             logger.debug(f"Insert into {table} successful")
-            return (
-                response.data[0] if isinstance(response.data, list) else response.data
-            )
+            return response.data[0] if isinstance(response.data, list) else response.data
 
         raise DatabaseError(
             message="Insert returned no data",
@@ -334,9 +330,7 @@ async def execute_update(
 
         if response.data:
             logger.debug(f"Update in {table} successful")
-            return (
-                response.data[0] if isinstance(response.data, list) else response.data
-            )
+            return response.data[0] if isinstance(response.data, list) else response.data
 
         raise RecordNotFoundError(
             message=f"No record found in {table}",
@@ -569,9 +563,7 @@ async def batch_insert(
 
             logger.debug(f"Batch insert into {table}: {len(chunk)} rows")
 
-        logger.info(
-            f"Batch insert into {table} completed: {len(all_results)} total rows"
-        )
+        logger.info(f"Batch insert into {table} completed: {len(all_results)} total rows")
         return all_results
 
     except APIError as e:
@@ -621,9 +613,7 @@ async def search_full_text(
             .execute()
         )
 
-        logger.debug(
-            f"Full-text search in {table}.{column}: {len(response.data)} results"
-        )
+        logger.debug(f"Full-text search in {table}.{column}: {len(response.data)} results")
         return response.data if response.data else []
 
     except APIError as e:

@@ -46,42 +46,28 @@ class CostTracker:
         """Track S3 costs"""
         size_gb = size_bytes / (1024**3)
         cost = size_gb * self.AWS_PRICING["s3"]["storage_gb_month"] / 30  # Daily cost
-        self._add_entry(
-            "aws_s3", operation, size_gb, cost / size_gb if size_gb > 0 else 0, cost
-        )
+        self._add_entry("aws_s3", operation, size_gb, cost / size_gb if size_gb > 0 else 0, cost)
 
     def track_aws_textract(self, pages: int):
         """Track Textract costs"""
         unit_cost = self.AWS_PRICING["textract"]["page"]
         total_cost = pages * unit_cost
-        self._add_entry(
-            "aws_textract", "analyze_document", pages, unit_cost, total_cost
-        )
+        self._add_entry("aws_textract", "analyze_document", pages, unit_cost, total_cost)
 
     def track_aws_bedrock(self, model: str, input_tokens: int, output_tokens: int):
         """Track Bedrock costs"""
-        input_cost = (input_tokens / 1000) * self.AWS_PRICING["bedrock"][
-            "claude_input_1k"
-        ]
-        output_cost = (output_tokens / 1000) * self.AWS_PRICING["bedrock"][
-            "claude_output_1k"
-        ]
+        input_cost = (input_tokens / 1000) * self.AWS_PRICING["bedrock"]["claude_input_1k"]
+        output_cost = (output_tokens / 1000) * self.AWS_PRICING["bedrock"]["claude_output_1k"]
         total_cost = input_cost + output_cost
-        self._add_entry(
-            "aws_bedrock", model, input_tokens + output_tokens, 0, total_cost
-        )
+        self._add_entry("aws_bedrock", model, input_tokens + output_tokens, 0, total_cost)
 
-    def track_openai(
-        self, model: str, operation: str, input_tokens: int, output_tokens: int = 0
-    ):
+    def track_openai(self, model: str, operation: str, input_tokens: int, output_tokens: int = 0):
         """Track OpenAI costs"""
         pricing = self.OPENAI_PRICING.get(model, self.OPENAI_PRICING["gpt-3.5-turbo"])
         input_cost = (input_tokens / 1000) * pricing["input_1k"]
         output_cost = (output_tokens / 1000) * pricing.get("output_1k", 0)
         total_cost = input_cost + output_cost
-        self._add_entry(
-            f"openai_{model}", operation, input_tokens + output_tokens, 0, total_cost
-        )
+        self._add_entry(f"openai_{model}", operation, input_tokens + output_tokens, 0, total_cost)
 
     def _add_entry(
         self,
@@ -105,9 +91,7 @@ class CostTracker:
     def get_daily_cost(self) -> float:
         """Get total cost for today"""
         today = datetime.utcnow().date()
-        return sum(
-            e.total_cost for e in self.cost_history if e.timestamp.date() == today
-        )
+        return sum(e.total_cost for e in self.cost_history if e.timestamp.date() == today)
 
     def get_cost_by_service(self, days: int = 1) -> Dict[str, float]:
         """Get costs grouped by service"""

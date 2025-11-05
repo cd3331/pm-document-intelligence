@@ -123,9 +123,7 @@ class InvitationService:
     # Email Sending
     # ============================================================================
 
-    async def send_invitation_email(
-        self, invitation_id: uuid.UUID, organization_name: str
-    ):
+    async def send_invitation_email(self, invitation_id: uuid.UUID, organization_name: str):
         """
         Send invitation email to user
 
@@ -202,9 +200,7 @@ PM Document Intelligence Team
     # Invitation Validation and Acceptance
     # ============================================================================
 
-    async def validate_invitation_token(
-        self, token: str
-    ) -> Optional[OrganizationInvitation]:
+    async def validate_invitation_token(self, token: str) -> Optional[OrganizationInvitation]:
         """
         Validate an invitation token
 
@@ -229,9 +225,7 @@ PM Document Intelligence Team
 
         return invitation
 
-    async def accept_invitation(
-        self, token: str, user_id: uuid.UUID
-    ) -> OrganizationMember:
+    async def accept_invitation(self, token: str, user_id: uuid.UUID) -> OrganizationMember:
         """
         Accept an invitation and add user to organization
 
@@ -257,9 +251,7 @@ PM Document Intelligence Team
             raise ValueError("User not found")
 
         if user.email.lower() != invitation.email.lower():
-            raise ValueError(
-                "Email mismatch: invitation is for a different email address"
-            )
+            raise ValueError("Email mismatch: invitation is for a different email address")
 
         # Check if user is already a member
         existing_member = (
@@ -359,9 +351,7 @@ PM Document Intelligence Team
                 # Check if already a member
                 existing = (
                     self.db.query(TeamMember)
-                    .filter(
-                        TeamMember.team_id == team_id, TeamMember.user_id == user_id
-                    )
+                    .filter(TeamMember.team_id == team_id, TeamMember.user_id == user_id)
                     .first()
                 )
 
@@ -385,9 +375,7 @@ PM Document Intelligence Team
     # Invitation Management
     # ============================================================================
 
-    async def cancel_invitation(
-        self, invitation_id: uuid.UUID, cancelled_by: uuid.UUID
-    ):
+    async def cancel_invitation(self, invitation_id: uuid.UUID, cancelled_by: uuid.UUID):
         """
         Cancel a pending invitation
 
@@ -408,9 +396,7 @@ PM Document Intelligence Team
             raise ValueError("Invitation not found")
 
         if invitation.status != "pending":
-            raise ValueError(
-                f"Cannot cancel invitation with status '{invitation.status}'"
-            )
+            raise ValueError(f"Cannot cancel invitation with status '{invitation.status}'")
 
         invitation.status = "cancelled"
 
@@ -449,9 +435,7 @@ PM Document Intelligence Team
             raise ValueError("Invitation not found")
 
         if invitation.status != "pending":
-            raise ValueError(
-                f"Cannot resend invitation with status '{invitation.status}'"
-            )
+            raise ValueError(f"Cannot resend invitation with status '{invitation.status}'")
 
         # Extend expiration if close to expiring
         time_until_expiry = invitation.expires_at - datetime.utcnow()
@@ -602,9 +586,7 @@ PM Document Intelligence Team
         results = {"success": 0, "failed": 0, "details": []}
 
         organization = (
-            self.db.query(Organization)
-            .filter(Organization.id == organization_id)
-            .first()
+            self.db.query(Organization).filter(Organization.id == organization_id).first()
         )
 
         for email in email_list:
@@ -631,8 +613,6 @@ PM Document Intelligence Team
 
             except Exception as e:
                 results["failed"] += 1
-                results["details"].append(
-                    {"email": email, "status": "failed", "error": str(e)}
-                )
+                results["details"].append({"email": email, "status": "failed", "error": str(e)})
 
         return results

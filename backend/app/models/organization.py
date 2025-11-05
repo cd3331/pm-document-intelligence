@@ -55,9 +55,7 @@ class Organization(Base):
 
     # Plan and billing
     plan = Column(SQLEnum(PlanTier), default=PlanTier.FREE, nullable=False, index=True)
-    status = Column(
-        SQLEnum(OrganizationStatus), default=OrganizationStatus.ACTIVE, nullable=False
-    )
+    status = Column(SQLEnum(OrganizationStatus), default=OrganizationStatus.ACTIVE, nullable=False)
     trial_ends_at = Column(DateTime, nullable=True)
     subscription_id = Column(String(255), nullable=True)  # External billing system ID
 
@@ -83,9 +81,7 @@ class Organization(Base):
 
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
-    )
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     created_by = Column(UUID(as_uuid=True), nullable=True)  # User who created org
 
     # Relationships
@@ -94,9 +90,7 @@ class Organization(Base):
         back_populates="organization",
         cascade="all, delete-orphan",
     )
-    teams = relationship(
-        "Team", back_populates="organization", cascade="all, delete-orphan"
-    )
+    teams = relationship("Team", back_populates="organization", cascade="all, delete-orphan")
     documents = relationship("Document", back_populates="organization")
 
     def __repr__(self):
@@ -225,16 +219,12 @@ class Team(Base):
 
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
-    )
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     created_by = Column(UUID(as_uuid=True), nullable=True)
 
     # Relationships
     organization = relationship("Organization", back_populates="teams")
-    members = relationship(
-        "TeamMember", back_populates="team", cascade="all, delete-orphan"
-    )
+    members = relationship("TeamMember", back_populates="team", cascade="all, delete-orphan")
 
     # Unique constraint: team name must be unique within organization
     __table_args__ = (
@@ -426,9 +416,7 @@ class OrganizationUsage(Base):
 
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
-    )
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     # Relationships
     organization = relationship("Organization")

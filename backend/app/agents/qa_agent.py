@@ -29,9 +29,7 @@ class QAAgent(BaseAgent):
         """Validate input."""
         super().validate_input(input_data)
         if "question" not in input_data or not input_data["question"].strip():
-            raise ValidationError(
-                message="Question is required", details={"agent": self.name}
-            )
+            raise ValidationError(message="Question is required", details={"agent": self.name})
 
     async def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """Answer question using RAG."""

@@ -79,10 +79,7 @@ class AgentOrchestrator:
         for task_type in task_types:
             self.agent_registry[task_type] = agent.name
 
-        logger.info(
-            f"Registered agent {agent.name} for tasks: "
-            f"{[t.value for t in task_types]}"
-        )
+        logger.info(f"Registered agent {agent.name} for tasks: " f"{[t.value for t in task_types]}")
 
     def get_agent(self, task_type: TaskType) -> Optional[BaseAgent]:
         """
@@ -216,9 +213,7 @@ class AgentOrchestrator:
                     }
 
                     agent_tasks.append(
-                        self.route_task(
-                            task_type, input_data, task_id=f"{document_id}_{task}"
-                        )
+                        self.route_task(task_type, input_data, task_id=f"{document_id}_{task}")
                     )
 
                 except ValueError:
@@ -226,9 +221,7 @@ class AgentOrchestrator:
 
             # Wait for all tasks
             if agent_tasks:
-                task_results = await asyncio.gather(
-                    *agent_tasks, return_exceptions=True
-                )
+                task_results = await asyncio.gather(*agent_tasks, return_exceptions=True)
 
                 for task, result in zip(
                     [t for t in tasks if t not in [e["task"] for e in errors]],
@@ -313,9 +306,7 @@ class AgentOrchestrator:
 
         # Add conversation memory
         if conversation_id and conversation_id in self.conversation_memory:
-            input_data["conversation_history"] = self.conversation_memory[
-                conversation_id
-            ]
+            input_data["conversation_history"] = self.conversation_memory[conversation_id]
 
         result = await self.route_task(
             TaskType.QUESTION_ANSWER,
@@ -337,9 +328,9 @@ class AgentOrchestrator:
             )
 
             # Keep last 10 exchanges
-            self.conversation_memory[conversation_id] = self.conversation_memory[
-                conversation_id
-            ][-10:]
+            self.conversation_memory[conversation_id] = self.conversation_memory[conversation_id][
+                -10:
+            ]
 
         return result
 
@@ -385,9 +376,7 @@ class AgentOrchestrator:
         Returns:
             Status dictionary for all agents
         """
-        return {
-            agent_name: agent.get_status() for agent_name, agent in self.agents.items()
-        }
+        return {agent_name: agent.get_status() for agent_name, agent in self.agents.items()}
 
     def get_orchestrator_stats(self) -> Dict[str, Any]:
         """
@@ -396,9 +385,7 @@ class AgentOrchestrator:
         Returns:
             Statistics dictionary
         """
-        total_requests = sum(
-            agent.metrics.total_requests for agent in self.agents.values()
-        )
+        total_requests = sum(agent.metrics.total_requests for agent in self.agents.values())
 
         total_cost = sum(agent.metrics.total_cost for agent in self.agents.values())
 
@@ -439,9 +426,7 @@ class AgentOrchestrator:
         )
 
         circuit_open_agents = [
-            agent.name
-            for agent in self.agents.values()
-            if agent.circuit_breaker.state == "open"
+            agent.name for agent in self.agents.values() if agent.circuit_breaker.state == "open"
         ]
 
         overall_healthy = healthy_agents == len(self.agents)

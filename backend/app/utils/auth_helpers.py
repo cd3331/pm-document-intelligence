@@ -182,9 +182,7 @@ async def get_current_user(
 
         # Update last login time (async, don't wait)
         try:
-            await execute_update(
-                "users", {"last_login": datetime.utcnow()}, match={"id": user.id}
-            )
+            await execute_update("users", {"last_login": datetime.utcnow()}, match={"id": user.id})
         except Exception as e:
             logger.error(f"Failed to update last login: {e}")
 
@@ -390,9 +388,7 @@ async def check_account_lockout(email: str) -> bool:
 
     # Lock account after 5 failed attempts
     if len(failed_logins) >= 5:
-        logger.warning(
-            f"Account {email} locked due to {len(failed_logins)} failed attempts"
-        )
+        logger.warning(f"Account {email} locked due to {len(failed_logins)} failed attempts")
         return True
 
     return False
@@ -432,9 +428,7 @@ async def get_lockout_info(email: str) -> dict:
         # Get time until lockout expires (60 minutes from first failed attempt)
         first_attempt = failed_logins[-1]["created_at"]
         lockout_expires = first_attempt + timedelta(hours=1)
-        minutes_remaining = int(
-            (lockout_expires - datetime.utcnow()).total_seconds() / 60
-        )
+        minutes_remaining = int((lockout_expires - datetime.utcnow()).total_seconds() / 60)
 
         return {
             "locked": True,
@@ -531,9 +525,7 @@ async def verify_document_ownership(
 
     # Check document ownership
     try:
-        documents = await execute_select(
-            "documents", columns="user_id", match={"id": document_id}
-        )
+        documents = await execute_select("documents", columns="user_id", match={"id": document_id})
 
         if not documents:
             return False

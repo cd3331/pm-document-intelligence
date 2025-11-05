@@ -50,9 +50,7 @@ except ImportError:
 request_id_var: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
     "request_id", default=None
 )
-user_id_var: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
-    "user_id", default=None
-)
+user_id_var: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar("user_id", default=None)
 
 
 # Type variable for decorators
@@ -184,9 +182,7 @@ class ColoredFormatter(logging.Formatter):
         # Add color based on log level
         levelname = record.levelname
         if levelname in self.COLORS:
-            record.levelname = (
-                f"{self.COLORS[levelname]}{self.BOLD}{levelname}{self.RESET}"
-            )
+            record.levelname = f"{self.COLORS[levelname]}{self.BOLD}{levelname}{self.RESET}"
 
         # Add context if available
         request_id = request_id_var.get()
@@ -306,9 +302,7 @@ def setup_logging(
             file_handler.setLevel(getattr(logging, log_level.upper()))
 
             # Always use JSON format for file logs
-            file_formatter = CustomJSONFormatter(
-                "%(timestamp)s %(level)s %(name)s %(message)s"
-            )
+            file_formatter = CustomJSONFormatter("%(timestamp)s %(level)s %(name)s %(message)s")
             file_handler.setFormatter(file_formatter)
             root_logger.addHandler(file_handler)
         except Exception as e:

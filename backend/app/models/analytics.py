@@ -56,9 +56,7 @@ class CachedMetric(Base):
     metric_key = Column(String(255), unique=True, nullable=False, index=True)
     metric_value = Column(JSONB, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
-    )
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     expires_at = Column(DateTime, nullable=False, index=True)
 
     def __repr__(self):
@@ -87,9 +85,7 @@ class ReportSchedule(Base):
     last_generated_at = Column(DateTime)
     next_scheduled_at = Column(DateTime, nullable=False, index=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
-    )
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     def __repr__(self):
         return f"<ReportSchedule(type={self.report_type}, frequency={self.frequency})>"
@@ -105,17 +101,13 @@ class UserDashboardConfig(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), unique=True, nullable=False, index=True)
-    widgets = Column(
-        JSONB, nullable=False, default=list
-    )  # List of widget configurations
+    widgets = Column(JSONB, nullable=False, default=list)  # List of widget configurations
     layout = Column(JSONB, nullable=False, default=dict)  # Grid layout configuration
     theme = Column(String(20), default="light")  # light, dark
     refresh_interval = Column(Integer, default=30)  # seconds
     date_range_default = Column(String(20), default="30d")  # Default date range
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
-    )
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     def __repr__(self):
         return f"<UserDashboardConfig(user_id={self.user_id})>"
@@ -161,9 +153,7 @@ class MetricAlert(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String(255), nullable=False)
-    metric_type = Column(
-        String(100), nullable=False, index=True
-    )  # documents, costs, performance
+    metric_type = Column(String(100), nullable=False, index=True)  # documents, costs, performance
     metric_key = Column(String(255), nullable=False)
     condition = Column(String(20), nullable=False)  # gt, lt, eq, gte, lte
     threshold = Column(Float, nullable=False)
@@ -174,9 +164,7 @@ class MetricAlert(Base):
     cooldown_minutes = Column(Integer, default=60)  # Minimum time between alerts
     created_by = Column(UUID(as_uuid=True), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
-    )
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     def __repr__(self):
         return f"<MetricAlert(name={self.name}, metric={self.metric_key})>"
@@ -188,9 +176,7 @@ class MetricAlert(Base):
 
         # Check cooldown
         if self.last_triggered_at:
-            minutes_since_last = (
-                datetime.utcnow() - self.last_triggered_at
-            ).total_seconds() / 60
+            minutes_since_last = (datetime.utcnow() - self.last_triggered_at).total_seconds() / 60
             if minutes_since_last < self.cooldown_minutes:
                 return False
 

@@ -473,9 +473,7 @@ async def login(
         tokens = create_token_pair(user)
 
         # Update last login
-        await execute_update(
-            "users", {"last_login": datetime.utcnow()}, match={"id": user.id}
-        )
+        await execute_update("users", {"last_login": datetime.utcnow()}, match={"id": user.id})
 
         # Invalidate user cache
         await invalidate_user_cache(user.id)
@@ -619,9 +617,7 @@ async def logout(
 
     logger.info(f"User logged out: {current_user.id}")
 
-    return MessageResponse(
-        message="Logout successful. Please delete tokens from client storage."
-    )
+    return MessageResponse(message="Logout successful. Please delete tokens from client storage.")
 
 
 # ============================================================================
@@ -723,16 +719,12 @@ async def request_password_reset(
             logger.debug(f"Password reset requested for non-existent email: {email}")
 
         # Always return success for security
-        return MessageResponse(
-            message="If the email exists, a password reset link has been sent."
-        )
+        return MessageResponse(message="If the email exists, a password reset link has been sent.")
 
     except Exception as e:
         logger.error(f"Password reset request error: {e}", exc_info=True)
         # Don't reveal errors to user
-        return MessageResponse(
-            message="If the email exists, a password reset link has been sent."
-        )
+        return MessageResponse(message="If the email exists, a password reset link has been sent.")
 
 
 @router.post(

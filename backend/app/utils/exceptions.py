@@ -520,9 +520,7 @@ class ServiceError(BaseAPIException):
 
 
 # Exception handler for FastAPI
-async def api_exception_handler(
-    request: Request, exc: BaseAPIException
-) -> JSONResponse:
+async def api_exception_handler(request: Request, exc: BaseAPIException) -> JSONResponse:
     """
     Global exception handler for API exceptions.
 

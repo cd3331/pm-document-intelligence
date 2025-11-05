@@ -160,9 +160,7 @@ class UserPreferences(BaseModel):
     theme: str = Field(default="light", description="UI theme (light/dark)")
     language: str = Field(default="en", description="Preferred language")
     timezone: str = Field(default="UTC", description="User timezone")
-    notifications_enabled: bool = Field(
-        default=True, description="Enable notifications"
-    )
+    notifications_enabled: bool = Field(default=True, description="Enable notifications")
     email_notifications: bool = Field(default=True, description="Email notifications")
     default_view: str = Field(default="grid", description="Default document view")
 
@@ -190,12 +188,8 @@ class UserBase(BaseModel):
     """Base user model with common fields."""
 
     email: EmailStr = Field(..., description="User email address")
-    full_name: str = Field(
-        ..., min_length=1, max_length=255, description="User full name"
-    )
-    organization: Optional[str] = Field(
-        None, max_length=255, description="Organization name"
-    )
+    full_name: str = Field(..., min_length=1, max_length=255, description="User full name")
+    organization: Optional[str] = Field(None, max_length=255, description="Organization name")
     role: UserRole = Field(default=UserRole.USER, description="User role")
     is_active: bool = Field(default=True, description="Account active status")
     preferences: UserPreferences = Field(
@@ -435,9 +429,7 @@ def create_refresh_token(
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(
-            days=settings.security.jwt_refresh_token_expire_days
-        )
+        expire = datetime.utcnow() + timedelta(days=settings.security.jwt_refresh_token_expire_days)
 
     to_encode.update({"exp": expire, "type": "refresh"})
 
@@ -495,11 +487,7 @@ def verify_token(token: str, token_type: str = "access") -> TokenData:
             sub=user_id,
             email=payload.get("email"),
             role=payload.get("role"),
-            exp=(
-                datetime.fromtimestamp(payload.get("exp"))
-                if payload.get("exp")
-                else None
-            ),
+            exp=(datetime.fromtimestamp(payload.get("exp")) if payload.get("exp") else None),
         )
 
         logger.debug(f"Token verified for user: {user_id}")

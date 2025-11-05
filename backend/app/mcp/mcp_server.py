@@ -79,9 +79,7 @@ class QueryDatabaseParams(BaseModel):
         description="Type of query: documents, action_items, analyses",
         pattern="^(documents|action_items|analyses|users)$",
     )
-    filters: Dict[str, Any] = Field(
-        default_factory=dict, description="Filter conditions"
-    )
+    filters: Dict[str, Any] = Field(default_factory=dict, description="Filter conditions")
     limit: int = Field(default=20, ge=1, le=100)
     user_id: str = Field(..., description="User ID for access control")
 
@@ -469,9 +467,7 @@ class PMIntelligenceMCP:
             }
 
             # Execute query
-            results = await execute_select(
-                table, match=safe_filters, limit=params.limit
-            )
+            results = await execute_select(table, match=safe_filters, limit=params.limit)
 
             self.context.record_tool_usage("query_database")
 
@@ -718,9 +714,7 @@ class PMIntelligenceMCP:
             logger.error(f"get_document_resource failed: {e}", exc_info=True)
             return {"success": False, "error": str(e), "uri": uri}
 
-    async def get_user_resource(
-        self, uri: str, requesting_user_id: str
-    ) -> Dict[str, Any]:
+    async def get_user_resource(self, uri: str, requesting_user_id: str) -> Dict[str, Any]:
         """
         Get user resource by URI.
 
@@ -759,9 +753,7 @@ class PMIntelligenceMCP:
             user = users[0]
 
             # Get preferences
-            preferences = await execute_select(
-                "user_preferences", match={"user_id": user_id}
-            )
+            preferences = await execute_select("user_preferences", match={"user_id": user_id})
 
             return {
                 "uri": uri,
@@ -884,21 +876,13 @@ Be concise but thorough. If the question relates to previous conversation, maint
         filtered = results
 
         if "document_type" in filters:
-            filtered = [
-                r
-                for r in filtered
-                if r.get("document_type") == filters["document_type"]
-            ]
+            filtered = [r for r in filtered if r.get("document_type") == filters["document_type"]]
 
         if "date_range" in filters:
             start = filters["date_range"].get("start")
             end = filters["date_range"].get("end")
             # Filter by date range
-            filtered = [
-                r
-                for r in filtered
-                if self._in_date_range(r.get("created_at"), start, end)
-            ]
+            filtered = [r for r in filtered if self._in_date_range(r.get("created_at"), start, end)]
 
         return filtered
 
@@ -1119,9 +1103,7 @@ Be concise but thorough. If the question relates to previous conversation, maint
     # Public API
     # ========================================================================
 
-    async def call_tool(
-        self, tool_name: str, parameters: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def call_tool(self, tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
         """
         Call an MCP tool.
 

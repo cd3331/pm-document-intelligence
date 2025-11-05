@@ -120,8 +120,7 @@ async def analyze_document(
             user_id=current_user.id,
             task="deep_analysis",
             options={
-                "document_type": document["document_type"]
-                or analysis_request.document_type,
+                "document_type": document["document_type"] or analysis_request.document_type,
                 "include_risks": analysis_request.include_risks,
                 "include_opportunities": analysis_request.include_opportunities,
             },

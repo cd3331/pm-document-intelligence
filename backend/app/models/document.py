@@ -99,9 +99,7 @@ class ProcessingStage(str, Enum):
 class ExtractedEntity(BaseModel):
     """Extracted entity from document."""
 
-    type: str = Field(
-        ..., description="Entity type (person, organization, location, etc.)"
-    )
+    type: str = Field(..., description="Entity type (person, organization, location, etc.)")
     text: str = Field(..., description="Entity text")
     confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score")
     start_offset: Optional[int] = Field(None, description="Start character offset")
@@ -129,9 +127,7 @@ class ActionItem(BaseModel):
     assignee: Optional[str] = Field(None, description="Assigned person")
     due_date: Optional[datetime] = Field(None, description="Due date")
     status: str = Field(default="pending", description="Action item status")
-    confidence: float = Field(
-        default=0.0, ge=0.0, le=1.0, description="Confidence score"
-    )
+    confidence: float = Field(default=0.0, ge=0.0, le=1.0, description="Confidence score")
 
     class Config:
         """Pydantic configuration."""
@@ -155,9 +151,7 @@ class SentimentScore(BaseModel):
     negative: float = Field(..., ge=0.0, le=1.0, description="Negative sentiment score")
     neutral: float = Field(..., ge=0.0, le=1.0, description="Neutral sentiment score")
     mixed: float = Field(..., ge=0.0, le=1.0, description="Mixed sentiment score")
-    overall: str = Field(
-        ..., description="Overall sentiment (positive/negative/neutral/mixed)"
-    )
+    overall: str = Field(..., description="Overall sentiment (positive/negative/neutral/mixed)")
 
     class Config:
         """Pydantic configuration."""
@@ -204,9 +198,7 @@ class VectorEmbedding(BaseModel):
     model: str = Field(..., description="Embedding model used")
     dimension: int = Field(..., description="Embedding dimension")
     chunk_count: int = Field(default=0, description="Number of text chunks embedded")
-    metadata: Dict[str, Any] = Field(
-        default_factory=dict, description="Additional metadata"
-    )
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
 
     class Config:
         """Pydantic configuration."""
@@ -224,15 +216,11 @@ class VectorEmbedding(BaseModel):
 class ProcessingError(BaseModel):
     """Processing error information."""
 
-    stage: ProcessingStage = Field(
-        ..., description="Processing stage where error occurred"
-    )
+    stage: ProcessingStage = Field(..., description="Processing stage where error occurred")
     error_type: str = Field(..., description="Error type")
     message: str = Field(..., description="Error message")
     details: Dict[str, Any] = Field(default_factory=dict, description="Error details")
-    timestamp: datetime = Field(
-        default_factory=datetime.utcnow, description="Error timestamp"
-    )
+    timestamp: datetime = Field(default_factory=datetime.utcnow, description="Error timestamp")
     retryable: bool = Field(default=False, description="Whether error is retryable")
 
     class Config:
@@ -258,18 +246,12 @@ class ProcessingError(BaseModel):
 class DocumentBase(BaseModel):
     """Base document model."""
 
-    filename: str = Field(
-        ..., min_length=1, max_length=255, description="Original filename"
-    )
+    filename: str = Field(..., min_length=1, max_length=255, description="Original filename")
     file_type: str = Field(..., description="MIME type of the file")
     size: int = Field(..., gt=0, description="File size in bytes")
-    description: Optional[str] = Field(
-        None, max_length=1000, description="Document description"
-    )
+    description: Optional[str] = Field(None, max_length=1000, description="Document description")
     tags: List[str] = Field(default_factory=list, description="Document tags")
-    metadata: Dict[str, Any] = Field(
-        default_factory=dict, description="Additional metadata"
-    )
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
 
     @field_validator("filename")
     @classmethod
@@ -363,9 +345,7 @@ class DocumentInDB(DocumentBase):
     summary: Optional[str] = Field(None, description="Document summary")
 
     # Storage references
-    s3_reference: Optional[S3Reference] = Field(
-        None, description="S3 storage reference"
-    )
+    s3_reference: Optional[S3Reference] = Field(None, description="S3 storage reference")
     vector_embedding: Optional[VectorEmbedding] = Field(
         None,
         description="Vector embedding reference",
@@ -436,19 +416,13 @@ class Document(DocumentBase):
     id: str = Field(..., description="Document ID (UUID)")
     user_id: str = Field(..., description="User ID who uploaded the document")
     status: DocumentStatus = Field(..., description="Processing status")
-    current_stage: Optional[ProcessingStage] = Field(
-        None, description="Current processing stage"
-    )
+    current_stage: Optional[ProcessingStage] = Field(None, description="Current processing stage")
 
     # Summary information (not full content)
-    has_extracted_text: bool = Field(
-        default=False, description="Whether text was extracted"
-    )
+    has_extracted_text: bool = Field(default=False, description="Whether text was extracted")
     entity_count: int = Field(default=0, description="Number of extracted entities")
     action_item_count: int = Field(default=0, description="Number of action items")
-    has_sentiment: bool = Field(
-        default=False, description="Whether sentiment was analyzed"
-    )
+    has_sentiment: bool = Field(default=False, description="Whether sentiment was analyzed")
 
     # Storage info
     s3_reference: Optional[S3Reference] = None
@@ -489,9 +463,7 @@ class DocumentStats(BaseModel):
     by_status: Dict[str, int] = Field(..., description="Document count by status")
     by_type: Dict[str, int] = Field(..., description="Document count by type")
     total_size_bytes: int = Field(..., description="Total size of all documents")
-    average_processing_time: float = Field(
-        ..., description="Average processing time in seconds"
-    )
+    average_processing_time: float = Field(..., description="Average processing time in seconds")
     total_entities: int = Field(..., description="Total extracted entities")
     total_action_items: int = Field(..., description="Total action items")
 

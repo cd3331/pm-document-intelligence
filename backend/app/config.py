@@ -795,9 +795,7 @@ class Settings(BaseSettings):
             if self.reload:
                 raise ValueError("Auto-reload must be disabled in production")
             if len(self.secret_key) < 32:
-                raise ValueError(
-                    "Secret key must be at least 32 characters in production"
-                )
+                raise ValueError("Secret key must be at least 32 characters in production")
             if self.monitoring.log_level == "DEBUG":
                 raise ValueError("Log level must not be DEBUG in production")
 

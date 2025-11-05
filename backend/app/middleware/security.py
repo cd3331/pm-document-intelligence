@@ -124,8 +124,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             CSP header string
         """
         return "; ".join(
-            f"{key} {value}" if value else key
-            for key, value in self.csp_directives.items()
+            f"{key} {value}" if value else key for key, value in self.csp_directives.items()
         )
 
     def _build_hsts_header(self) -> str:
@@ -201,9 +200,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
         # Cache-Control for sensitive endpoints
         if settings.is_production:
-            response.headers["Cache-Control"] = (
-                "no-store, no-cache, must-revalidate, private"
-            )
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, private"
             response.headers["Pragma"] = "no-cache"
 
 
@@ -565,9 +562,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         else:
             return "default"
 
-    async def _check_rate_limit(
-        self, client_id: str, limit_key: str
-    ) -> tuple[bool, int]:
+    async def _check_rate_limit(self, client_id: str, limit_key: str) -> tuple[bool, int]:
         """
         Check if request is within rate limit.
 

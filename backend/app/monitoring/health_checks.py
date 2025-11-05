@@ -132,9 +132,7 @@ class HealthCheck:
 
         return {
             "status": (
-                HealthStatus.HEALTHY.value
-                if overall_healthy
-                else HealthStatus.UNHEALTHY.value
+                HealthStatus.HEALTHY.value if overall_healthy else HealthStatus.UNHEALTHY.value
             ),
             "services": services_status,
         }

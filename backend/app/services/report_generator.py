@@ -60,9 +60,7 @@ class ReportGenerator:
     ):
         """Generate report and send via email"""
         try:
-            app_logger.info(
-                f"Generating {report_type} report in {format} format", user_id=user_id
-            )
+            app_logger.info(f"Generating {report_type} report in {format} format", user_id=user_id)
 
             # Collect data
             report_data = await self._collect_report_data(start_date, end_date)
@@ -91,9 +89,7 @@ class ReportGenerator:
             )
 
         except Exception as e:
-            app_logger.error(
-                f"Error generating/sending report: {str(e)}", exc_info=True
-            )
+            app_logger.error(f"Error generating/sending report: {str(e)}", exc_info=True)
             raise
 
     async def _collect_report_data(
@@ -136,9 +132,7 @@ class ReportGenerator:
         )
 
         # Processing performance
-        performance = self.analytics_service.get_processing_performance(
-            start_date, end_date
-        )
+        performance = self.analytics_service.get_processing_performance(start_date, end_date)
 
         # User activity
         active_users = (
@@ -159,9 +153,7 @@ class ReportGenerator:
         return {
             "total_documents": total_docs,
             "completed_documents": completed_docs,
-            "success_rate": round(
-                (completed_docs / total_docs * 100) if total_docs > 0 else 0, 2
-            ),
+            "success_rate": round((completed_docs / total_docs * 100) if total_docs > 0 else 0, 2),
             "time_series": time_series,
             "performance": performance,
             "active_users": active_users,
@@ -241,9 +233,7 @@ class ReportGenerator:
 
             # Performance Metrics
             if data.get("performance"):
-                story.append(
-                    Paragraph("<b>Performance Metrics</b>", styles["Heading2"])
-                )
+                story.append(Paragraph("<b>Performance Metrics</b>", styles["Heading2"]))
                 story.append(Spacer(1, 0.2 * inch))
 
                 perf = data["performance"]["overall_metrics"]
@@ -275,11 +265,7 @@ class ReportGenerator:
             if data.get("time_series") and len(data["time_series"]) > 0:
                 chart_image = self._create_time_series_chart(data["time_series"])
                 if chart_image:
-                    story.append(
-                        Paragraph(
-                            "<b>Document Processing Trend</b>", styles["Heading2"]
-                        )
-                    )
+                    story.append(Paragraph("<b>Document Processing Trend</b>", styles["Heading2"]))
                     story.append(Spacer(1, 0.2 * inch))
                     story.append(chart_image)
                     story.append(Spacer(1, 0.3 * inch))
@@ -302,9 +288,7 @@ class ReportGenerator:
             app_logger.error(f"Error generating PDF report: {str(e)}", exc_info=True)
             raise
 
-    def _create_time_series_chart(
-        self, time_series_data: List[Dict]
-    ) -> Optional[Image]:
+    def _create_time_series_chart(self, time_series_data: List[Dict]) -> Optional[Image]:
         """Create time series chart for PDF"""
         try:
             # Extract dates and counts
@@ -355,9 +339,7 @@ class ReportGenerator:
             ws_summary.title = "Summary"
 
             # Title
-            ws_summary["A1"] = (
-                f"PM Document Intelligence - {report_type.title()} Report"
-            )
+            ws_summary["A1"] = f"PM Document Intelligence - {report_type.title()} Report"
             ws_summary["A1"].font = Font(size=16, bold=True)
             ws_summary["A2"] = (
                 f"Period: {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"

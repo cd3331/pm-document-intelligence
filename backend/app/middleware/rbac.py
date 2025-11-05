@@ -161,9 +161,7 @@ async def get_organization_context(
     organization = db.query(Organization).filter(Organization.id == org_id).first()
 
     if not organization:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found")
 
     member = (
         db.query(OrganizationMember)
@@ -200,11 +198,7 @@ async def get_organization_context(
             pass
 
     if team_id:
-        team = (
-            db.query(Team)
-            .filter(Team.id == team_id, Team.organization_id == org_id)
-            .first()
-        )
+        team = db.query(Team).filter(Team.id == team_id, Team.organization_id == org_id).first()
 
     return OrganizationContext(
         organization_id=org_id,
@@ -350,10 +344,7 @@ def require_role(min_role: Role):
                     detail="Organization context not found",
                 )
 
-            if (
-                not org_ctx.role
-                or org_ctx.role.hierarchy_level < min_role.hierarchy_level
-            ):
+            if not org_ctx.role or org_ctx.role.hierarchy_level < min_role.hierarchy_level:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=f"Permission denied: {min_role.value} role or higher required",
@@ -647,9 +638,7 @@ def require_team_membership(func: Callable):
         # Check team membership
         membership = (
             db.query(TeamMember)
-            .filter(
-                TeamMember.team_id == team_id, TeamMember.user_id == current_user.id
-            )
+            .filter(TeamMember.team_id == team_id, TeamMember.user_id == current_user.id)
             .first()
         )
 

@@ -41,11 +41,7 @@ class FeedbackCollector:
         Returns:
             Feedback record
         """
-        result = (
-            self.db.query(ProcessingResult)
-            .filter(ProcessingResult.id == result_id)
-            .first()
-        )
+        result = self.db.query(ProcessingResult).filter(ProcessingResult.id == result_id).first()
 
         if not result:
             raise ValueError(f"Result {result_id} not found")
@@ -92,9 +88,7 @@ class FeedbackCollector:
 
         cutoff = datetime.utcnow() - timedelta(days=time_window_days)
 
-        query = self.db.query(ProcessingResult).filter(
-            ProcessingResult.created_at >= cutoff
-        )
+        query = self.db.query(ProcessingResult).filter(ProcessingResult.created_at >= cutoff)
 
         if document_type:
             query = query.join(Document).filter(Document.document_type == document_type)
@@ -130,12 +124,8 @@ class FeedbackCollector:
             "total_with_feedback": total_with_feedback,
             "feedback_rate": total_with_feedback / len(results) if results else 0,
             "ratings": {"positive": positive, "negative": negative, "neutral": neutral},
-            "positive_rate": (
-                positive / total_with_feedback if total_with_feedback > 0 else 0
-            ),
-            "common_issues": sorted(
-                issue_counts.items(), key=lambda x: x[1], reverse=True
-            )[:10],
+            "positive_rate": (positive / total_with_feedback if total_with_feedback > 0 else 0),
+            "common_issues": sorted(issue_counts.items(), key=lambda x: x[1], reverse=True)[:10],
         }
 
     def get_corrections_for_training(
@@ -180,9 +170,7 @@ class FeedbackCollector:
                     "id": str(result.id),
                     "original_output": result.result_data,
                     "corrected_output": feedback["corrections"],
-                    "input_text": (
-                        doc.extracted_text[:4000] if doc.extracted_text else ""
-                    ),
+                    "input_text": (doc.extracted_text[:4000] if doc.extracted_text else ""),
                     "document_type": doc.document_type,
                     "confidence": 1.0 if feedback["rating"] == "positive" else 0.5,
                 }
@@ -234,9 +222,7 @@ class FeedbackAnalyzer:
         cutoff = datetime.utcnow() - timedelta(days=time_window_days)
 
         results = (
-            self.db.query(ProcessingResult)
-            .filter(ProcessingResult.created_at >= cutoff)
-            .all()
+            self.db.query(ProcessingResult).filter(ProcessingResult.created_at >= cutoff).all()
         )
 
         # Group by week

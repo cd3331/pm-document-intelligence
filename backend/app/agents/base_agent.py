@@ -131,9 +131,7 @@ class AgentMetrics:
             "average_cost_usd": self.get_average_cost(),
             "total_cost_usd": self.total_cost,
             "last_execution": (
-                self.last_execution_time.isoformat()
-                if self.last_execution_time
-                else None
+                self.last_execution_time.isoformat() if self.last_execution_time else None
             ),
             "last_error": self.last_error,
             "errors_by_type": self.errors_by_type.copy(),
@@ -241,9 +239,7 @@ class AgentCircuitBreaker:
         self.state = "half-open"
         self.success_count = 0
 
-        logger.info(
-            f"Circuit breaker HALF-OPEN for agent {self.agent_name}, testing recovery"
-        )
+        logger.info(f"Circuit breaker HALF-OPEN for agent {self.agent_name}, testing recovery")
 
     def _close_circuit(self) -> None:
         """Close circuit breaker (recovered)."""
@@ -493,17 +489,13 @@ class BaseAgent(ABC):
         now = time.time()
 
         # Remove timestamps older than 1 minute
-        self.request_timestamps = [
-            ts for ts in self.request_timestamps if now - ts < 60
-        ]
+        self.request_timestamps = [ts for ts in self.request_timestamps if now - ts < 60]
 
         # Check if at limit
         if len(self.request_timestamps) >= self.max_requests_per_minute:
             wait_time = 60 - (now - self.request_timestamps[0])
 
-            logger.warning(
-                f"Agent {self.name} rate limit reached, waiting {wait_time:.2f}s"
-            )
+            logger.warning(f"Agent {self.name} rate limit reached, waiting {wait_time:.2f}s")
 
             self.status = AgentStatus.RATE_LIMITED
 

@@ -89,9 +89,7 @@ class QuotaManager:
         day_end = day_start + timedelta(days=1)
         return day_start, day_end
 
-    def get_or_create_usage_record(
-        self, organization_id: uuid.UUID
-    ) -> OrganizationUsage:
+    def get_or_create_usage_record(self, organization_id: uuid.UUID) -> OrganizationUsage:
         """
         Get or create usage record for current period
         """
@@ -177,9 +175,7 @@ class QuotaManager:
 
         return daily_usage.get(today_key, 0)
 
-    async def get_current_usage(
-        self, organization_id: uuid.UUID, quota_name: str
-    ) -> int:
+    async def get_current_usage(self, organization_id: uuid.UUID, quota_name: str) -> int:
         """
         Get current usage for a specific quota
 
@@ -249,9 +245,7 @@ class QuotaManager:
             - (False, error_message) if quota exceeded
         """
         organization = (
-            self.db.query(Organization)
-            .filter(Organization.id == organization_id)
-            .first()
+            self.db.query(Organization).filter(Organization.id == organization_id).first()
         )
 
         if not organization:
@@ -284,9 +278,7 @@ class QuotaManager:
 
         return True, None
 
-    async def enforce_quota(
-        self, organization_id: uuid.UUID, quota_name: str, increment: int = 1
-    ):
+    async def enforce_quota(self, organization_id: uuid.UUID, quota_name: str, increment: int = 1):
         """
         Enforce quota - raises exception if exceeded
 
@@ -298,16 +290,12 @@ class QuotaManager:
         Raises:
             QuotaExceededException: If quota would be exceeded
         """
-        has_quota, error_msg = await self.check_quota(
-            organization_id, quota_name, increment
-        )
+        has_quota, error_msg = await self.check_quota(organization_id, quota_name, increment)
 
         if not has_quota:
             current = await self.get_current_usage(organization_id, quota_name)
             organization = (
-                self.db.query(Organization)
-                .filter(Organization.id == organization_id)
-                .first()
+                self.db.query(Organization).filter(Organization.id == organization_id).first()
             )
             limit = organization.get_plan_limits().get(quota_name, 0)
 
@@ -319,9 +307,7 @@ class QuotaManager:
     # Usage Incrementing
     # ============================================================================
 
-    async def increment_document_count(
-        self, organization_id: uuid.UUID, count: int = 1
-    ):
+    async def increment_document_count(self, organization_id: uuid.UUID, count: int = 1):
         """
         Increment document creation count
         Checks quota before incrementing
@@ -358,9 +344,7 @@ class QuotaManager:
         if "daily_api_calls" not in details:
             details["daily_api_calls"] = {}
 
-        details["daily_api_calls"][today_key] = (
-            details["daily_api_calls"].get(today_key, 0) + count
-        )
+        details["daily_api_calls"][today_key] = details["daily_api_calls"].get(today_key, 0) + count
         usage.usage_details = details
 
         self.db.commit()
@@ -401,9 +385,7 @@ class QuotaManager:
         if bytes_delta > 0:
             new_gb = new_storage / (1024**3)
             organization = (
-                self.db.query(Organization)
-                .filter(Organization.id == organization_id)
-                .first()
+                self.db.query(Organization).filter(Organization.id == organization_id).first()
             )
             limits = organization.get_plan_limits()
             storage_limit_gb = limits.get("storage_gb", 0)
@@ -457,18 +439,14 @@ class QuotaManager:
     # Quota Warnings and Notifications
     # ============================================================================
 
-    async def _check_and_notify_warnings(
-        self, organization_id: uuid.UUID, quota_name: str
-    ):
+    async def _check_and_notify_warnings(self, organization_id: uuid.UUID, quota_name: str):
         """
         Check if quota is approaching limit and send notifications
 
         Sends notifications at 70%, 80%, 95% thresholds
         """
         organization = (
-            self.db.query(Organization)
-            .filter(Organization.id == organization_id)
-            .first()
+            self.db.query(Organization).filter(Organization.id == organization_id).first()
         )
 
         limits = organization.get_plan_limits()
@@ -485,9 +463,7 @@ class QuotaManager:
         if warning.should_notify():
             await self._send_quota_warning(organization, warning)
 
-    async def _send_quota_warning(
-        self, organization: Organization, warning: QuotaWarning
-    ):
+    async def _send_quota_warning(self, organization: Organization, warning: QuotaWarning):
         """
         Send quota warning notification
 
@@ -502,9 +478,7 @@ class QuotaManager:
             self.db.query(OrganizationMember)
             .filter(
                 OrganizationMember.organization_id == organization.id,
-                OrganizationMember.role.in_(
-                    [Role.ORG_ADMIN.value, Role.SUPER_ADMIN.value]
-                ),
+                OrganizationMember.role.in_([Role.ORG_ADMIN.value, Role.SUPER_ADMIN.value]),
                 OrganizationMember.is_active == True,
             )
             .all()
@@ -535,9 +509,7 @@ class QuotaManager:
         #     body=f"Your organization is at {warning.percentage:.1f}% of {warning.quota_name} quota"
         # )
 
-    async def get_quota_warnings(
-        self, organization_id: uuid.UUID
-    ) -> list[QuotaWarning]:
+    async def get_quota_warnings(self, organization_id: uuid.UUID) -> list[QuotaWarning]:
         """
         Get all current quota warnings for an organization
 
@@ -545,9 +517,7 @@ class QuotaManager:
             List of QuotaWarning objects for quotas above threshold
         """
         organization = (
-            self.db.query(Organization)
-            .filter(Organization.id == organization_id)
-            .first()
+            self.db.query(Organization).filter(Organization.id == organization_id).first()
         )
 
         if not organization:
@@ -559,9 +529,7 @@ class QuotaManager:
         # Check each quota
         for quota_name, quota_limit in limits.items():
             if isinstance(quota_limit, int) and quota_limit > 0:
-                current_usage = await self.get_current_usage(
-                    organization_id, quota_name
-                )
+                current_usage = await self.get_current_usage(organization_id, quota_name)
                 percentage = (current_usage / quota_limit) * 100
 
                 if percentage >= 70:  # Threshold for warnings
@@ -597,9 +565,7 @@ class QuotaManager:
             }
         """
         organization = (
-            self.db.query(Organization)
-            .filter(Organization.id == organization_id)
-            .first()
+            self.db.query(Organization).filter(Organization.id == organization_id).first()
         )
 
         if not organization:
@@ -679,9 +645,7 @@ class QuotaManager:
             }
         """
         organization = (
-            self.db.query(Organization)
-            .filter(Organization.id == organization_id)
-            .first()
+            self.db.query(Organization).filter(Organization.id == organization_id).first()
         )
 
         if not organization:

@@ -70,22 +70,16 @@ def get_engine() -> AsyncEngine:
         _engine = create_async_engine(
             database_url,
             poolclass=poolclass,
-            pool_size=(
-                settings.supabase.database_pool_size if not settings.is_testing else 5
-            ),
+            pool_size=(settings.supabase.database_pool_size if not settings.is_testing else 5),
             max_overflow=(
-                settings.supabase.database_max_overflow
-                if not settings.is_testing
-                else 0
+                settings.supabase.database_max_overflow if not settings.is_testing else 0
             ),
             pool_pre_ping=pool_pre_ping,
             pool_recycle=3600,  # Recycle connections after 1 hour
             echo=settings.debug,  # Log SQL queries in debug mode
         )
 
-        logger.info(
-            f"Database engine created (pool_size={settings.supabase.database_pool_size})"
-        )
+        logger.info(f"Database engine created (pool_size={settings.supabase.database_pool_size})")
 
     return _engine
 

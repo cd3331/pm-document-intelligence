@@ -62,9 +62,7 @@ async def get_model_performance(
     monitor = ModelPerformanceMonitor(db)
 
     if model_version and task_type:
-        metrics = monitor.calculate_accuracy_metrics(
-            model_version, task_type, timedelta(days=days)
-        )
+        metrics = monitor.calculate_accuracy_metrics(model_version, task_type, timedelta(days=days))
     else:
         metrics = monitor.get_success_metrics_summary(timedelta(days=days))
 
@@ -209,9 +207,7 @@ async def check_retraining_needed(
     return {
         "retraining_recommended": should_retrain,
         "reason": (
-            "High negative feedback rate or sufficient corrections"
-            if should_retrain
-            else None
+            "High negative feedback rate or sufficient corrections" if should_retrain else None
         ),
         "feedback_summary": summary,
     }
@@ -251,9 +247,7 @@ async def list_model_versions(current_user: User = Depends(get_current_user)):
 
 
 @router.post("/versions/{version}/activate")
-async def activate_model_version(
-    version: str, current_user: User = Depends(get_current_user)
-):
+async def activate_model_version(version: str, current_user: User = Depends(get_current_user)):
     """
     Activate a specific model version
 
@@ -288,9 +282,7 @@ async def compare_model_versions(
         version_a, "summary", timedelta(days=30)  # Default task
     )
 
-    metrics_b = monitor.calculate_accuracy_metrics(
-        version_b, "summary", timedelta(days=30)
-    )
+    metrics_b = monitor.calculate_accuracy_metrics(version_b, "summary", timedelta(days=30))
 
     # Calculate difference
     diff = {}

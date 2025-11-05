@@ -131,9 +131,7 @@ class EmbeddingCostTracker:
             "total_tokens": self.total_tokens,
             "total_embeddings": self.total_embeddings,
             "average_cost_per_embedding": (
-                self.total_cost / self.total_embeddings
-                if self.total_embeddings > 0
-                else 0
+                self.total_cost / self.total_embeddings if self.total_embeddings > 0 else 0
             ),
             "costs_by_model": self.costs_by_model.copy(),
             "tokens_by_model": self.tokens_by_model.copy(),
@@ -332,9 +330,7 @@ class TextChunker:
         for chunk in chunks:
             chunk["total_chunks"] = total_chunks
 
-        logger.info(
-            f"Chunked text into {total_chunks} chunks ({total_tokens} total tokens)"
-        )
+        logger.info(f"Chunked text into {total_chunks} chunks ({total_tokens} total tokens)")
 
         return chunks
 
@@ -521,9 +517,7 @@ class EmbeddingService:
                 model, tokens, model_config["price_per_1k_tokens"]
             )
 
-            logger.debug(
-                f"Generated embedding: {tokens} tokens, ${cost:.6f}, {duration:.2f}s"
-            )
+            logger.debug(f"Generated embedding: {tokens} tokens, ${cost:.6f}, {duration:.2f}s")
 
             return embedding
 
@@ -563,9 +557,7 @@ class EmbeddingService:
             Dictionary with embedding and metadata
         """
         if not text or not text.strip():
-            raise AIServiceError(
-                message="Cannot generate embedding for empty text", details={}
-            )
+            raise AIServiceError(message="Cannot generate embedding for empty text", details={})
 
         model = model or self.default_model
 

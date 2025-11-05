@@ -46,9 +46,7 @@ class ToolExecutionRequest(BaseModel):
 
     tool_name: str = Field(..., description="Name of tool to execute")
     parameters: Dict[str, Any] = Field(..., description="Tool parameters")
-    conversation_id: Optional[str] = Field(
-        None, description="Conversation ID for context"
-    )
+    conversation_id: Optional[str] = Field(None, description="Conversation ID for context")
     track_cost: bool = Field(default=True, description="Track execution cost")
 
 
@@ -225,9 +223,7 @@ async def execute_tool(
         )
 
         # Execute tool
-        result = await mcp_server.call_tool(
-            tool_name=tool_request.tool_name, parameters=parameters
-        )
+        result = await mcp_server.call_tool(tool_name=tool_request.tool_name, parameters=parameters)
 
         # Calculate execution time
         execution_time = (datetime.utcnow() - start_time).total_seconds()
@@ -390,9 +386,7 @@ async def get_resource(
             extra={"user_id": current_user.id},
         )
 
-        resource = await mcp_server.get_resource(
-            uri=resource_request.uri, user_id=current_user.id
-        )
+        resource = await mcp_server.get_resource(uri=resource_request.uri, user_id=current_user.id)
 
         return resource
 
@@ -453,9 +447,7 @@ async def get_prompt(
     try:
         mcp_server = get_mcp_server()
 
-        prompt = mcp_server.get_prompt_template(
-            template_name=template_name, **variables
-        )
+        prompt = mcp_server.get_prompt_template(template_name=template_name, **variables)
 
         return {"template_name": template_name, "prompt": prompt}
 
@@ -538,10 +530,7 @@ async def mcp_chat(
 
         # Build context for agent
         conversation_context = "\n".join(
-            [
-                f"{msg['role']}: {msg['content']}"
-                for msg in history[-5:]  # Last 5 messages
-            ]
+            [f"{msg['role']}: {msg['content']}" for msg in history[-5:]]  # Last 5 messages
         )
 
         # Use Q&A agent with MCP tools available

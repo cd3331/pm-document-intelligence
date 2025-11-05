@@ -155,9 +155,7 @@ class CostTracker:
         self.usage["bedrock"]["input_tokens"] += input_tokens
         self.usage["bedrock"]["output_tokens"] += output_tokens
 
-        logger.debug(
-            f"Bedrock usage: {input_tokens} in, {output_tokens} out, ${cost:.4f}"
-        )
+        logger.debug(f"Bedrock usage: {input_tokens} in, {output_tokens} out, ${cost:.4f}")
 
         return cost
 
@@ -742,9 +740,7 @@ class TextractService:
                     "cost": cost,
                     "duration_seconds": duration,
                     "average_confidence": (
-                        sum([w["confidence"] for w in words]) / len(words)
-                        if words
-                        else 0
+                        sum([w["confidence"] for w in words]) / len(words) if words else 0
                     ),
                 }
 
@@ -838,9 +834,7 @@ class TextractService:
                     job_id = response["JobId"]
                     get_results_func = client.get_document_analysis
                 else:
-                    response = await client.start_document_text_detection(
-                        **request_params
-                    )
+                    response = await client.start_document_text_detection(**request_params)
                     job_id = response["JobId"]
                     get_results_func = client.get_document_text_detection
 
@@ -895,9 +889,7 @@ class TextractService:
                 duration = time.time() - start_time
 
                 # Track cost
-                cost = cost_tracker.track_textract_usage(
-                    pages, analyze=bool(feature_types)
-                )
+                cost = cost_tracker.track_textract_usage(pages, analyze=bool(feature_types))
 
                 # Parse results (same as synchronous)
                 lines = []
@@ -946,9 +938,7 @@ class TextractService:
                     "duration_seconds": duration,
                     "job_id": job_id,
                     "average_confidence": (
-                        sum([w["confidence"] for w in words]) / len(words)
-                        if words
-                        else 0
+                        sum([w["confidence"] for w in words]) / len(words) if words else 0
                     ),
                 }
 
@@ -1004,9 +994,7 @@ class TextractService:
                                         for word_id in cell_rel["Ids"]:
                                             word_block = block_map.get(word_id)
                                             if word_block:
-                                                cell_text += (
-                                                    word_block.get("Text", "") + " "
-                                                )
+                                                cell_text += word_block.get("Text", "") + " "
 
                                 cells.append(
                                     {
@@ -1027,9 +1015,7 @@ class TextractService:
 
                         # Sort cells by column within each row
                         for row_idx in sorted(rows_dict.keys()):
-                            row_cells = sorted(
-                                rows_dict[row_idx], key=lambda x: x["column"]
-                            )
+                            row_cells = sorted(rows_dict[row_idx], key=lambda x: x["column"])
                             table["rows"].append(row_cells)
 
                 tables.append(table)
@@ -1069,17 +1055,13 @@ class TextractService:
                             for value_id in relationship["Ids"]:
                                 value_block = block_map.get(value_id)
                                 if value_block:
-                                    value_relationships = value_block.get(
-                                        "Relationships", []
-                                    )
+                                    value_relationships = value_block.get("Relationships", [])
                                     for value_rel in value_relationships:
                                         if value_rel["Type"] == "CHILD":
                                             for word_id in value_rel["Ids"]:
                                                 word_block = block_map.get(word_id)
                                                 if word_block:
-                                                    value_text += (
-                                                        word_block.get("Text", "") + " "
-                                                    )
+                                                    value_text += word_block.get("Text", "") + " "
 
                     if key_text:
                         forms.append(
@@ -1285,12 +1267,8 @@ class ComprehendService:
                 result = {
                     "sentiment": response.get("Sentiment"),
                     "scores": {
-                        "positive": response.get("SentimentScore", {}).get(
-                            "Positive", 0
-                        ),
-                        "negative": response.get("SentimentScore", {}).get(
-                            "Negative", 0
-                        ),
+                        "positive": response.get("SentimentScore", {}).get("Positive", 0),
+                        "negative": response.get("SentimentScore", {}).get("Negative", 0),
                         "neutral": response.get("SentimentScore", {}).get("Neutral", 0),
                         "mixed": response.get("SentimentScore", {}).get("Mixed", 0),
                     },
@@ -1299,8 +1277,7 @@ class ComprehendService:
                 }
 
                 logger.info(
-                    f"Comprehend sentiment: {result['sentiment']}, "
-                    f"${cost:.4f}, {duration:.2f}s"
+                    f"Comprehend sentiment: {result['sentiment']}, " f"${cost:.4f}, {duration:.2f}s"
                 )
 
                 return result
@@ -1423,12 +1400,10 @@ class ComprehendService:
             sentiment_task = self.analyze_sentiment(text, language_code)
             key_phrases_task = self.detect_key_phrases(text, language_code)
 
-            entities_result, sentiment_result, key_phrases_result = (
-                await asyncio.gather(
-                    entities_task,
-                    sentiment_task,
-                    key_phrases_task,
-                )
+            entities_result, sentiment_result, key_phrases_result = await asyncio.gather(
+                entities_task,
+                sentiment_task,
+                key_phrases_task,
             )
 
             return {
@@ -1436,9 +1411,7 @@ class ComprehendService:
                 "sentiment": sentiment_result,
                 "key_phrases": key_phrases_result,
                 "total_cost": (
-                    entities_result["cost"]
-                    + sentiment_result["cost"]
-                    + key_phrases_result["cost"]
+                    entities_result["cost"] + sentiment_result["cost"] + key_phrases_result["cost"]
                 ),
             }
 
@@ -1578,9 +1551,7 @@ class S3Service:
             ) as client:
                 if file_size > self.multipart_threshold:
                     # Use multipart upload for large files
-                    logger.info(
-                        f"Using multipart upload for {filename} ({file_size} bytes)"
-                    )
+                    logger.info(f"Using multipart upload for {filename} ({file_size} bytes)")
 
                     # Start multipart upload
                     multipart = await client.create_multipart_upload(
@@ -1673,8 +1644,7 @@ class S3Service:
                 }
 
                 logger.info(
-                    f"S3 upload: {filename} ({file_size} bytes), "
-                    f"${cost:.6f}, {duration:.2f}s"
+                    f"S3 upload: {filename} ({file_size} bytes), " f"${cost:.6f}, {duration:.2f}s"
                 )
 
                 return result

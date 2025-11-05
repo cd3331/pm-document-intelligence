@@ -355,14 +355,8 @@ def get_limiter_key(request: Request) -> str:
 # Initialize rate limiter
 limiter = Limiter(
     key_func=get_limiter_key,
-    default_limits=(
-        ["1000/hour", "100/minute"] if settings.rate_limit.rate_limit_enabled else []
-    ),
-    storage_uri=(
-        str(settings.redis.redis_url)
-        if settings.rate_limit.rate_limit_enabled
-        else None
-    ),
+    default_limits=(["1000/hour", "100/minute"] if settings.rate_limit.rate_limit_enabled else []),
+    storage_uri=(str(settings.redis.redis_url) if settings.rate_limit.rate_limit_enabled else None),
     strategy=settings.rate_limit.rate_limit_strategy,
     enabled=settings.rate_limit.rate_limit_enabled,
 )
@@ -563,9 +557,7 @@ async def http_exception_handler(
     response_data = {
         "error": {
             "code": "HTTP_ERROR",
-            "message": (
-                exc.detail if isinstance(exc.detail, str) else "An error occurred"
-            ),
+            "message": (exc.detail if isinstance(exc.detail, str) else "An error occurred"),
             "status_code": exc.status_code,
         }
     }
@@ -674,9 +666,7 @@ async def health_check() -> Dict[str, Any]:
         health_status["checks"]["database"] = {
             "status": "healthy" if db_healthy else "unhealthy",
             "message": (
-                "Database connection successful"
-                if db_healthy
-                else "Database connection failed"
+                "Database connection successful" if db_healthy else "Database connection failed"
             ),
         }
         if not db_healthy:
@@ -714,9 +704,7 @@ async def health_check() -> Dict[str, Any]:
         health_status["checks"]["redis"] = {
             "status": "healthy" if redis_healthy else "unhealthy",
             "message": (
-                "Redis connection successful"
-                if redis_healthy
-                else "Redis connection failed"
+                "Redis connection successful" if redis_healthy else "Redis connection failed"
             ),
         }
         if not redis_healthy:
@@ -738,9 +726,7 @@ async def health_check() -> Dict[str, Any]:
         health_status["status"] = "degraded"
 
     # Return appropriate status code
-    status_code = (
-        status.HTTP_200_OK if all_healthy else status.HTTP_503_SERVICE_UNAVAILABLE
-    )
+    status_code = status.HTTP_200_OK if all_healthy else status.HTTP_503_SERVICE_UNAVAILABLE
 
     return JSONResponse(content=health_status, status_code=status_code)
 
@@ -762,9 +748,7 @@ async def readiness_check() -> Dict[str, Any]:
     # Check if there were critical startup errors
     if hasattr(app.state, "startup_errors") and app.state.startup_errors:
         # Only fail if database is unavailable (critical)
-        critical_errors = [
-            err for err in app.state.startup_errors if "database" in err.lower()
-        ]
+        critical_errors = [err for err in app.state.startup_errors if "database" in err.lower()]
 
         if critical_errors:
             return JSONResponse(

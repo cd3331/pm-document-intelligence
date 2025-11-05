@@ -31,9 +31,7 @@ class ActionItemAgent(BaseAgent):
         """Validate input data."""
         super().validate_input(input_data)
         if "text" not in input_data or not input_data["text"].strip():
-            raise ValidationError(
-                message="Text is required", details={"agent": self.name}
-            )
+            raise ValidationError(message="Text is required", details={"agent": self.name})
 
     async def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """Extract action items from text."""
@@ -71,9 +69,7 @@ Return JSON array:
         return {
             "action_items": action_items,
             "total_actions": len(action_items),
-            "high_priority": sum(
-                1 for a in action_items if a.get("priority") == "HIGH"
-            ),
+            "high_priority": sum(1 for a in action_items if a.get("priority") == "HIGH"),
             "cost": response["cost"],
         }
 

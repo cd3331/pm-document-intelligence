@@ -86,9 +86,7 @@ class AnalyticsService:
             )
 
             # Organize by date
-            time_series_data = defaultdict(
-                lambda: {"date": None, "total": 0, "by_status": {}}
-            )
+            time_series_data = defaultdict(lambda: {"date": None, "total": 0, "by_status": {}})
 
             for date, count, status in results:
                 date_str = date.isoformat()
@@ -111,9 +109,7 @@ class AnalyticsService:
             if current_user.is_superuser:
                 base_query = self.db.query(Document)
             else:
-                base_query = self.db.query(Document).filter(
-                    Document.user_id == current_user.id
-                )
+                base_query = self.db.query(Document).filter(Document.user_id == current_user.id)
 
             documents = base_query.filter(
                 Document.created_at.between(start_date, end_date),
@@ -138,9 +134,9 @@ class AnalyticsService:
 
             common_themes = [
                 {"theme": theme, "count": count}
-                for theme, count in sorted(
-                    entity_counts.items(), key=lambda x: x[1], reverse=True
-                )[:10]
+                for theme, count in sorted(entity_counts.items(), key=lambda x: x[1], reverse=True)[
+                    :10
+                ]
             ]
 
             # Trending topics (themes that increased recently)
@@ -220,15 +216,9 @@ class AnalyticsService:
         total = sum(sentiment_counts.values())
         if total > 0:
             return {
-                "positive_percentage": round(
-                    sentiment_counts["positive"] / total * 100, 2
-                ),
-                "neutral_percentage": round(
-                    sentiment_counts["neutral"] / total * 100, 2
-                ),
-                "negative_percentage": round(
-                    sentiment_counts["negative"] / total * 100, 2
-                ),
+                "positive_percentage": round(sentiment_counts["positive"] / total * 100, 2),
+                "neutral_percentage": round(sentiment_counts["neutral"] / total * 100, 2),
+                "negative_percentage": round(sentiment_counts["negative"] / total * 100, 2),
                 "overall_sentiment": max(sentiment_counts, key=sentiment_counts.get),
             }
 
@@ -272,9 +262,7 @@ class AnalyticsService:
             "recent_high_risks": [r for r in risks if r["severity"] == "high"][:5],
         }
 
-    async def _calculate_action_item_completion(
-        self, documents: List[Document]
-    ) -> float:
+    async def _calculate_action_item_completion(self, documents: List[Document]) -> float:
         """Calculate action item completion rate"""
         # This would query the action_items table
         # For now, return mock data
@@ -311,9 +299,7 @@ class AnalyticsService:
             "export": 123,
         }
 
-    def get_peak_usage_times(
-        self, start_date: datetime, end_date: datetime
-    ) -> List[Dict]:
+    def get_peak_usage_times(self, start_date: datetime, end_date: datetime) -> List[Dict]:
         """Identify peak usage times by hour"""
         try:
             # Query documents by hour of day
@@ -328,17 +314,13 @@ class AnalyticsService:
                 .all()
             )
 
-            return [
-                {"hour": int(hour), "count": count} for hour, count in hourly_counts
-            ]
+            return [{"hour": int(hour), "count": count} for hour, count in hourly_counts]
 
         except Exception as e:
             app_logger.error(f"Error getting peak usage times: {str(e)}")
             return []
 
-    def get_common_workflows(
-        self, start_date: datetime, end_date: datetime
-    ) -> List[Dict]:
+    def get_common_workflows(self, start_date: datetime, end_date: datetime) -> List[Dict]:
         """Identify common user workflows"""
         # This would analyze audit log sequences
         return [
@@ -359,9 +341,7 @@ class AnalyticsService:
             },
         ]
 
-    def get_feature_adoption_rates(
-        self, start_date: datetime, end_date: datetime
-    ) -> Dict:
+    def get_feature_adoption_rates(self, start_date: datetime, end_date: datetime) -> Dict:
         """Calculate feature adoption rates"""
         total_users = self.db.query(func.count(User.id)).scalar()
 
@@ -393,9 +373,7 @@ class AnalyticsService:
     # Performance Analytics
     # ==========================================
 
-    def get_processing_performance(
-        self, start_date: datetime, end_date: datetime
-    ) -> Dict:
+    def get_processing_performance(self, start_date: datetime, end_date: datetime) -> Dict:
         """Get document processing performance metrics"""
         try:
             # Processing times by document type
@@ -481,9 +459,7 @@ class AnalyticsService:
             app_logger.error(f"Error getting processing performance: {str(e)}")
             return {}
 
-    def _get_agent_performance(
-        self, start_date: datetime, end_date: datetime
-    ) -> List[Dict]:
+    def _get_agent_performance(self, start_date: datetime, end_date: datetime) -> List[Dict]:
         """Compare performance of different AI agents"""
         # This would query agent_executions table
         return [
@@ -532,9 +508,7 @@ class AnalyticsService:
                     "document_type": doc.document_type,
                     "status": doc.status,
                     "created_at": doc.created_at.isoformat(),
-                    "processed_at": (
-                        doc.processed_at.isoformat() if doc.processed_at else None
-                    ),
+                    "processed_at": (doc.processed_at.isoformat() if doc.processed_at else None),
                     "file_size": doc.file_size,
                 }
                 for doc in documents
@@ -544,9 +518,7 @@ class AnalyticsService:
             app_logger.error(f"Error getting documents for export: {str(e)}")
             return []
 
-    def get_users_for_export(
-        self, start_date: datetime, end_date: datetime
-    ) -> List[Dict]:
+    def get_users_for_export(self, start_date: datetime, end_date: datetime) -> List[Dict]:
         """Get user data for CSV export"""
         try:
             users = (
@@ -578,9 +550,7 @@ class AnalyticsService:
             app_logger.error(f"Error getting users for export: {str(e)}")
             return []
 
-    def get_costs_for_export(
-        self, start_date: datetime, end_date: datetime
-    ) -> List[Dict]:
+    def get_costs_for_export(self, start_date: datetime, end_date: datetime) -> List[Dict]:
         """Get cost data for CSV export"""
         try:
             from app.monitoring.cost_tracking import cost_tracker

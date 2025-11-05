@@ -209,13 +209,9 @@ class DocumentProcessor:
             if data:
                 message_data["data"] = data
 
-            await self.pubnub_client.publish().channel(channel).message(
-                message_data
-            ).future()
+            await self.pubnub_client.publish().channel(channel).message(message_data).future()
 
-            logger.debug(
-                f"Published progress: {document_id} - {state.value} ({progress}%)"
-            )
+            logger.debug(f"Published progress: {document_id} - {state.value} ({progress}%)")
 
         except Exception as e:
             logger.error(f"Failed to publish progress: {e}")
@@ -448,15 +444,13 @@ class DocumentProcessor:
 
                 logger.info("Step 4: Analyzing with Comprehend")
 
-                comprehend_results = (
-                    await self.comprehend.analyze_document_comprehensive(cleaned_text)
+                comprehend_results = await self.comprehend.analyze_document_comprehensive(
+                    cleaned_text
                 )
 
                 results["entities"] = comprehend_results["entities"]["entities"]
                 results["sentiment"] = comprehend_results["sentiment"]
-                results["key_phrases"] = comprehend_results["key_phrases"][
-                    "key_phrases"
-                ]
+                results["key_phrases"] = comprehend_results["key_phrases"]["key_phrases"]
 
                 logger.info(
                     f"Found {len(results['entities'])} entities, "
@@ -481,9 +475,7 @@ class DocumentProcessor:
 
                 logger.info("Step 5: Extracting action items")
 
-                action_items = await self.extract_action_items(
-                    cleaned_text, document_type
-                )
+                action_items = await self.extract_action_items(cleaned_text, document_type)
 
                 results["action_items"] = action_items
                 logger.info(f"Extracted {len(action_items)} action items")
@@ -529,9 +521,7 @@ class DocumentProcessor:
 
                 logger.info("Step 7: Generating summary")
 
-                summary = await self.generate_summary(
-                    cleaned_text, document_type, length="medium"
-                )
+                summary = await self.generate_summary(cleaned_text, document_type, length="medium")
 
                 results["summary"] = summary
                 logger.info("Generated summary")
@@ -625,9 +615,7 @@ class DocumentProcessor:
 
             # Save error checkpoint
             error_message = str(e)
-            await self._save_checkpoint(
-                document_id, ProcessingState.FAILED, error=error_message
-            )
+            await self._save_checkpoint(document_id, ProcessingState.FAILED, error=error_message)
 
             # Notify user of failure
             await self._publish_progress(
@@ -853,9 +841,7 @@ Provide ONLY the JSON array, no other text."""
             return False
 
         # Validate confidence
-        if not isinstance(item["confidence"], (int, float)) or not (
-            0 <= item["confidence"] <= 1
-        ):
+        if not isinstance(item["confidence"], (int, float)) or not (0 <= item["confidence"] <= 1):
             return False
 
         # Action must be non-empty
@@ -964,9 +950,7 @@ Provide ONLY the JSON array, no other text."""
         if risk["severity"] not in ["CRITICAL", "HIGH", "MEDIUM", "LOW"]:
             return False
 
-        if not isinstance(risk["confidence"], (int, float)) or not (
-            0 <= risk["confidence"] <= 1
-        ):
+        if not isinstance(risk["confidence"], (int, float)) or not (0 <= risk["confidence"] <= 1):
             return False
 
         if not risk["risk"] or not risk["risk"].strip():
@@ -1295,9 +1279,7 @@ Provide ONLY the JSON object, no other text."""
                             "error": str(result),
                         }
                     )
-                    logger.error(
-                        f"Batch processing failed for {doc['document_id']}: {result}"
-                    )
+                    logger.error(f"Batch processing failed for {doc['document_id']}: {result}")
                 else:
                     results.append(result)
 

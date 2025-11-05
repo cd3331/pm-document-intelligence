@@ -209,9 +209,7 @@ async def test_bedrock_availability() -> bool:
         ) as client:
             # List foundation models to test access
             response = await client.list_foundation_models()
-            logger.debug(
-                f"Bedrock available with {len(response.get('modelSummaries', []))} models"
-            )
+            logger.debug(f"Bedrock available with {len(response.get('modelSummaries', []))} models")
             return True
 
     except Exception as e:
@@ -244,9 +242,7 @@ async def test_s3_availability() -> bool:
         if error_code == "404":
             logger.warning(f"S3 bucket '{settings.aws.s3_bucket_name}' not found")
         elif error_code == "403":
-            logger.warning(
-                f"Access denied to S3 bucket '{settings.aws.s3_bucket_name}'"
-            )
+            logger.warning(f"Access denied to S3 bucket '{settings.aws.s3_bucket_name}'")
         else:
             logger.warning(f"S3 availability check failed: {e}")
         return False
@@ -356,9 +352,7 @@ async def test_aws_services() -> Dict[str, Any]:
     # Core services that should always be available
     core_services = ["bedrock", "s3"]
 
-    all_available = all(
-        results.get(service, False) for service in core_services + enabled_services
-    )
+    all_available = all(results.get(service, False) for service in core_services + enabled_services)
 
     results["all_available"] = all_available
 

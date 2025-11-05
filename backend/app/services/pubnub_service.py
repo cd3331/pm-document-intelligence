@@ -412,9 +412,7 @@ class PubNubService:
                 return True
 
             # Publish message
-            result = await self._publish_with_retry(
-                channel=channel, message=message.dict()
-            )
+            result = await self._publish_with_retry(channel=channel, message=message.dict())
 
             # Cache dedupe key
             if dedupe_key:
@@ -658,9 +656,7 @@ class PubNubService:
             title="New Action Item Assigned",
             message=f"You have been assigned: {title}",
             priority=(
-                NotificationPriority.HIGH
-                if priority == "HIGH"
-                else NotificationPriority.MEDIUM
+                NotificationPriority.HIGH if priority == "HIGH" else NotificationPriority.MEDIUM
             ),
             action_url=f"/action-items/{action_item_id}",
             action_label="View Action Item",
@@ -868,9 +864,7 @@ class PubNubService:
     # History and Cleanup
     # ========================================================================
 
-    def get_message_history(
-        self, channel: str, count: int = 100
-    ) -> List[Dict[str, Any]]:
+    def get_message_history(self, channel: str, count: int = 100) -> List[Dict[str, Any]]:
         """
         Get message history for channel.
 

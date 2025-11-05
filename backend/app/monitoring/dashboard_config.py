@@ -52,17 +52,13 @@ SYSTEM_OVERVIEW_DASHBOARD = {
             {
                 "id": 4,
                 "title": "CPU Usage",
-                "targets": [
-                    {"expr": "system_cpu_usage_percent", "legendFormat": "CPU %"}
-                ],
+                "targets": [{"expr": "system_cpu_usage_percent", "legendFormat": "CPU %"}],
                 "type": "graph",
             },
             {
                 "id": 5,
                 "title": "Memory Usage",
-                "targets": [
-                    {"expr": "system_memory_usage_bytes", "legendFormat": "Memory"}
-                ],
+                "targets": [{"expr": "system_memory_usage_bytes", "legendFormat": "Memory"}],
                 "type": "graph",
             },
         ],
@@ -118,9 +114,7 @@ COST_DASHBOARD = {
             {
                 "id": 1,
                 "title": "Daily Cost",
-                "targets": [
-                    {"expr": "total_cost_usd_daily", "legendFormat": "Total Daily Cost"}
-                ],
+                "targets": [{"expr": "total_cost_usd_daily", "legendFormat": "Total Daily Cost"}],
             },
             {
                 "id": 2,

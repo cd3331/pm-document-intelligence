@@ -46,9 +46,7 @@ class AnalysisAgent(BaseAgent):
                 )
 
         if not input_data["text"].strip():
-            raise ValidationError(
-                message="Text cannot be empty", details={"agent": self.name}
-            )
+            raise ValidationError(message="Text cannot be empty", details={"agent": self.name})
 
     async def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """Process document for deep analysis."""

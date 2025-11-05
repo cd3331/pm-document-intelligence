@@ -22,9 +22,7 @@ class AuditLog(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
     # Actor information
-    user_id = Column(
-        UUID(as_uuid=True), index=True, nullable=True
-    )  # Null for system actions
+    user_id = Column(UUID(as_uuid=True), index=True, nullable=True)  # Null for system actions
     username = Column(String(255))  # Denormalized for historical record
     user_email = Column(String(255))  # Denormalized for historical record
 
@@ -66,9 +64,7 @@ class AuditLog(Base):
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 
     # Data classification
-    sensitivity_level = Column(
-        String(20), default="normal"
-    )  # normal, sensitive, confidential
+    sensitivity_level = Column(String(20), default="normal")  # normal, sensitive, confidential
 
     # Composite indexes for common queries
     __table_args__ = (
@@ -98,13 +94,9 @@ class DataAccessLog(Base):
     organization_id = Column(UUID(as_uuid=True), nullable=False, index=True)
 
     # Data accessed
-    data_type = Column(
-        String(50), nullable=False, index=True
-    )  # document, user_profile, etc.
+    data_type = Column(String(50), nullable=False, index=True)  # document, user_profile, etc.
     data_id = Column(UUID(as_uuid=True), nullable=False, index=True)
-    data_classification = Column(
-        String(20)
-    )  # public, internal, confidential, restricted
+    data_classification = Column(String(20))  # public, internal, confidential, restricted
 
     # Access details
     access_type = Column(String(20), nullable=False)  # read, download, export, print
@@ -132,7 +124,9 @@ class DataAccessLog(Base):
     )
 
     def __repr__(self):
-        return f"<DataAccessLog(user={self.user_id}, data={self.data_type}, type={self.access_type})>"
+        return (
+            f"<DataAccessLog(user={self.user_id}, data={self.data_type}, type={self.access_type})>"
+        )
 
 
 class ComplianceEvent(Base):
@@ -165,9 +159,7 @@ class ComplianceEvent(Base):
     affected_data = Column(JSONB, default=dict)  # Description of affected data
 
     # Status
-    status = Column(
-        String(20), default="open"
-    )  # open, investigating, resolved, reported
+    status = Column(String(20), default="open")  # open, investigating, resolved, reported
     resolution = Column(Text, nullable=True)
 
     # Reporting
@@ -202,12 +194,8 @@ class AuditLogRetention(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
-    organization_id = Column(
-        UUID(as_uuid=True), nullable=True, index=True
-    )  # Null = system-wide
-    log_type = Column(
-        String(50), nullable=False
-    )  # audit_logs, data_access_logs, compliance_events
+    organization_id = Column(UUID(as_uuid=True), nullable=True, index=True)  # Null = system-wide
+    log_type = Column(String(50), nullable=False)  # audit_logs, data_access_logs, compliance_events
 
     # Retention policy
     retention_days = Column(String, default=2555)  # 7 years default (2555 days)
@@ -220,9 +208,9 @@ class AuditLogRetention(Base):
 
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
-    )
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     def __repr__(self):
-        return f"<AuditLogRetention(log_type={self.log_type}, retention_days={self.retention_days})>"
+        return (
+            f"<AuditLogRetention(log_type={self.log_type}, retention_days={self.retention_days})>"
+        )

@@ -155,17 +155,13 @@ class AnalyticsJobs:
 
             db.add(snapshot)
 
-            app_logger.info(
-                f"Aggregated document stats for {start_date.date()}: {total_docs} docs"
-            )
+            app_logger.info(f"Aggregated document stats for {start_date.date()}: {total_docs} docs")
 
         except Exception as e:
             app_logger.error(f"Error aggregating document stats: {str(e)}")
             raise
 
-    async def _aggregate_user_activity(
-        self, db: Session, start_date: datetime, end_date: datetime
-    ):
+    async def _aggregate_user_activity(self, db: Session, start_date: datetime, end_date: datetime):
         """Aggregate user activity for a day"""
         try:
             total_users = db.query(func.count(User.id)).scalar()
@@ -205,9 +201,7 @@ class AnalyticsJobs:
             app_logger.error(f"Error aggregating user activity: {str(e)}")
             raise
 
-    async def _aggregate_costs(
-        self, db: Session, start_date: datetime, end_date: datetime
-    ):
+    async def _aggregate_costs(self, db: Session, start_date: datetime, end_date: datetime):
         """Aggregate costs for a day"""
         try:
             from app.monitoring.cost_tracking import cost_tracker
@@ -240,23 +234,17 @@ class AnalyticsJobs:
 
             db.add(snapshot)
 
-            app_logger.info(
-                f"Aggregated costs for {start_date.date()}: ${total_cost:.2f}"
-            )
+            app_logger.info(f"Aggregated costs for {start_date.date()}: ${total_cost:.2f}")
 
         except Exception as e:
             app_logger.error(f"Error aggregating costs: {str(e)}")
             raise
 
-    async def _aggregate_performance(
-        self, db: Session, start_date: datetime, end_date: datetime
-    ):
+    async def _aggregate_performance(self, db: Session, start_date: datetime, end_date: datetime):
         """Aggregate performance metrics for a day"""
         try:
             analytics_service = AnalyticsService(db)
-            performance = analytics_service.get_processing_performance(
-                start_date, end_date
-            )
+            performance = analytics_service.get_processing_performance(start_date, end_date)
 
             # Create snapshot
             snapshot = AnalyticsSnapshot(
@@ -277,9 +265,7 @@ class AnalyticsJobs:
             cutoff_date = datetime.utcnow().date() - timedelta(days=retention_days)
 
             deleted = (
-                db.query(AnalyticsSnapshot)
-                .filter(AnalyticsSnapshot.date < cutoff_date)
-                .delete()
+                db.query(AnalyticsSnapshot).filter(AnalyticsSnapshot.date < cutoff_date).delete()
             )
 
             app_logger.info(f"Cleaned up {deleted} old analytics snapshots")
@@ -407,15 +393,11 @@ class AnalyticsJobs:
             end_date = datetime.utcnow()
             start_date = end_date - timedelta(days=days)
 
-            performance = analytics_service.get_processing_performance(
-                start_date, end_date
-            )
+            performance = analytics_service.get_processing_performance(start_date, end_date)
 
             # Store in cache
             cache_entry = (
-                db.query(CachedMetric)
-                .filter(CachedMetric.metric_key == "performance_7d")
-                .first()
+                db.query(CachedMetric).filter(CachedMetric.metric_key == "performance_7d").first()
             )
 
             if cache_entry:
@@ -465,15 +447,11 @@ class AnalyticsJobs:
             app_logger.info("Scheduled report generation completed")
 
         except Exception as e:
-            app_logger.error(
-                f"Error generating scheduled reports: {str(e)}", exc_info=True
-            )
+            app_logger.error(f"Error generating scheduled reports: {str(e)}", exc_info=True)
         finally:
             self.close_db()
 
-    async def _generate_daily_report(
-        self, db: Session, report_generator: ReportGenerator
-    ):
+    async def _generate_daily_report(self, db: Session, report_generator: ReportGenerator):
         """Generate daily report"""
         try:
             # Get admin users who should receive reports
@@ -497,9 +475,7 @@ class AnalyticsJobs:
         except Exception as e:
             app_logger.error(f"Error generating daily report: {str(e)}")
 
-    async def _generate_weekly_report(
-        self, db: Session, report_generator: ReportGenerator
-    ):
+    async def _generate_weekly_report(self, db: Session, report_generator: ReportGenerator):
         """Generate weekly report"""
         try:
             admin_users = db.query(User).filter(User.is_superuser == True).all()
@@ -522,9 +498,7 @@ class AnalyticsJobs:
         except Exception as e:
             app_logger.error(f"Error generating weekly report: {str(e)}")
 
-    async def _generate_monthly_report(
-        self, db: Session, report_generator: ReportGenerator
-    ):
+    async def _generate_monthly_report(self, db: Session, report_generator: ReportGenerator):
         """Generate monthly report"""
         try:
             admin_users = db.query(User).filter(User.is_superuser == True).all()

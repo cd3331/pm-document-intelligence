@@ -103,9 +103,7 @@ async def document_detail(
     )
 
     if not document:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
     return templates.TemplateResponse(
         "document.html",

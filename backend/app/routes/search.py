@@ -56,9 +56,7 @@ class SemanticSearchRequest(BaseModel):
         ..., min_length=1, max_length=500, description="Natural language search query"
     )
     document_type: Optional[str] = Field(None, description="Filter by document type")
-    date_from: Optional[datetime] = Field(
-        None, description="Filter by date range start"
-    )
+    date_from: Optional[datetime] = Field(None, description="Filter by date range start")
     date_to: Optional[datetime] = Field(None, description="Filter by date range end")
     similarity_threshold: Optional[float] = Field(
         0.7, ge=0.0, le=1.0, description="Minimum similarity score (0-1)"
@@ -103,12 +101,8 @@ class HybridSearchRequest(BaseModel):
     document_type: Optional[str] = None
     date_from: Optional[datetime] = None
     date_to: Optional[datetime] = None
-    vector_weight: float = Field(
-        0.7, ge=0.0, le=1.0, description="Weight for vector similarity"
-    )
-    keyword_weight: float = Field(
-        0.3, ge=0.0, le=1.0, description="Weight for keyword matching"
-    )
+    vector_weight: float = Field(0.7, ge=0.0, le=1.0, description="Weight for vector similarity")
+    keyword_weight: float = Field(0.3, ge=0.0, le=1.0, description="Weight for keyword matching")
     limit: int = Field(10, ge=1, le=50)
 
 
@@ -189,13 +183,9 @@ async def semantic_search(
     request: Request,
     query: str = Query(..., description="Search query", min_length=1, max_length=500),
     document_type: Optional[str] = Query(None, description="Filter by document type"),
-    date_from: Optional[datetime] = Query(
-        None, description="Filter by date range start"
-    ),
+    date_from: Optional[datetime] = Query(None, description="Filter by date range start"),
     date_to: Optional[datetime] = Query(None, description="Filter by date range end"),
-    similarity_threshold: float = Query(
-        0.7, ge=0.0, le=1.0, description="Minimum similarity"
-    ),
+    similarity_threshold: float = Query(0.7, ge=0.0, le=1.0, description="Minimum similarity"),
     limit: int = Query(10, ge=1, le=50, description="Maximum results"),
     current_user: UserInDB = Depends(get_current_active_user),
 ):
@@ -266,9 +256,7 @@ async def semantic_search_post(
     ```
     """
     try:
-        logger.info(
-            f"Semantic search (POST): '{search_request.query}' by user {current_user.id}"
-        )
+        logger.info(f"Semantic search (POST): '{search_request.query}' by user {current_user.id}")
 
         result = await vector_search.semantic_search(
             query=search_request.query,
@@ -320,9 +308,7 @@ async def hybrid_search(
     ```
     """
     try:
-        logger.info(
-            f"Hybrid search: '{search_request.query}' by user {current_user.id}"
-        )
+        logger.info(f"Hybrid search: '{search_request.query}' by user {current_user.id}")
 
         result = await vector_search.hybrid_search(
             query=search_request.query,
@@ -369,9 +355,7 @@ async def find_similar_documents(
     ```
     """
     try:
-        logger.info(
-            f"Finding similar documents to {document_id} by user {current_user.id}"
-        )
+        logger.info(f"Finding similar documents to {document_id} by user {current_user.id}")
 
         result = await vector_search.find_similar_documents(
             document_id=document_id,
@@ -491,9 +475,7 @@ async def search_health():
         # Test embedding service
         embedding_service_ok = True
         try:
-            await vector_search.embedding_service.generate_embedding(
-                "test", use_cache=False
-            )
+            await vector_search.embedding_service.generate_embedding("test", use_cache=False)
         except Exception as e:
             logger.error(f"Embedding service health check failed: {e}")
             embedding_service_ok = False

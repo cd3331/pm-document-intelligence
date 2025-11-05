@@ -143,13 +143,9 @@ openai_embedding_dimensions = Gauge(
 # Database Metrics
 # ============================================================================
 
-db_connections_active = Gauge(
-    "db_connections_active", "Number of active database connections"
-)
+db_connections_active = Gauge("db_connections_active", "Number of active database connections")
 
-db_connections_idle = Gauge(
-    "db_connections_idle", "Number of idle database connections"
-)
+db_connections_idle = Gauge("db_connections_idle", "Number of idle database connections")
 
 db_query_duration_seconds = Histogram(
     "db_query_duration_seconds",
@@ -158,9 +154,7 @@ db_query_duration_seconds = Histogram(
     buckets=[0.001, 0.01, 0.05, 0.1, 0.5, 1.0, 2.0],
 )
 
-db_queries_total = Counter(
-    "db_queries_total", "Total database queries", ["operation", "status"]
-)
+db_queries_total = Counter("db_queries_total", "Total database queries", ["operation", "status"])
 
 
 # ============================================================================
@@ -233,21 +227,15 @@ total_cost_usd = Gauge("total_cost_usd_daily", "Total daily costs in USD")
 # System Resource Metrics
 # ============================================================================
 
-system_cpu_usage_percent = Gauge(
-    "system_cpu_usage_percent", "System CPU usage percentage"
-)
+system_cpu_usage_percent = Gauge("system_cpu_usage_percent", "System CPU usage percentage")
 
-system_memory_usage_bytes = Gauge(
-    "system_memory_usage_bytes", "System memory usage in bytes"
-)
+system_memory_usage_bytes = Gauge("system_memory_usage_bytes", "System memory usage in bytes")
 
 system_disk_usage_bytes = Gauge(
     "system_disk_usage_bytes", "System disk usage in bytes", ["mount_point"]
 )
 
-system_network_bytes_sent = Counter(
-    "system_network_bytes_sent_total", "Total network bytes sent"
-)
+system_network_bytes_sent = Counter("system_network_bytes_sent_total", "Total network bytes sent")
 
 system_network_bytes_received = Counter(
     "system_network_bytes_received_total", "Total network bytes received"
@@ -317,17 +305,13 @@ def track_request_duration(method: str, endpoint: str):
         yield
     finally:
         duration = time.time() - start_time
-        http_request_duration_seconds.labels(method=method, endpoint=endpoint).observe(
-            duration
-        )
+        http_request_duration_seconds.labels(method=method, endpoint=endpoint).observe(duration)
         http_requests_in_progress.labels(method=method, endpoint=endpoint).dec()
 
 
 def track_http_request(method: str, endpoint: str, status_code: int):
     """Track HTTP request completion"""
-    http_requests_total.labels(
-        method=method, endpoint=endpoint, status_code=status_code
-    ).inc()
+    http_requests_total.labels(method=method, endpoint=endpoint, status_code=status_code).inc()
 
 
 def track_document_upload(document_type: str, status: str, size_bytes: int):
@@ -355,9 +339,7 @@ def track_document_processing(document_type: str, stage: str):
 
 def track_document_failure(document_type: str, error_type: str):
     """Track document processing failure"""
-    documents_failed_total.labels(
-        document_type=document_type, error_type=error_type
-    ).inc()
+    documents_failed_total.labels(document_type=document_type, error_type=error_type).inc()
 
 
 @contextmanager
@@ -373,13 +355,9 @@ def track_aws_api_call(service: str, operation: str):
         raise
     finally:
         duration = time.time() - start_time
-        aws_api_latency_seconds.labels(service=service, operation=operation).observe(
-            duration
-        )
+        aws_api_latency_seconds.labels(service=service, operation=operation).observe(duration)
 
-        aws_api_calls_total.labels(
-            service=service, operation=operation, status=status
-        ).inc()
+        aws_api_calls_total.labels(service=service, operation=operation, status=status).inc()
 
 
 def track_aws_textract(pages: int, status: str = "success"):
@@ -406,21 +384,15 @@ def track_openai_call(operation: str, model: str):
         raise
     finally:
         duration = time.time() - start_time
-        openai_api_latency_seconds.labels(operation=operation, model=model).observe(
-            duration
-        )
+        openai_api_latency_seconds.labels(operation=operation, model=model).observe(duration)
 
-        openai_api_calls_total.labels(
-            operation=operation, model=model, status=status
-        ).inc()
+        openai_api_calls_total.labels(operation=operation, model=model, status=status).inc()
 
 
 def track_openai_tokens(model: str, prompt_tokens: int, completion_tokens: int):
     """Track OpenAI token usage"""
     openai_tokens_used.labels(model=model, token_type="prompt").inc(prompt_tokens)
-    openai_tokens_used.labels(model=model, token_type="completion").inc(
-        completion_tokens
-    )
+    openai_tokens_used.labels(model=model, token_type="completion").inc(completion_tokens)
 
 
 @contextmanager
@@ -590,9 +562,7 @@ def collect_system_metrics():
     for partition in psutil.disk_partitions():
         try:
             usage = psutil.disk_usage(partition.mountpoint)
-            system_disk_usage_bytes.labels(mount_point=partition.mountpoint).set(
-                usage.used
-            )
+            system_disk_usage_bytes.labels(mount_point=partition.mountpoint).set(usage.used)
         except (PermissionError, OSError):
             pass
 
