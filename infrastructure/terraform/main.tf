@@ -284,8 +284,8 @@ resource "aws_lb" "main" {
   security_groups    = [aws_security_group.alb.id]
   subnets            = aws_subnet.public[*].id
 
-  enable_deletion_protection = var.environment == "production" ? true : false
-  enable_http2               = true
+  enable_deletion_protection       = var.environment == "production" ? true : false
+  enable_http2                     = true
   enable_cross_zone_load_balancing = true
 
   tags = {
@@ -295,7 +295,7 @@ resource "aws_lb" "main" {
 
 # Target Group
 resource "aws_lb_target_group" "backend" {
-  name        = "${var.project_name}-backend-tg-${var.environment}"
+  name        = "pmdoc-backend-${substr(var.environment, 0, 4)}"
   port        = 8000
   protocol    = "HTTP"
   vpc_id      = aws_vpc.main.id
@@ -587,10 +587,8 @@ resource "aws_ecs_service" "backend" {
     container_port   = 8000
   }
 
-  deployment_configuration {
-    maximum_percent         = 200
-    minimum_healthy_percent = 100
-  }
+  deployment_maximum_percent         = 200
+  deployment_minimum_healthy_percent = 100
 
   deployment_circuit_breaker {
     enable   = true
@@ -780,7 +778,7 @@ resource "aws_s3_bucket_versioning" "documents" {
   }
 }
 
-resource "aws_s3_bucket_encryption" "documents" {
+resource "aws_s3_bucket_server_side_encryption_configuration" "documents" {
   bucket = aws_s3_bucket.documents.id
 
   rule {
@@ -805,6 +803,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "documents" {
   rule {
     id     = "archive-old-documents"
     status = "Enabled"
+
+    filter {}
 
     transition {
       days          = 90
@@ -839,7 +839,7 @@ resource "aws_s3_bucket_versioning" "backups" {
   }
 }
 
-resource "aws_s3_bucket_encryption" "backups" {
+resource "aws_s3_bucket_server_side_encryption_configuration" "backups" {
   bucket = aws_s3_bucket.backups.id
 
   rule {
@@ -864,6 +864,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "backups" {
   rule {
     id     = "delete-old-backups"
     status = "Enabled"
+
+    filter {}
 
     expiration {
       days = var.backup_retention_days
@@ -962,7 +964,7 @@ resource "aws_cloudwatch_metric_alarm" "rds_storage" {
   namespace           = "AWS/RDS"
   period              = 300
   statistic           = "Average"
-  threshold           = 10737418240  # 10 GB in bytes
+  threshold           = 10737418240 # 10 GB in bytes
   alarm_description   = "Alert when RDS free storage < 10GB"
 
   dimensions = {
