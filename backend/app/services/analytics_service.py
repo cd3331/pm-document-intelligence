@@ -3,15 +3,15 @@ Analytics Service for PM Document Intelligence
 Handles analytics calculations, aggregations, and insights generation
 """
 
-from datetime import datetime, timedelta
-from typing import List, Dict, Optional, Any
-from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, or_, desc, extract
 from collections import defaultdict
-import json
+from datetime import datetime
+from typing import Any
 
-from app.models.user import User
+from sqlalchemy import extract, func
+from sqlalchemy.orm import Session
+
 from app.models.document import Document
+from app.models.user import User
 from app.monitoring.log_aggregation import app_logger
 
 
@@ -29,7 +29,7 @@ class AnalyticsService:
         self,
         start_date: datetime,
         end_date: datetime,
-        document_type: Optional[str],
+        document_type: str | None,
         current_user: User,
     ) -> float:
         """Calculate average processing time for documents"""
@@ -62,9 +62,9 @@ class AnalyticsService:
         self,
         start_date: datetime,
         end_date: datetime,
-        document_type: Optional[str],
+        document_type: str | None,
         current_user: User,
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """Get time series data for document creation"""
         try:
             query = self.db.query(
@@ -102,7 +102,7 @@ class AnalyticsService:
 
     async def generate_document_insights(
         self, start_date: datetime, end_date: datetime, current_user: User
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate AI-powered insights about documents"""
         try:
             # Base query
@@ -164,7 +164,7 @@ class AnalyticsService:
             app_logger.error(f"Error generating document insights: {str(e)}")
             return {}
 
-    async def _identify_trending_topics(self, documents: List[Document]) -> List[Dict]:
+    async def _identify_trending_topics(self, documents: list[Document]) -> list[dict]:
         """Identify trending topics from recent documents"""
         # Simple implementation: topics mentioned more in recent documents
         if len(documents) < 2:
@@ -203,7 +203,7 @@ class AnalyticsService:
 
         return sorted(trending, key=lambda x: x["growth"], reverse=True)[:5]
 
-    async def _analyze_sentiment_trends(self, documents: List[Document]) -> Dict:
+    async def _analyze_sentiment_trends(self, documents: list[Document]) -> dict:
         """Analyze sentiment trends across documents"""
         sentiment_counts = {"positive": 0, "neutral": 0, "negative": 0}
 
@@ -224,7 +224,7 @@ class AnalyticsService:
 
         return {}
 
-    async def _identify_risk_indicators(self, documents: List[Document]) -> List[Dict]:
+    async def _identify_risk_indicators(self, documents: list[Document]) -> list[dict]:
         """Identify potential risk indicators from documents"""
         risk_keywords = {
             "high": ["critical", "urgent", "emergency", "risk", "danger", "failure"],
@@ -262,7 +262,7 @@ class AnalyticsService:
             "recent_high_risks": [r for r in risks if r["severity"] == "high"][:5],
         }
 
-    async def _calculate_action_item_completion(self, documents: List[Document]) -> float:
+    async def _calculate_action_item_completion(self, documents: list[Document]) -> float:
         """Calculate action item completion rate"""
         # This would query the action_items table
         # For now, return mock data
@@ -272,7 +272,7 @@ class AnalyticsService:
     # User Analytics
     # ==========================================
 
-    def get_search_analytics(self, start_date: datetime, end_date: datetime) -> Dict:
+    def get_search_analytics(self, start_date: datetime, end_date: datetime) -> dict:
         """Analyze search query patterns"""
         # This would query search logs
         # For now, return mock structure
@@ -287,7 +287,7 @@ class AnalyticsService:
             ],
         }
 
-    def get_feature_usage(self, start_date: datetime, end_date: datetime) -> Dict:
+    def get_feature_usage(self, start_date: datetime, end_date: datetime) -> dict:
         """Get feature usage statistics"""
         # This would track feature usage from audit logs
         return {
@@ -299,7 +299,7 @@ class AnalyticsService:
             "export": 123,
         }
 
-    def get_peak_usage_times(self, start_date: datetime, end_date: datetime) -> List[Dict]:
+    def get_peak_usage_times(self, start_date: datetime, end_date: datetime) -> list[dict]:
         """Identify peak usage times by hour"""
         try:
             # Query documents by hour of day
@@ -320,7 +320,7 @@ class AnalyticsService:
             app_logger.error(f"Error getting peak usage times: {str(e)}")
             return []
 
-    def get_common_workflows(self, start_date: datetime, end_date: datetime) -> List[Dict]:
+    def get_common_workflows(self, start_date: datetime, end_date: datetime) -> list[dict]:
         """Identify common user workflows"""
         # This would analyze audit log sequences
         return [
@@ -341,7 +341,7 @@ class AnalyticsService:
             },
         ]
 
-    def get_feature_adoption_rates(self, start_date: datetime, end_date: datetime) -> Dict:
+    def get_feature_adoption_rates(self, start_date: datetime, end_date: datetime) -> dict:
         """Calculate feature adoption rates"""
         total_users = self.db.query(func.count(User.id)).scalar()
 
@@ -373,7 +373,7 @@ class AnalyticsService:
     # Performance Analytics
     # ==========================================
 
-    def get_processing_performance(self, start_date: datetime, end_date: datetime) -> Dict:
+    def get_processing_performance(self, start_date: datetime, end_date: datetime) -> dict:
         """Get document processing performance metrics"""
         try:
             # Processing times by document type
@@ -431,7 +431,7 @@ class AnalyticsService:
 
             # Bottleneck identification
             bottlenecks = []
-            for doc_type, avg_time, count in processing_times:
+            for doc_type, avg_time, _count in processing_times:
                 if avg_time and avg_time > 60:  # More than 60 seconds
                     bottlenecks.append(
                         {
@@ -459,7 +459,7 @@ class AnalyticsService:
             app_logger.error(f"Error getting processing performance: {str(e)}")
             return {}
 
-    def _get_agent_performance(self, start_date: datetime, end_date: datetime) -> List[Dict]:
+    def _get_agent_performance(self, start_date: datetime, end_date: datetime) -> list[dict]:
         """Compare performance of different AI agents"""
         # This would query agent_executions table
         return [
@@ -489,7 +489,7 @@ class AnalyticsService:
 
     def get_documents_for_export(
         self, start_date: datetime, end_date: datetime, current_user: User
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """Get document data for CSV export"""
         try:
             query = self.db.query(Document).filter(
@@ -518,7 +518,7 @@ class AnalyticsService:
             app_logger.error(f"Error getting documents for export: {str(e)}")
             return []
 
-    def get_users_for_export(self, start_date: datetime, end_date: datetime) -> List[Dict]:
+    def get_users_for_export(self, start_date: datetime, end_date: datetime) -> list[dict]:
         """Get user data for CSV export"""
         try:
             users = (
@@ -550,7 +550,7 @@ class AnalyticsService:
             app_logger.error(f"Error getting users for export: {str(e)}")
             return []
 
-    def get_costs_for_export(self, start_date: datetime, end_date: datetime) -> List[Dict]:
+    def get_costs_for_export(self, start_date: datetime, end_date: datetime) -> list[dict]:
         """Get cost data for CSV export"""
         try:
             from app.monitoring.cost_tracking import cost_tracker

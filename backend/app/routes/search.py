@@ -18,9 +18,9 @@ Usage:
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from fastapi import APIRouter, Depends, Query, status, Request
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, Field, validator
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -28,9 +28,8 @@ from slowapi.util import get_remote_address
 from app.models import UserInDB
 from app.services.vector_search import VectorSearch
 from app.utils.auth_helpers import get_current_active_user
-from app.utils.exceptions import ValidationError, AIServiceError
+from app.utils.exceptions import AIServiceError
 from app.utils.logger import get_logger
-
 
 logger = get_logger(__name__)
 
@@ -55,10 +54,10 @@ class SemanticSearchRequest(BaseModel):
     query: str = Field(
         ..., min_length=1, max_length=500, description="Natural language search query"
     )
-    document_type: Optional[str] = Field(None, description="Filter by document type")
-    date_from: Optional[datetime] = Field(None, description="Filter by date range start")
-    date_to: Optional[datetime] = Field(None, description="Filter by date range end")
-    similarity_threshold: Optional[float] = Field(
+    document_type: str | None = Field(None, description="Filter by document type")
+    date_from: datetime | None = Field(None, description="Filter by date range start")
+    date_to: datetime | None = Field(None, description="Filter by date range end")
+    similarity_threshold: float | None = Field(
         0.7, ge=0.0, le=1.0, description="Minimum similarity score (0-1)"
     )
     limit: int = Field(10, ge=1, le=50, description="Maximum number of results")
@@ -78,16 +77,16 @@ class SearchResult(BaseModel):
     filename: str
     document_type: str
     similarity_score: float
-    created_at: Optional[str]
-    word_count: Optional[int]
-    matched_chunk: Dict[str, Any]
+    created_at: str | None
+    word_count: int | None
+    matched_chunk: dict[str, Any]
 
 
 class SemanticSearchResponse(BaseModel):
     """Semantic search response."""
 
     query: str
-    results: List[SearchResult]
+    results: list[SearchResult]
     total_results: int
     similarity_threshold: float
     duration_seconds: float
@@ -98,9 +97,9 @@ class HybridSearchRequest(BaseModel):
     """Hybrid search request."""
 
     query: str = Field(..., min_length=1, max_length=500, description="Search query")
-    document_type: Optional[str] = None
-    date_from: Optional[datetime] = None
-    date_to: Optional[datetime] = None
+    document_type: str | None = None
+    date_from: datetime | None = None
+    date_to: datetime | None = None
     vector_weight: float = Field(0.7, ge=0.0, le=1.0, description="Weight for vector similarity")
     keyword_weight: float = Field(0.3, ge=0.0, le=1.0, description="Weight for keyword matching")
     limit: int = Field(10, ge=1, le=50)
@@ -115,16 +114,16 @@ class HybridSearchResult(BaseModel):
     combined_score: float
     vector_score: float
     keyword_score: float
-    created_at: Optional[str]
-    word_count: Optional[int]
-    matched_chunk: Optional[str]
+    created_at: str | None
+    word_count: int | None
+    matched_chunk: str | None
 
 
 class HybridSearchResponse(BaseModel):
     """Hybrid search response."""
 
     query: str
-    results: List[HybridSearchResult]
+    results: list[HybridSearchResult]
     total_results: int
     vector_weight: float
     keyword_weight: float
@@ -138,15 +137,15 @@ class SimilarDocument(BaseModel):
     filename: str
     document_type: str
     similarity_score: float
-    created_at: Optional[str]
-    word_count: Optional[int]
+    created_at: str | None
+    word_count: int | None
 
 
 class SimilarDocumentsResponse(BaseModel):
     """Similar documents response."""
 
     document_id: str
-    results: List[SimilarDocument]
+    results: list[SimilarDocument]
     total_results: int
     similarity_threshold: float
 
@@ -155,7 +154,7 @@ class SearchSuggestionsResponse(BaseModel):
     """Search suggestions response."""
 
     partial_query: str
-    suggestions: List[str]
+    suggestions: list[str]
 
 
 class SearchStatsResponse(BaseModel):
@@ -182,9 +181,9 @@ class SearchStatsResponse(BaseModel):
 async def semantic_search(
     request: Request,
     query: str = Query(..., description="Search query", min_length=1, max_length=500),
-    document_type: Optional[str] = Query(None, description="Filter by document type"),
-    date_from: Optional[datetime] = Query(None, description="Filter by date range start"),
-    date_to: Optional[datetime] = Query(None, description="Filter by date range end"),
+    document_type: str | None = Query(None, description="Filter by document type"),
+    date_from: datetime | None = Query(None, description="Filter by date range start"),
+    date_to: datetime | None = Query(None, description="Filter by date range end"),
     similarity_threshold: float = Query(0.7, ge=0.0, le=1.0, description="Minimum similarity"),
     limit: int = Query(10, ge=1, le=50, description="Maximum results"),
     current_user: UserInDB = Depends(get_current_active_user),
@@ -483,7 +482,7 @@ async def search_health():
         # Test database
         db_ok = True
         try:
-            stats = await vector_search.get_search_stats()
+            await vector_search.get_search_stats()
         except Exception as e:
             logger.error(f"Database health check failed: {e}")
             db_ok = False

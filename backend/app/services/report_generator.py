@@ -3,43 +3,40 @@ Report Generator for PM Document Intelligence
 Generates PDF and Excel reports with analytics data
 """
 
-from datetime import datetime, timedelta
-from typing import Optional, Dict, Any, List
-from sqlalchemy.orm import Session
-from sqlalchemy import func
 import io
-import os
-from pathlib import Path
+from datetime import datetime
+from typing import Any
 
-# PDF generation
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter, A4
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.platypus import (
-    SimpleDocTemplate,
-    Table,
-    TableStyle,
-    Paragraph,
-    Spacer,
-    PageBreak,
-    Image,
-)
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
-
-# Excel generation
-import pandas as pd
-from openpyxl import Workbook
-from openpyxl.chart import BarChart, PieChart, LineChart, Reference
-from openpyxl.styles import Font, Alignment, PatternFill
+import matplotlib.pyplot as plt
 
 # Charts for PDF
 from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
-import base64
 
-from app.services.analytics_service import AnalyticsService
+# Excel generation
+from openpyxl import Workbook
+from openpyxl.chart import LineChart, Reference
+from openpyxl.styles import Font
+
+# PDF generation
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import inch
+from reportlab.platypus import (
+    Image,
+    PageBreak,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+
 from app.monitoring.log_aggregation import app_logger
+from app.services.analytics_service import AnalyticsService
 
 
 class ReportGenerator:
@@ -94,13 +91,13 @@ class ReportGenerator:
 
     async def _collect_report_data(
         self, start_date: datetime, end_date: datetime
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Collect all data needed for report"""
-        from app.models.user import User
         from app.models.document import Document
+        from app.models.user import User
 
         # Get admin user for full access
-        admin_user = self.db.query(User).filter(User.is_superuser == True).first()
+        admin_user = self.db.query(User).filter(User.is_superuser).first()
 
         if not admin_user:
             # Create temporary admin-like object
@@ -164,7 +161,7 @@ class ReportGenerator:
     async def generate_pdf_report(
         self,
         report_type: str,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         start_date: datetime,
         end_date: datetime,
     ) -> bytes:
@@ -288,7 +285,7 @@ class ReportGenerator:
             app_logger.error(f"Error generating PDF report: {str(e)}", exc_info=True)
             raise
 
-    def _create_time_series_chart(self, time_series_data: List[Dict]) -> Optional[Image]:
+    def _create_time_series_chart(self, time_series_data: list[dict]) -> Image | None:
         """Create time series chart for PDF"""
         try:
             # Extract dates and counts
@@ -325,7 +322,7 @@ class ReportGenerator:
     async def generate_excel_report(
         self,
         report_type: str,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         start_date: datetime,
         end_date: datetime,
     ) -> bytes:
@@ -434,7 +431,7 @@ class ReportGenerator:
     async def generate_json_report(
         self,
         report_type: str,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         start_date: datetime,
         end_date: datetime,
     ) -> bytes:

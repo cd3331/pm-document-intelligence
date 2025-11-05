@@ -16,10 +16,9 @@ Usage:
     uvicorn app.main:app --host 0.0.0.0 --port 8000
 """
 
-import asyncio
 import time
 from contextlib import asynccontextmanager
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import sentry_sdk
 from fastapi import FastAPI, HTTPException, Request, status
@@ -30,13 +29,13 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from prometheus_client import (
+    CONTENT_TYPE_LATEST,
     Counter,
     Gauge,
     Histogram,
     generate_latest,
-    CONTENT_TYPE_LATEST,
 )
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
@@ -49,17 +48,14 @@ from app.middleware.security import (
 )
 from app.utils.exceptions import (
     BaseAPIException,
-    ServiceUnavailableError,
     api_exception_handler,
     generic_exception_handler,
-    setup_exception_handlers,
 )
 from app.utils.logger import (
     get_logger,
     get_structured_logger,
     init_logging_from_config,
 )
-
 
 # Initialize logging
 init_logging_from_config()
@@ -155,7 +151,7 @@ async def lifespan(app: FastAPI):
     logger.info(f"Debug Mode: {settings.debug}")
     logger.info("=" * 80)
 
-    startup_errors: List[str] = []
+    startup_errors: list[str] = []
 
     # Initialize Sentry for error tracking
     if settings.monitoring.sentry_enabled and settings.monitoring.sentry_dsn:
@@ -207,7 +203,7 @@ async def lifespan(app: FastAPI):
 
     # Initialize Redis cache
     try:
-        from app.cache.redis import test_redis_connection, initialize_cache
+        from app.cache.redis import initialize_cache, test_redis_connection
 
         redis_connected = await test_redis_connection()
         if redis_connected:
@@ -634,7 +630,7 @@ app.add_exception_handler(Exception, generic_exception_handler)
     summary="Health check endpoint",
     response_model=None,
 )
-async def health_check() -> Dict[str, Any]:
+async def health_check() -> dict[str, Any]:
     """
     Comprehensive health check endpoint.
 
@@ -736,7 +732,7 @@ async def health_check() -> Dict[str, Any]:
     tags=["monitoring"],
     summary="Readiness check endpoint",
 )
-async def readiness_check() -> Dict[str, Any]:
+async def readiness_check() -> dict[str, Any]:
     """
     Kubernetes readiness probe endpoint.
 
@@ -788,7 +784,7 @@ async def metrics() -> Any:
 
 # Root endpoint
 @app.get("/", tags=["general"])
-async def root() -> Dict[str, Any]:
+async def root() -> dict[str, Any]:
     """
     Root endpoint with API information.
 

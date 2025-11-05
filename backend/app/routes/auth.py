@@ -18,7 +18,6 @@ Usage:
 
 import re
 from datetime import datetime, timedelta
-from typing import Optional
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -26,26 +25,24 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from app.config import settings
 from app.database import execute_insert, execute_select, execute_update
 from app.models import (
     Token,
     User,
-    UserCreate,
     UserInDB,
     UserRole,
     create_token_pair,
     hash_password,
+    sanitize_user_response,
     verify_password,
     verify_token,
-    sanitize_user_response,
 )
 from app.utils.audit_log import (
     AuditAction,
     AuditStatus,
+    log_account_lockout,
     log_auth_event,
     log_failed_login,
-    log_account_lockout,
 )
 from app.utils.auth_helpers import (
     check_account_lockout,
@@ -55,12 +52,9 @@ from app.utils.auth_helpers import (
     invalidate_user_cache,
 )
 from app.utils.exceptions import (
-    AuthenticationError,
     InvalidCredentialsError,
-    ValidationError,
 )
 from app.utils.logger import get_logger
-
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -90,7 +84,7 @@ class RegisterRequest(BaseModel):
         max_length=255,
         description="User full name",
     )
-    organization: Optional[str] = Field(
+    organization: str | None = Field(
         None,
         max_length=255,
         description="Organization name",
@@ -749,7 +743,7 @@ async def confirm_password_reset(
     """
     try:
         # Get reset token data from cache
-        from app.cache.redis import get_cache, delete_cache
+        from app.cache.redis import delete_cache, get_cache
 
         token_data = await get_cache(f"password_reset:{reset_confirm.token}")
 

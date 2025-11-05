@@ -26,7 +26,7 @@ Usage:
 
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -34,12 +34,10 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.config import settings
 from app.utils.exceptions import (
-    AuthenticationError,
     InvalidTokenError,
     TokenExpiredError,
 )
 from app.utils.logger import get_logger
-
 
 logger = get_logger(__name__)
 
@@ -122,7 +120,7 @@ class PermissionLevel(int, Enum):
 
 
 # Role permission mappings
-ROLE_PERMISSIONS: Dict[UserRole, PermissionLevel] = {
+ROLE_PERMISSIONS: dict[UserRole, PermissionLevel] = {
     UserRole.GUEST: PermissionLevel.READ,
     UserRole.USER: PermissionLevel.WRITE,
     UserRole.MANAGER: PermissionLevel.DELETE,
@@ -189,7 +187,7 @@ class UserBase(BaseModel):
 
     email: EmailStr = Field(..., description="User email address")
     full_name: str = Field(..., min_length=1, max_length=255, description="User full name")
-    organization: Optional[str] = Field(None, max_length=255, description="Organization name")
+    organization: str | None = Field(None, max_length=255, description="Organization name")
     role: UserRole = Field(default=UserRole.USER, description="User role")
     is_active: bool = Field(default=True, description="Account active status")
     preferences: UserPreferences = Field(
@@ -265,10 +263,10 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     """Model for updating user information."""
 
-    full_name: Optional[str] = Field(None, min_length=1, max_length=255)
-    organization: Optional[str] = Field(None, max_length=255)
-    preferences: Optional[UserPreferences] = None
-    is_active: Optional[bool] = None
+    full_name: str | None = Field(None, min_length=1, max_length=255)
+    organization: str | None = Field(None, max_length=255)
+    preferences: UserPreferences | None = None
+    is_active: bool | None = None
 
     class Config:
         """Pydantic configuration."""
@@ -292,7 +290,7 @@ class UserInDB(UserBase):
     hashed_password: str = Field(..., description="Hashed password")
     created_at: datetime = Field(..., description="Account creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
-    last_login: Optional[datetime] = Field(None, description="Last login timestamp")
+    last_login: datetime | None = Field(None, description="Last login timestamp")
     email_verified: bool = Field(default=False, description="Email verification status")
 
     class Config:
@@ -320,7 +318,7 @@ class User(UserBase):
     id: str = Field(..., description="User ID (UUID)")
     created_at: datetime = Field(..., description="Account creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
-    last_login: Optional[datetime] = Field(None, description="Last login timestamp")
+    last_login: datetime | None = Field(None, description="Last login timestamp")
     email_verified: bool = Field(default=False, description="Email verification status")
 
     class Config:
@@ -359,9 +357,9 @@ class TokenData(BaseModel):
     """Token payload data."""
 
     sub: str = Field(..., description="Subject (user ID)")
-    email: Optional[str] = Field(None, description="User email")
-    role: Optional[str] = Field(None, description="User role")
-    exp: Optional[datetime] = Field(None, description="Expiration time")
+    email: str | None = Field(None, description="User email")
+    role: str | None = Field(None, description="User role")
+    exp: datetime | None = Field(None, description="Expiration time")
 
 
 # ============================================================================
@@ -370,8 +368,8 @@ class TokenData(BaseModel):
 
 
 def create_access_token(
-    data: Dict[str, Any],
-    expires_delta: Optional[timedelta] = None,
+    data: dict[str, Any],
+    expires_delta: timedelta | None = None,
 ) -> str:
     """
     Create JWT access token.
@@ -408,8 +406,8 @@ def create_access_token(
 
 
 def create_refresh_token(
-    data: Dict[str, Any],
-    expires_delta: Optional[timedelta] = None,
+    data: dict[str, Any],
+    expires_delta: timedelta | None = None,
 ) -> str:
     """
     Create JWT refresh token.
@@ -546,7 +544,7 @@ def create_token_pair(user: UserInDB) -> Token:
 # ============================================================================
 
 
-def user_to_dict(user: UserInDB, include_sensitive: bool = False) -> Dict[str, Any]:
+def user_to_dict(user: UserInDB, include_sensitive: bool = False) -> dict[str, Any]:
     """
     Convert user model to dictionary.
 

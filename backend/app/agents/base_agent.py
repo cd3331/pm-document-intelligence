@@ -15,12 +15,11 @@ Usage:
 import time
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, Dict, List, Optional
 from enum import Enum
+from typing import Any
 
-from app.utils.exceptions import ValidationError, AIServiceError
+from app.utils.exceptions import AIServiceError, ValidationError
 from app.utils.logger import get_logger
-
 
 logger = get_logger(__name__)
 
@@ -62,9 +61,9 @@ class AgentMetrics:
         self.failed_requests = 0
         self.total_duration = 0.0
         self.total_cost = 0.0
-        self.last_execution_time: Optional[datetime] = None
-        self.last_error: Optional[str] = None
-        self.errors_by_type: Dict[str, int] = {}
+        self.last_execution_time: datetime | None = None
+        self.last_error: str | None = None
+        self.errors_by_type: dict[str, int] = {}
 
     def record_success(self, duration: float, cost: float) -> None:
         """
@@ -114,7 +113,7 @@ class AgentMetrics:
             return 0.0
         return self.total_cost / self.successful_requests
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """
         Get agent statistics.
 
@@ -181,8 +180,8 @@ class AgentCircuitBreaker:
         self.failure_count = 0
         self.success_count = 0
         self.state = "closed"  # closed, open, half-open
-        self.last_failure_time: Optional[float] = None
-        self.opened_at: Optional[datetime] = None
+        self.last_failure_time: float | None = None
+        self.opened_at: datetime | None = None
 
     def record_success(self) -> None:
         """Record successful execution."""
@@ -258,7 +257,7 @@ class AgentCircuitBreaker:
         elapsed = time.time() - self.last_failure_time
         return elapsed >= self.recovery_timeout
 
-    def get_state(self) -> Dict[str, Any]:
+    def get_state(self) -> dict[str, Any]:
         """Get circuit breaker state."""
         return {
             "agent_name": self.agent_name,
@@ -281,7 +280,7 @@ class BaseAgent(ABC):
         self,
         name: str,
         description: str,
-        config: Optional[Dict[str, Any]] = None,
+        config: dict[str, Any] | None = None,
     ):
         """
         Initialize base agent.
@@ -307,16 +306,16 @@ class BaseAgent(ABC):
 
         # Status
         self.status = AgentStatus.IDLE
-        self.current_task_id: Optional[str] = None
+        self.current_task_id: str | None = None
 
         # Rate limiting
         self.max_requests_per_minute = self.config.get("max_requests_per_minute", 60)
-        self.request_timestamps: List[float] = []
+        self.request_timestamps: list[float] = []
 
         logger.info(f"Agent initialized: {name}")
 
     @abstractmethod
-    async def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def process(self, input_data: dict[str, Any]) -> dict[str, Any]:
         """
         Process input data and return results.
 
@@ -332,7 +331,7 @@ class BaseAgent(ABC):
         """
         pass
 
-    def validate_input(self, input_data: Dict[str, Any]) -> None:
+    def validate_input(self, input_data: dict[str, Any]) -> None:
         """
         Validate input data.
 
@@ -348,7 +347,7 @@ class BaseAgent(ABC):
                 message="Input must be a dictionary", details={"agent": self.name}
             )
 
-    def validate_output(self, output_data: Dict[str, Any]) -> None:
+    def validate_output(self, output_data: dict[str, Any]) -> None:
         """
         Validate output data.
 
@@ -366,9 +365,9 @@ class BaseAgent(ABC):
 
     async def execute(
         self,
-        input_data: Dict[str, Any],
-        task_id: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        input_data: dict[str, Any],
+        task_id: str | None = None,
+    ) -> dict[str, Any]:
         """
         Execute agent with full error handling and metrics.
 
@@ -504,7 +503,7 @@ class BaseAgent(ABC):
         # Add current timestamp
         self.request_timestamps.append(now)
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """
         Get agent status.
 

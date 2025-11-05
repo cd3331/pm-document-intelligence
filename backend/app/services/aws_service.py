@@ -45,32 +45,30 @@ Usage:
 import asyncio
 import json
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple
-from io import BytesIO
+from typing import Any
 
 import aioboto3
 from botocore.config import Config
-from botocore.exceptions import ClientError, BotoCoreError
+from botocore.exceptions import BotoCoreError, ClientError
 from tenacity import (
+    before_sleep_log,
     retry,
     retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
-    before_sleep_log,
 )
 
 from app.config import settings
 from app.utils.exceptions import (
+    AIServiceError,
     BedrockError,
-    TextractError,
     ComprehendError,
     S3Error,
-    AIServiceError,
+    TextractError,
 )
 from app.utils.logger import get_logger
-
 
 logger = get_logger(__name__)
 
@@ -123,13 +121,13 @@ class CostTracker:
 
     def __init__(self):
         """Initialize cost tracker."""
-        self.costs: Dict[str, float] = {
+        self.costs: dict[str, float] = {
             "bedrock": 0.0,
             "textract": 0.0,
             "comprehend": 0.0,
             "s3": 0.0,
         }
-        self.usage: Dict[str, Dict[str, int]] = {
+        self.usage: dict[str, dict[str, int]] = {
             "bedrock": {"input_tokens": 0, "output_tokens": 0},
             "textract": {"pages": 0},
             "comprehend": {"characters": 0},
@@ -234,7 +232,7 @@ class CostTracker:
         """Get total cost across all services."""
         return sum(self.costs.values())
 
-    def get_cost_report(self) -> Dict[str, Any]:
+    def get_cost_report(self) -> dict[str, Any]:
         """
         Get comprehensive cost report.
 
@@ -285,7 +283,7 @@ class CircuitBreaker:
         self.failure_threshold = failure_threshold
         self.recovery_timeout = recovery_timeout
         self.failure_count = 0
-        self.last_failure_time: Optional[float] = None
+        self.last_failure_time: float | None = None
         self.state = "closed"  # closed, open, half-open
 
     def call(self, func):
@@ -319,7 +317,7 @@ class CircuitBreaker:
 
                 return result
 
-            except Exception as e:
+            except Exception:
                 self._record_failure()
                 raise
 
@@ -437,12 +435,12 @@ Be thorough and structured in your analysis.""",
     async def invoke_claude(
         self,
         user_message: str,
-        system_prompt: Optional[str] = None,
+        system_prompt: str | None = None,
         document_type: DocumentType = DocumentType.GENERAL,
-        max_tokens: Optional[int] = None,
-        temperature: Optional[float] = None,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
         stream: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Invoke Claude model via Bedrock.
 
@@ -582,8 +580,8 @@ Be thorough and structured in your analysis.""",
         self,
         document_text: str,
         document_type: DocumentType = DocumentType.GENERAL,
-        custom_instructions: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        custom_instructions: str | None = None,
+    ) -> dict[str, Any]:
         """
         Analyze document using Claude.
 
@@ -642,8 +640,8 @@ class TextractService:
     async def extract_text_synchronous(
         self,
         document_bytes: bytes,
-        feature_types: Optional[List[str]] = None,
-    ) -> Dict[str, Any]:
+        feature_types: list[str] | None = None,
+    ) -> dict[str, Any]:
         """
         Extract text from document synchronously (for small documents).
 
@@ -690,7 +688,6 @@ class TextractService:
                 blocks = response.get("Blocks", [])
 
                 # Extract text
-                text_blocks = []
                 lines = []
                 words = []
 
@@ -790,9 +787,9 @@ class TextractService:
         self,
         s3_bucket: str,
         s3_key: str,
-        feature_types: Optional[List[str]] = None,
+        feature_types: list[str] | None = None,
         max_wait_seconds: int = 300,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Extract text from document asynchronously (for large documents).
 
@@ -958,7 +955,7 @@ class TextractService:
                 details={"error": str(e)},
             )
 
-    def _extract_tables(self, blocks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _extract_tables(self, blocks: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Extract tables from Textract blocks.
 
@@ -1022,7 +1019,7 @@ class TextractService:
 
         return tables
 
-    def _extract_forms(self, blocks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _extract_forms(self, blocks: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Extract form fields from Textract blocks.
 
@@ -1111,7 +1108,7 @@ class ComprehendService:
         self,
         text: str,
         language_code: str = "en",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Detect named entities in text.
 
@@ -1219,7 +1216,7 @@ class ComprehendService:
         self,
         text: str,
         language_code: str = "en",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Analyze sentiment of text.
 
@@ -1301,7 +1298,7 @@ class ComprehendService:
         self,
         text: str,
         language_code: str = "en",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Detect key phrases in text.
 
@@ -1380,7 +1377,7 @@ class ComprehendService:
         self,
         text: str,
         language_code: str = "en",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Perform comprehensive NLP analysis (entities, sentiment, key phrases).
 
@@ -1501,9 +1498,9 @@ class S3Service:
         file_content: bytes,
         filename: str,
         user_id: str,
-        document_type: Optional[str] = None,
-        metadata: Optional[Dict[str, str]] = None,
-    ) -> Dict[str, Any]:
+        document_type: str | None = None,
+        metadata: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
         """
         Upload document to S3 with encryption and metadata.
 
@@ -1598,7 +1595,7 @@ class S3Service:
                             MultipartUpload={"Parts": parts},
                         )
 
-                    except Exception as e:
+                    except Exception:
                         # Abort multipart upload on error
                         await client.abort_multipart_upload(
                             Bucket=self.bucket_name,
@@ -1682,7 +1679,7 @@ class S3Service:
     async def download_document(
         self,
         s3_key: str,
-    ) -> Tuple[bytes, Dict[str, Any]]:
+    ) -> tuple[bytes, dict[str, Any]]:
         """
         Download document from S3.
 
@@ -1821,8 +1818,8 @@ class S3Service:
         self,
         user_id: str,
         max_keys: int = 100,
-        continuation_token: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        continuation_token: str | None = None,
+    ) -> dict[str, Any]:
         """
         List documents for a user.
 
@@ -1942,7 +1939,7 @@ class S3Service:
 # ============================================================================
 
 
-async def check_aws_services_health() -> Dict[str, Any]:
+async def check_aws_services_health() -> dict[str, Any]:
     """
     Check health of all AWS services.
 
@@ -1971,7 +1968,7 @@ async def check_aws_services_health() -> Dict[str, Any]:
                 timeout=5.0,
             )
             health_status["bedrock"] = {"healthy": True, "message": "OK"}
-    except asyncio.TimeoutError:
+    except TimeoutError:
         health_status["bedrock"] = {"healthy": False, "message": "Timeout"}
     except Exception as e:
         health_status["bedrock"] = {"healthy": False, "message": str(e)}
@@ -1990,9 +1987,9 @@ async def check_aws_services_health() -> Dict[str, Any]:
                 timeout=5.0,
             )
             health_status["textract"] = {"healthy": True, "message": "OK"}
-    except asyncio.TimeoutError:
+    except TimeoutError:
         health_status["textract"] = {"healthy": False, "message": "Timeout"}
-    except Exception as e:
+    except Exception:
         health_status["textract"] = {"healthy": True, "message": "OK (limited check)"}
 
     # Check Comprehend
@@ -2009,9 +2006,9 @@ async def check_aws_services_health() -> Dict[str, Any]:
                 timeout=5.0,
             )
             health_status["comprehend"] = {"healthy": True, "message": "OK"}
-    except asyncio.TimeoutError:
+    except TimeoutError:
         health_status["comprehend"] = {"healthy": False, "message": "Timeout"}
-    except Exception as e:
+    except Exception:
         health_status["comprehend"] = {
             "healthy": True,
             "message": "OK (connectivity verified)",
@@ -2031,7 +2028,7 @@ async def check_aws_services_health() -> Dict[str, Any]:
                 timeout=5.0,
             )
             health_status["s3"] = {"healthy": True, "message": "OK"}
-    except asyncio.TimeoutError:
+    except TimeoutError:
         health_status["s3"] = {"healthy": False, "message": "Timeout"}
     except Exception as e:
         health_status["s3"] = {"healthy": False, "message": str(e)}
@@ -2051,7 +2048,7 @@ async def check_aws_services_health() -> Dict[str, Any]:
     return health_status
 
 
-async def get_aws_cost_summary() -> Dict[str, Any]:
+async def get_aws_cost_summary() -> dict[str, Any]:
     """
     Get summary of AWS costs tracked in current session.
 

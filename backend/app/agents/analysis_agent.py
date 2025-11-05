@@ -6,13 +6,12 @@ Specializes in complex reasoning, insight extraction, and recommendations.
 
 import json
 import re
-from typing import Any, Dict
+from typing import Any
 
 from app.agents.base_agent import BaseAgent
-from app.services.aws_service import BedrockService, DocumentType
+from app.services.aws_service import BedrockService
 from app.utils.exceptions import ValidationError
 from app.utils.logger import get_logger
-
 
 logger = get_logger(__name__)
 
@@ -33,7 +32,7 @@ class AnalysisAgent(BaseAgent):
 
         self.bedrock = BedrockService()
 
-    def validate_input(self, input_data: Dict[str, Any]) -> None:
+    def validate_input(self, input_data: dict[str, Any]) -> None:
         """Validate input data."""
         super().validate_input(input_data)
 
@@ -48,11 +47,11 @@ class AnalysisAgent(BaseAgent):
         if not input_data["text"].strip():
             raise ValidationError(message="Text cannot be empty", details={"agent": self.name})
 
-    async def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def process(self, input_data: dict[str, Any]) -> dict[str, Any]:
         """Process document for deep analysis."""
         text = input_data["text"]
         document_type = input_data.get("document_type", "general")
-        options = input_data.get("options", {})
+        input_data.get("options", {})
 
         logger.info(f"Performing deep analysis on {len(text)} characters")
 
@@ -117,7 +116,7 @@ Focus on: Completeness, clarity, feasibility, acceptance criteria, potential gap
 Provide deep insights, identify patterns, assess risks, and generate actionable recommendations.""",
         )
 
-    def _parse_analysis(self, response_text: str) -> Dict[str, Any]:
+    def _parse_analysis(self, response_text: str) -> dict[str, Any]:
         """Parse analysis JSON from response."""
         try:
             # Remove markdown code blocks

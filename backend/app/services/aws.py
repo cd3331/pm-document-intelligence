@@ -20,22 +20,21 @@ Usage:
     response = await bedrock.invoke_model(...)
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 import aioboto3
 from botocore.config import Config
-from botocore.exceptions import BotoCoreError, ClientError
+from botocore.exceptions import ClientError
 
 from app.config import settings
-from app.utils.exceptions import BedrockError, S3Error, TextractError, ComprehendError
+from app.utils.exceptions import BedrockError, ComprehendError, S3Error, TextractError
 from app.utils.logger import get_logger
-
 
 logger = get_logger(__name__)
 
 
 # Global session for AWS clients
-_session: Optional[aioboto3.Session] = None
+_session: aioboto3.Session | None = None
 
 
 def get_aws_session() -> aioboto3.Session:
@@ -309,7 +308,7 @@ async def test_comprehend_availability() -> bool:
 
         async with session.client("comprehend", config=config) as client:
             # Try to detect sentiment on a simple text
-            response = await client.detect_sentiment(
+            await client.detect_sentiment(
                 Text="test",
                 LanguageCode=settings.comprehend.comprehend_language_code,
             )
@@ -321,7 +320,7 @@ async def test_comprehend_availability() -> bool:
         return False
 
 
-async def test_aws_services() -> Dict[str, Any]:
+async def test_aws_services() -> dict[str, Any]:
     """
     Test availability of all AWS services.
 

@@ -23,7 +23,7 @@ Usage:
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Literal
 
 from pydantic import (
     AnyHttpUrl,
@@ -44,15 +44,15 @@ class AWSConfig(BaseSettings):
         default="us-east-1",
         description="AWS region for service calls",
     )
-    aws_access_key_id: Optional[str] = Field(
+    aws_access_key_id: str | None = Field(
         default=None,
         description="AWS access key ID (optional if using IAM roles)",
     )
-    aws_secret_access_key: Optional[str] = Field(
+    aws_secret_access_key: str | None = Field(
         default=None,
         description="AWS secret access key (optional if using IAM roles)",
     )
-    aws_session_token: Optional[str] = Field(
+    aws_session_token: str | None = Field(
         default=None,
         description="AWS session token for temporary credentials",
     )
@@ -377,7 +377,7 @@ class MonitoringConfig(BaseSettings):
     """Monitoring and observability configuration."""
 
     # Sentry Configuration
-    sentry_dsn: Optional[str] = Field(
+    sentry_dsn: str | None = Field(
         default=None,
         description="Sentry DSN for error tracking",
     )
@@ -517,7 +517,7 @@ class RedisConfig(BaseSettings):
         default="redis://localhost:6379/0",
         description="Redis connection URL",
     )
-    redis_password: Optional[str] = Field(
+    redis_password: str | None = Field(
         default=None,
         description="Redis password",
     )
@@ -726,7 +726,7 @@ class Settings(BaseSettings):
         default=False,
         description="Enable testing mode",
     )
-    test_database_url: Optional[PostgresDsn] = Field(
+    test_database_url: PostgresDsn | None = Field(
         default=None,
         description="Test database URL",
     )
@@ -822,22 +822,22 @@ class Settings(BaseSettings):
         return self.testing
 
     @property
-    def allowed_hosts_list(self) -> List[str]:
+    def allowed_hosts_list(self) -> list[str]:
         """Parse allowed hosts into a list."""
         return [host.strip() for host in self.allowed_hosts.split(",")]
 
     @property
-    def cors_origins_list(self) -> List[str]:
+    def cors_origins_list(self) -> list[str]:
         """Parse CORS origins into a list."""
         return [origin.strip() for origin in self.cors_origins.split(",")]
 
     @property
-    def allowed_extensions_list(self) -> List[str]:
+    def allowed_extensions_list(self) -> list[str]:
         """Parse allowed extensions into a list."""
         return [ext.strip().lower() for ext in self.allowed_extensions.split(",")]
 
     @property
-    def agent_tools_list(self) -> List[str]:
+    def agent_tools_list(self) -> list[str]:
         """Parse agent tools into a list."""
         return [tool.strip() for tool in self.agent_tools_enabled.split(",")]
 
@@ -856,7 +856,7 @@ class Settings(BaseSettings):
         """Get maximum upload size in megabytes."""
         return self.max_upload_size / (1024 * 1024)
 
-    def get_aws_credentials(self) -> Dict[str, Optional[str]]:
+    def get_aws_credentials(self) -> dict[str, str | None]:
         """
         Get AWS credentials dictionary.
 
@@ -887,7 +887,7 @@ class Settings(BaseSettings):
             url = url.replace("postgresql://", "postgresql+asyncpg://")
         return url
 
-    def to_dict(self, include_secrets: bool = False) -> Dict[str, Any]:
+    def to_dict(self, include_secrets: bool = False) -> dict[str, Any]:
         """
         Convert settings to dictionary.
 
@@ -901,25 +901,8 @@ class Settings(BaseSettings):
 
         if not include_secrets:
             # Mask sensitive fields
-            sensitive_fields = [
-                "secret_key",
-                "aws_access_key_id",
-                "aws_secret_access_key",
-                "aws_session_token",
-                "openai_api_key",
-                "supabase_key",
-                "supabase_service_key",
-                "supabase_jwt_secret",
-                "pubnub_publish_key",
-                "pubnub_subscribe_key",
-                "pubnub_secret_key",
-                "jwt_secret_key",
-                "api_key_salt",
-                "redis_password",
-                "sentry_dsn",
-            ]
 
-            def mask_secrets(d: Dict[str, Any]) -> None:
+            def mask_secrets(d: dict[str, Any]) -> None:
                 """Recursively mask secret values."""
                 for key, value in d.items():
                     if isinstance(value, dict):
@@ -936,7 +919,7 @@ class Settings(BaseSettings):
         return data
 
 
-@lru_cache()
+@lru_cache
 def get_settings() -> Settings:
     """
     Get cached settings instance.

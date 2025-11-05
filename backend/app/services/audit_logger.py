@@ -3,16 +3,17 @@ Audit Logging Service
 Comprehensive audit trail for compliance and security
 """
 
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, func, desc
-from datetime import datetime, timedelta
-from typing import Optional, List, Dict, Any
-import uuid
 import csv
 import io
 import json
+import uuid
+from datetime import datetime, timedelta
+from typing import Any
 
-from app.models.audit import AuditLog, DataAccessLog, ComplianceEvent, AuditLogRetention
+from sqlalchemy import and_, desc, func, or_
+from sqlalchemy.orm import Session
+
+from app.models.audit import AuditLog, AuditLogRetention, ComplianceEvent, DataAccessLog
 from app.models.user import User
 
 
@@ -33,19 +34,19 @@ class AuditLogger:
         self,
         action: str,
         category: str = None,
-        user_id: Optional[uuid.UUID] = None,
-        organization_id: Optional[uuid.UUID] = None,
-        resource_type: Optional[str] = None,
-        resource_id: Optional[uuid.UUID] = None,
+        user_id: uuid.UUID | None = None,
+        organization_id: uuid.UUID | None = None,
+        resource_type: str | None = None,
+        resource_id: uuid.UUID | None = None,
         status: str = "success",
-        status_code: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None,
-        changes: Optional[Dict[str, Any]] = None,
-        error_message: Optional[str] = None,
-        ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None,
-        request_method: Optional[str] = None,
-        request_path: Optional[str] = None,
+        status_code: str | None = None,
+        details: dict[str, Any] | None = None,
+        changes: dict[str, Any] | None = None,
+        error_message: str | None = None,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+        request_method: str | None = None,
+        request_path: str | None = None,
         sensitivity_level: str = "normal",
     ) -> AuditLog:
         """
@@ -123,15 +124,15 @@ class AuditLogger:
         data_type: str,
         data_id: uuid.UUID,
         access_type: str,
-        data_classification: Optional[str] = None,
-        access_method: Optional[str] = None,
-        purpose: Optional[str] = None,
-        justification: Optional[str] = None,
+        data_classification: str | None = None,
+        access_method: str | None = None,
+        purpose: str | None = None,
+        justification: str | None = None,
         status: str = "granted",
-        records_accessed: Optional[str] = None,
-        ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None,
-        session_id: Optional[str] = None,
+        records_accessed: str | None = None,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+        session_id: str | None = None,
     ) -> DataAccessLog:
         """
         Log data access for compliance
@@ -186,11 +187,11 @@ class AuditLogger:
         severity: str,
         title: str,
         description: str,
-        affected_users: Optional[List[uuid.UUID]] = None,
-        involved_users: Optional[List[uuid.UUID]] = None,
-        affected_data: Optional[Dict[str, Any]] = None,
+        affected_users: list[uuid.UUID] | None = None,
+        involved_users: list[uuid.UUID] | None = None,
+        affected_data: dict[str, Any] | None = None,
         requires_reporting: bool = False,
-        occurred_at: Optional[datetime] = None,
+        occurred_at: datetime | None = None,
     ) -> ComplianceEvent:
         """
         Log a compliance event
@@ -239,9 +240,9 @@ class AuditLogger:
         self,
         user_id: uuid.UUID,
         success: bool,
-        ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None,
-        error_message: Optional[str] = None,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+        error_message: str | None = None,
     ):
         """Log user login attempt"""
         return await self.log_event(
@@ -255,7 +256,7 @@ class AuditLogger:
             details={"login_successful": success},
         )
 
-    async def log_logout(self, user_id: uuid.UUID, ip_address: Optional[str] = None):
+    async def log_logout(self, user_id: uuid.UUID, ip_address: str | None = None):
         """Log user logout"""
         return await self.log_event(
             action="user_logout",
@@ -273,7 +274,7 @@ class AuditLogger:
         old_role: str,
         new_role: str,
         resource_type: str = "user",
-        resource_id: Optional[uuid.UUID] = None,
+        resource_id: uuid.UUID | None = None,
     ):
         """Log permission/role change"""
         return await self.log_event(
@@ -322,18 +323,18 @@ class AuditLogger:
 
     async def get_audit_logs(
         self,
-        organization_id: Optional[uuid.UUID] = None,
-        user_id: Optional[uuid.UUID] = None,
-        action: Optional[str] = None,
-        category: Optional[str] = None,
-        resource_type: Optional[str] = None,
-        resource_id: Optional[uuid.UUID] = None,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None,
-        status: Optional[str] = None,
+        organization_id: uuid.UUID | None = None,
+        user_id: uuid.UUID | None = None,
+        action: str | None = None,
+        category: str | None = None,
+        resource_type: str | None = None,
+        resource_id: uuid.UUID | None = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
+        status: str | None = None,
         skip: int = 0,
         limit: int = 100,
-    ) -> List[AuditLog]:
+    ) -> list[AuditLog]:
         """
         Query audit logs with filters
 
@@ -380,15 +381,15 @@ class AuditLogger:
 
     async def get_data_access_logs(
         self,
-        organization_id: Optional[uuid.UUID] = None,
-        user_id: Optional[uuid.UUID] = None,
-        data_type: Optional[str] = None,
-        data_id: Optional[uuid.UUID] = None,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None,
+        organization_id: uuid.UUID | None = None,
+        user_id: uuid.UUID | None = None,
+        data_type: str | None = None,
+        data_id: uuid.UUID | None = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
         skip: int = 0,
         limit: int = 100,
-    ) -> List[DataAccessLog]:
+    ) -> list[DataAccessLog]:
         """Query data access logs with filters"""
         query = self.db.query(DataAccessLog)
 
@@ -417,16 +418,16 @@ class AuditLogger:
 
     async def get_compliance_events(
         self,
-        organization_id: Optional[uuid.UUID] = None,
-        event_type: Optional[str] = None,
-        severity: Optional[str] = None,
-        status: Optional[str] = None,
-        requires_reporting: Optional[bool] = None,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None,
+        organization_id: uuid.UUID | None = None,
+        event_type: str | None = None,
+        severity: str | None = None,
+        status: str | None = None,
+        requires_reporting: bool | None = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
         skip: int = 0,
         limit: int = 100,
-    ) -> List[ComplianceEvent]:
+    ) -> list[ComplianceEvent]:
         """Query compliance events with filters"""
         query = self.db.query(ComplianceEvent)
 
@@ -462,9 +463,9 @@ class AuditLogger:
 
     async def export_audit_logs_csv(
         self,
-        organization_id: Optional[uuid.UUID] = None,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None,
+        organization_id: uuid.UUID | None = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
     ) -> str:
         """
         Export audit logs to CSV format
@@ -521,9 +522,9 @@ class AuditLogger:
 
     async def export_audit_logs_json(
         self,
-        organization_id: Optional[uuid.UUID] = None,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None,
+        organization_id: uuid.UUID | None = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
     ) -> str:
         """
         Export audit logs to JSON format
@@ -583,7 +584,7 @@ class AuditLogger:
 
     async def get_audit_summary(
         self, organization_id: uuid.UUID, start_date: datetime, end_date: datetime
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get audit log summary for a period
 
@@ -661,7 +662,7 @@ class AuditLogger:
             "total_events": total_events,
             "failed_events": failed_events,
             "sensitive_actions": sensitive_actions,
-            "events_by_category": {category: count for category, count in events_by_category},
+            "events_by_category": dict(events_by_category),
             "top_users": [
                 {"user_id": str(user_id), "username": username, "event_count": count}
                 for user_id, username, count in top_users

@@ -3,10 +3,11 @@ Audit Log Models
 Database models for audit trail and compliance logging
 """
 
-from sqlalchemy import Column, String, DateTime, Text, Index, JSON
-from sqlalchemy.dialects.postgresql import UUID, JSONB
-from datetime import datetime
 import uuid
+from datetime import datetime
+
+from sqlalchemy import Column, DateTime, Index, String, Text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 
 from app.core.database import Base
 

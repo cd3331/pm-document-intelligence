@@ -27,14 +27,14 @@ Usage:
 
 import contextvars
 import functools
-import json
 import logging
 import sys
 import time
 import traceback
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, TypeVar, cast
+from typing import Any, TypeVar, cast
 
 from pythonjsonlogger import jsonlogger
 
@@ -47,10 +47,10 @@ except ImportError:
 
 
 # Context variable for request tracking
-request_id_var: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
+request_id_var: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "request_id", default=None
 )
-user_id_var: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar("user_id", default=None)
+user_id_var: contextvars.ContextVar[str | None] = contextvars.ContextVar("user_id", default=None)
 
 
 # Type variable for decorators
@@ -67,9 +67,9 @@ class CustomJSONFormatter(jsonlogger.JsonFormatter):
 
     def add_fields(
         self,
-        log_record: Dict[str, Any],
+        log_record: dict[str, Any],
         record: logging.LogRecord,
-        message_dict: Dict[str, Any],
+        message_dict: dict[str, Any],
     ) -> None:
         """
         Add custom fields to log record.
@@ -109,7 +109,7 @@ class CustomJSONFormatter(jsonlogger.JsonFormatter):
         # Mask sensitive data
         self._mask_sensitive_data(log_record)
 
-    def _mask_sensitive_data(self, log_record: Dict[str, Any]) -> None:
+    def _mask_sensitive_data(self, log_record: dict[str, Any]) -> None:
         """
         Mask sensitive information in log records.
 
@@ -128,7 +128,7 @@ class CustomJSONFormatter(jsonlogger.JsonFormatter):
             "secret_key",
         }
 
-        def mask_dict(d: Dict[str, Any]) -> None:
+        def mask_dict(d: dict[str, Any]) -> None:
             """Recursively mask sensitive keys."""
             for key, value in list(d.items()):
                 if isinstance(value, dict):
@@ -159,7 +159,7 @@ class ColoredFormatter(logging.Formatter):
     RESET = "\033[0m"
     BOLD = "\033[1m"
 
-    def __init__(self, fmt: Optional[str] = None, datefmt: Optional[str] = None):
+    def __init__(self, fmt: str | None = None, datefmt: str | None = None):
         """
         Initialize colored formatter.
 
@@ -200,7 +200,7 @@ class LoggerAdapter(logging.LoggerAdapter):
     and ensures consistent structured logging across the application.
     """
 
-    def process(self, msg: str, kwargs: Dict[str, Any]) -> tuple[str, Dict[str, Any]]:
+    def process(self, msg: str, kwargs: dict[str, Any]) -> tuple[str, dict[str, Any]]:
         """
         Process log message and add extra context.
 
@@ -229,7 +229,7 @@ class LoggerAdapter(logging.LoggerAdapter):
 def setup_logging(
     log_level: str = "INFO",
     log_format: str = "json",
-    log_file: Optional[str] = None,
+    log_file: str | None = None,
     rotation_size: str = "10MB",
     retention: str = "30 days",
 ) -> None:
@@ -356,7 +356,7 @@ def get_logger(name: str) -> logging.Logger:
     return logging.getLogger(name)
 
 
-def set_request_context(request_id: str, user_id: Optional[str] = None) -> None:
+def set_request_context(request_id: str, user_id: str | None = None) -> None:
     """
     Set request context for logging.
 
@@ -524,8 +524,8 @@ class StructuredLogger:
         self,
         method: str,
         path: str,
-        status_code: Optional[int] = None,
-        duration_ms: Optional[float] = None,
+        status_code: int | None = None,
+        duration_ms: float | None = None,
         **extra: Any,
     ) -> None:
         """
@@ -568,7 +568,7 @@ class StructuredLogger:
         document_id: str,
         operation: str,
         status: str,
-        duration_seconds: Optional[float] = None,
+        duration_seconds: float | None = None,
         **extra: Any,
     ) -> None:
         """
@@ -608,9 +608,9 @@ class StructuredLogger:
         self,
         service: str,
         operation: str,
-        tokens: Optional[int] = None,
-        cost: Optional[float] = None,
-        duration_seconds: Optional[float] = None,
+        tokens: int | None = None,
+        cost: float | None = None,
+        duration_seconds: float | None = None,
         **extra: Any,
     ) -> None:
         """

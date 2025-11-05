@@ -2,12 +2,11 @@
 
 import json
 import re
-from typing import Any, Dict
+from typing import Any
 
 from app.agents.base_agent import BaseAgent
 from app.services.aws_service import BedrockService, ComprehendService
 from app.utils.logger import get_logger
-
 
 logger = get_logger(__name__)
 
@@ -25,7 +24,7 @@ class EntityAgent(BaseAgent):
         self.bedrock = BedrockService()
         self.comprehend = ComprehendService()
 
-    async def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def process(self, input_data: dict[str, Any]) -> dict[str, Any]:
         """Extract entities."""
         text = input_data["text"]
 
@@ -59,7 +58,7 @@ Return JSON:
             "cost": comprehend_result["cost"] + response["cost"],
         }
 
-    def _parse_entities(self, response_text: str) -> Dict[str, Any]:
+    def _parse_entities(self, response_text: str) -> dict[str, Any]:
         """Parse entities JSON."""
         try:
             response_text = re.sub(r"```json?\n?", "", response_text).strip()

@@ -23,17 +23,14 @@ Usage:
     )
 """
 
-import asyncio
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime
+from typing import Any
 
-from app.config import settings
-from app.database import execute_insert, execute_select, execute_query, execute_update
-from app.services.embedding_service import EmbeddingService
 from app.cache.redis import get_cache, set_cache
+from app.database import execute_insert, execute_query, execute_select
+from app.services.embedding_service import EmbeddingService
 from app.utils.exceptions import AIServiceError, DatabaseError
 from app.utils.logger import get_logger
-
 
 logger = get_logger(__name__)
 
@@ -59,9 +56,9 @@ class VectorSearch:
     async def store_document_embeddings(
         self,
         document_id: str,
-        embeddings: List[Dict[str, Any]],
+        embeddings: list[dict[str, Any]],
         user_id: str,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> int:
         """
         Store document embeddings in database.
@@ -112,14 +109,14 @@ class VectorSearch:
     async def semantic_search(
         self,
         query: str,
-        user_id: Optional[str] = None,
-        document_type: Optional[str] = None,
-        date_from: Optional[datetime] = None,
-        date_to: Optional[datetime] = None,
-        similarity_threshold: Optional[float] = None,
+        user_id: str | None = None,
+        document_type: str | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        similarity_threshold: float | None = None,
         limit: int = 10,
         use_cache: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Perform semantic search on documents.
 
@@ -203,7 +200,7 @@ class VectorSearch:
                 params.append(date_to)
 
             # Add similarity threshold
-            sql += f" AND (1 - (e.embedding <=> %s::vector)) >= %s"
+            sql += " AND (1 - (e.embedding <=> %s::vector)) >= %s"
             params.append(query_embedding)
             params.append(threshold)
 
@@ -277,14 +274,14 @@ class VectorSearch:
     async def hybrid_search(
         self,
         query: str,
-        user_id: Optional[str] = None,
-        document_type: Optional[str] = None,
-        date_from: Optional[datetime] = None,
-        date_to: Optional[datetime] = None,
+        user_id: str | None = None,
+        document_type: str | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
         vector_weight: float = 0.7,
         keyword_weight: float = 0.3,
         limit: int = 10,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Perform hybrid search combining vector and keyword search.
 
@@ -438,10 +435,10 @@ class VectorSearch:
     async def find_similar_documents(
         self,
         document_id: str,
-        user_id: Optional[str] = None,
+        user_id: str | None = None,
         similarity_threshold: float = 0.75,
         limit: int = 5,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Find documents similar to a given document.
 
@@ -575,8 +572,8 @@ class VectorSearch:
         document_id: str,
         new_text: str,
         user_id: str,
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         Update embeddings for a document (delete old, generate new).
 
@@ -626,9 +623,9 @@ class VectorSearch:
     async def get_search_suggestions(
         self,
         partial_query: str,
-        user_id: Optional[str] = None,
+        user_id: str | None = None,
         limit: int = 5,
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Get search query suggestions based on previous searches and document content.
 
@@ -683,10 +680,10 @@ class VectorSearch:
     def _generate_search_cache_key(
         self,
         query: str,
-        user_id: Optional[str],
-        document_type: Optional[str],
-        date_from: Optional[datetime],
-        date_to: Optional[datetime],
+        user_id: str | None,
+        document_type: str | None,
+        date_from: datetime | None,
+        date_to: datetime | None,
         limit: int,
     ) -> str:
         """Generate cache key for search results."""
@@ -706,7 +703,7 @@ class VectorSearch:
 
         return f"search:{key_hash}"
 
-    async def get_search_stats(self, user_id: Optional[str] = None) -> Dict[str, Any]:
+    async def get_search_stats(self, user_id: str | None = None) -> dict[str, Any]:
         """
         Get search statistics.
 

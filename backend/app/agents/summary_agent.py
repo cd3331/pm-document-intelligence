@@ -2,13 +2,12 @@
 
 import json
 import re
-from typing import Any, Dict
+from typing import Any
 
 from app.agents.base_agent import BaseAgent
 from app.services.aws_service import BedrockService
 from app.utils.exceptions import ValidationError
 from app.utils.logger import get_logger
-
 
 logger = get_logger(__name__)
 
@@ -25,13 +24,13 @@ class SummaryAgent(BaseAgent):
         )
         self.bedrock = BedrockService()
 
-    def validate_input(self, input_data: Dict[str, Any]) -> None:
+    def validate_input(self, input_data: dict[str, Any]) -> None:
         """Validate input."""
         super().validate_input(input_data)
         if "text" not in input_data:
             raise ValidationError(message="Text required", details={"agent": self.name})
 
-    async def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def process(self, input_data: dict[str, Any]) -> dict[str, Any]:
         """Generate summary."""
         text = input_data["text"]
         length = input_data.get("options", {}).get("length", "medium")
@@ -77,7 +76,7 @@ Return JSON:
             "You are creating a clear, structured summary. Focus on key points and next steps.",
         )
 
-    def _parse_summary(self, response_text: str) -> Dict[str, Any]:
+    def _parse_summary(self, response_text: str) -> dict[str, Any]:
         """Parse summary JSON."""
         try:
             response_text = re.sub(r"```json?\n?", "", response_text).strip()

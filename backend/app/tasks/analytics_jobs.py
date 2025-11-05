@@ -4,26 +4,24 @@ Scheduled tasks for data aggregation, caching, and report generation
 """
 
 from datetime import datetime, timedelta
-from typing import Optional
-from sqlalchemy.orm import Session
-from sqlalchemy import func
-import asyncio
 
 from app.core.database import SessionLocal
-from app.models.user import User
-from app.models.document import Document
 from app.models.analytics import AnalyticsSnapshot, CachedMetric
-from app.services.analytics_service import AnalyticsService
-from app.services.report_generator import ReportGenerator
+from app.models.document import Document
+from app.models.user import User
 from app.monitoring.log_aggregation import app_logger
 from app.monitoring.metrics import analytics_jobs_completed_total
+from app.services.analytics_service import AnalyticsService
+from app.services.report_generator import ReportGenerator
+from sqlalchemy import func
+from sqlalchemy.orm import Session
 
 
 class AnalyticsJobs:
     """Background jobs for analytics processing"""
 
     def __init__(self):
-        self.db: Optional[Session] = None
+        self.db: Session | None = None
 
     def get_db(self) -> Session:
         """Get database session"""
@@ -149,7 +147,7 @@ class AnalyticsJobs:
                     "avg_processing_time": (
                         float(avg_processing_time) if avg_processing_time else 0
                     ),
-                    "by_type": {doc_type: count for doc_type, count in docs_by_type},
+                    "by_type": dict(docs_by_type),
                 },
             )
 
@@ -455,7 +453,7 @@ class AnalyticsJobs:
         """Generate daily report"""
         try:
             # Get admin users who should receive reports
-            admin_users = db.query(User).filter(User.is_superuser == True).all()
+            admin_users = db.query(User).filter(User.is_superuser).all()
 
             end_date = datetime.utcnow()
             start_date = end_date - timedelta(days=1)
@@ -478,7 +476,7 @@ class AnalyticsJobs:
     async def _generate_weekly_report(self, db: Session, report_generator: ReportGenerator):
         """Generate weekly report"""
         try:
-            admin_users = db.query(User).filter(User.is_superuser == True).all()
+            admin_users = db.query(User).filter(User.is_superuser).all()
 
             end_date = datetime.utcnow()
             start_date = end_date - timedelta(days=7)
@@ -501,7 +499,7 @@ class AnalyticsJobs:
     async def _generate_monthly_report(self, db: Session, report_generator: ReportGenerator):
         """Generate monthly report"""
         try:
-            admin_users = db.query(User).filter(User.is_superuser == True).all()
+            admin_users = db.query(User).filter(User.is_superuser).all()
 
             end_date = datetime.utcnow()
             start_date = end_date - timedelta(days=30)

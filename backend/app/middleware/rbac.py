@@ -3,23 +3,21 @@ RBAC Middleware for Permission Enforcement
 Provides decorators and middleware for role-based access control
 """
 
-from functools import wraps
-from typing import Optional, List, Callable, Union
-from fastapi import Request, HTTPException, status, Depends
-from sqlalchemy.orm import Session
 import uuid
+from collections.abc import Callable
+from functools import wraps
 
 from app.core.database import get_db
-from app.models.user import User
 from app.models.organization import Organization, OrganizationMember, Team, TeamMember
 from app.models.roles import (
-    Role,
     Permission,
     RBACService,
-    get_user_role_in_org,
-    check_permission,
+    Role,
     check_resource_permission,
 )
+from app.models.user import User
+from fastapi import Depends, HTTPException, Request, status
+from sqlalchemy.orm import Session
 
 
 class OrganizationContext:
@@ -30,12 +28,12 @@ class OrganizationContext:
 
     def __init__(
         self,
-        organization_id: Optional[uuid.UUID] = None,
-        organization: Optional[Organization] = None,
-        member: Optional[OrganizationMember] = None,
-        role: Optional[Role] = None,
-        team_id: Optional[uuid.UUID] = None,
-        team: Optional[Team] = None,
+        organization_id: uuid.UUID | None = None,
+        organization: Organization | None = None,
+        member: OrganizationMember | None = None,
+        role: Role | None = None,
+        team_id: uuid.UUID | None = None,
+        team: Team | None = None,
     ):
         self.organization_id = organization_id
         self.organization = organization
@@ -64,13 +62,13 @@ class OrganizationContext:
             return False
         return RBACService.has_permission(self.role, permission)
 
-    def has_any_permission(self, permissions: List[Permission]) -> bool:
+    def has_any_permission(self, permissions: list[Permission]) -> bool:
         """Check if user has any of the specified permissions"""
         if not self.role:
             return False
         return RBACService.has_any_permission(self.role, set(permissions))
 
-    def has_all_permissions(self, permissions: List[Permission]) -> bool:
+    def has_all_permissions(self, permissions: list[Permission]) -> bool:
         """Check if user has all specified permissions"""
         if not self.role:
             return False
@@ -87,7 +85,7 @@ async def get_organization_context(
     request: Request,
     current_user: User,
     db: Session = Depends(get_db),
-    organization_id: Optional[str] = None,
+    organization_id: str | None = None,
 ) -> OrganizationContext:
     """
     Dependency to get organization context for current user
@@ -144,7 +142,7 @@ async def get_organization_context(
             db.query(OrganizationMember)
             .filter(
                 OrganizationMember.user_id == current_user.id,
-                OrganizationMember.is_active == True,
+                OrganizationMember.is_active,
             )
             .first()
         )
@@ -168,7 +166,7 @@ async def get_organization_context(
         .filter(
             OrganizationMember.user_id == current_user.id,
             OrganizationMember.organization_id == org_id,
-            OrganizationMember.is_active == True,
+            OrganizationMember.is_active,
         )
         .first()
     )
@@ -250,7 +248,7 @@ def require_permission(permission: Permission):
     return decorator
 
 
-def require_any_permission(permissions: List[Permission]):
+def require_any_permission(permissions: list[Permission]):
     """
     Decorator to require any one of multiple permissions
 
@@ -285,7 +283,7 @@ def require_any_permission(permissions: List[Permission]):
     return decorator
 
 
-def require_all_permissions(permissions: List[Permission]):
+def require_all_permissions(permissions: list[Permission]):
     """
     Decorator to require all specified permissions
 

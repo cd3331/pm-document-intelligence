@@ -3,20 +3,20 @@ Analytics Models for PM Document Intelligence
 Database models for storing aggregated analytics data
 """
 
-from sqlalchemy import (
-    Column,
-    String,
-    DateTime,
-    Date,
-    JSON,
-    Integer,
-    Float,
-    Boolean,
-    Index,
-)
-from sqlalchemy.dialects.postgresql import UUID, JSONB
-from datetime import datetime
 import uuid
+from datetime import datetime
+
+from sqlalchemy import (
+    Boolean,
+    Column,
+    Date,
+    DateTime,
+    Float,
+    Index,
+    Integer,
+    String,
+)
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 
 from app.core.database import Base
 

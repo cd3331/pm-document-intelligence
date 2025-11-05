@@ -32,27 +32,24 @@ Usage:
 import asyncio
 import json
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
-from io import BytesIO
+from typing import Any
 
 from app.config import settings
-from app.database import execute_insert, execute_select, execute_update
+from app.database import execute_insert, execute_update
 from app.models.document import DocumentStatus
 from app.services.aws_service import (
     BedrockService,
-    TextractService,
     ComprehendService,
-    S3Service,
     DocumentType,
+    S3Service,
+    TextractService,
     cost_tracker,
 )
 from app.utils.exceptions import (
     DocumentProcessingError,
-    AIServiceError,
-    ValidationError,
 )
 from app.utils.logger import get_logger
 
@@ -90,8 +87,8 @@ class ProcessingCheckpoint:
         self,
         document_id: str,
         state: ProcessingState,
-        data: Optional[Dict[str, Any]] = None,
-        error: Optional[str] = None,
+        data: dict[str, Any] | None = None,
+        error: str | None = None,
     ):
         """
         Initialize checkpoint.
@@ -108,7 +105,7 @@ class ProcessingCheckpoint:
         self.error = error
         self.created_at = datetime.utcnow()
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "document_id": self.document_id,
@@ -135,8 +132,8 @@ class DocumentProcessor:
         self.s3 = S3Service()
 
         # Processing state tracking
-        self.checkpoints: Dict[str, ProcessingCheckpoint] = {}
-        self.cancellation_tokens: Set[str] = set()
+        self.checkpoints: dict[str, ProcessingCheckpoint] = {}
+        self.cancellation_tokens: set[str] = set()
 
         # PubNub client (will be initialized if needed)
         self.pubnub_client = None
@@ -178,7 +175,7 @@ class DocumentProcessor:
         state: ProcessingState,
         progress: int,
         message: str,
-        data: Optional[Dict[str, Any]] = None,
+        data: dict[str, Any] | None = None,
     ) -> None:
         """
         Publish processing progress via PubNub.
@@ -220,8 +217,8 @@ class DocumentProcessor:
         self,
         document_id: str,
         state: ProcessingState,
-        data: Optional[Dict[str, Any]] = None,
-        error: Optional[str] = None,
+        data: dict[str, Any] | None = None,
+        error: str | None = None,
     ) -> None:
         """
         Save processing checkpoint.
@@ -308,8 +305,8 @@ class DocumentProcessor:
         file_path: str,
         filename: str,
         document_type: DocumentType = DocumentType.GENERAL,
-        processing_options: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        processing_options: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         Process document through complete pipeline.
 
@@ -641,7 +638,7 @@ class DocumentProcessor:
         filename: str,
         s3_bucket: str,
         s3_key: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Extract text from document.
 
@@ -742,7 +739,7 @@ class DocumentProcessor:
         self,
         text: str,
         document_type: DocumentType = DocumentType.GENERAL,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Extract action items using Claude.
 
@@ -820,7 +817,7 @@ Provide ONLY the JSON array, no other text."""
             logger.error(f"Action item extraction failed: {e}")
             return []
 
-    def _validate_action_item(self, item: Dict[str, Any]) -> bool:
+    def _validate_action_item(self, item: dict[str, Any]) -> bool:
         """
         Validate action item structure.
 
@@ -854,7 +851,7 @@ Provide ONLY the JSON array, no other text."""
         self,
         text: str,
         document_type: DocumentType = DocumentType.GENERAL,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Extract risks and blockers using Claude.
 
@@ -932,7 +929,7 @@ Provide ONLY the JSON array, no other text."""
             logger.error(f"Risk extraction failed: {e}")
             return []
 
-    def _validate_risk(self, risk: Dict[str, Any]) -> bool:
+    def _validate_risk(self, risk: dict[str, Any]) -> bool:
         """
         Validate risk structure.
 
@@ -962,7 +959,7 @@ Provide ONLY the JSON array, no other text."""
         self,
         text: str,
         document_type: DocumentType = DocumentType.GENERAL,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Extract project-specific entities using Comprehend + Claude.
 
@@ -1039,7 +1036,7 @@ Provide ONLY the JSON object, no other text."""
         text: str,
         document_type: DocumentType = DocumentType.GENERAL,
         length: str = "medium",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Generate document summary using Claude.
 
@@ -1126,7 +1123,7 @@ Provide ONLY the JSON object, no other text."""
     async def _store_results(
         self,
         document_id: str,
-        results: Dict[str, Any],
+        results: dict[str, Any],
     ) -> None:
         """
         Store processing results in database.
@@ -1163,7 +1160,7 @@ Provide ONLY the JSON object, no other text."""
 
         logger.info(f"Stored results for document {document_id}")
 
-    def calculate_processing_cost(self, results: Dict[str, Any]) -> float:
+    def calculate_processing_cost(self, results: dict[str, Any]) -> float:
         """
         Calculate total processing cost.
 
@@ -1176,7 +1173,7 @@ Provide ONLY the JSON object, no other text."""
         # Get current cost from tracker
         return cost_tracker.get_total_cost()
 
-    async def _send_webhook(self, webhook_url: str, results: Dict[str, Any]) -> None:
+    async def _send_webhook(self, webhook_url: str, results: dict[str, Any]) -> None:
         """
         Send webhook notification.
 
@@ -1219,11 +1216,11 @@ Provide ONLY the JSON object, no other text."""
 
     async def process_multiple_documents(
         self,
-        documents: List[Dict[str, Any]],
+        documents: list[dict[str, Any]],
         user_id: str,
         max_parallel: int = 3,
         estimate_cost: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Process multiple documents in parallel.
 
@@ -1271,7 +1268,7 @@ Provide ONLY the JSON object, no other text."""
             # Wait for batch to complete
             batch_results = await asyncio.gather(*tasks, return_exceptions=True)
 
-            for doc, result in zip(batch, batch_results):
+            for doc, result in zip(batch, batch_results, strict=False):
                 if isinstance(result, Exception):
                     failed.append(
                         {
@@ -1298,7 +1295,7 @@ Provide ONLY the JSON object, no other text."""
             "results": results,
         }
 
-    def _estimate_batch_cost(self, documents: List[Dict[str, Any]]) -> float:
+    def _estimate_batch_cost(self, documents: list[dict[str, Any]]) -> float:
         """
         Estimate cost for batch processing.
 

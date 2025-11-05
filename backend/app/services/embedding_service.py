@@ -25,24 +25,23 @@ Usage:
 import asyncio
 import hashlib
 import time
-from typing import Any, Dict, List, Optional, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime
+from typing import Any
 
 import tiktoken
-from openai import AsyncOpenAI, OpenAIError, RateLimitError, APIError
+from openai import APIError, AsyncOpenAI, OpenAIError, RateLimitError
 from tenacity import (
+    before_sleep_log,
     retry,
     retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
-    before_sleep_log,
 )
 
-from app.config import settings
 from app.cache.redis import get_cache, set_cache
+from app.config import settings
 from app.utils.exceptions import AIServiceError
 from app.utils.logger import get_logger
-
 
 logger = get_logger(__name__)
 
@@ -91,8 +90,8 @@ class EmbeddingCostTracker:
         self.total_tokens = 0
         self.total_embeddings = 0
         self.total_cost = 0.0
-        self.costs_by_model: Dict[str, float] = {}
-        self.tokens_by_model: Dict[str, int] = {}
+        self.costs_by_model: dict[str, float] = {}
+        self.tokens_by_model: dict[str, int] = {}
 
     def track_usage(self, model: str, tokens: int, price_per_1k: float) -> float:
         """
@@ -119,7 +118,7 @@ class EmbeddingCostTracker:
 
         return cost
 
-    def get_report(self) -> Dict[str, Any]:
+    def get_report(self) -> dict[str, Any]:
         """
         Get cost report.
 
@@ -195,9 +194,9 @@ class TextChunker:
     def chunk_text(
         self,
         text: str,
-        chunk_size: Optional[int] = None,
+        chunk_size: int | None = None,
         overlap: int = 200,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Chunk text into smaller pieces for embedding.
 
@@ -334,7 +333,7 @@ class TextChunker:
 
         return chunks
 
-    def _split_into_sentences(self, text: str) -> List[str]:
+    def _split_into_sentences(self, text: str) -> list[str]:
         """
         Split text into sentences.
 
@@ -350,7 +349,7 @@ class TextChunker:
         sentences = re.split(r"[.!?]+\s+", text)
         return [s.strip() for s in sentences if s.strip()]
 
-    def _split_long_text(self, text: str, max_tokens: int) -> List[str]:
+    def _split_long_text(self, text: str, max_tokens: int) -> list[str]:
         """
         Split long text by character count.
 
@@ -401,11 +400,11 @@ class EmbeddingService:
         # Rate limiting
         self.rate_limit_requests = 3000  # OpenAI limit: 3000 RPM for tier 1
         self.rate_limit_window = 60  # seconds
-        self.request_timestamps: List[float] = []
+        self.request_timestamps: list[float] = []
 
         logger.info(f"Embedding service initialized with model: {self.default_model}")
 
-    def _get_model_config(self, model: str) -> Dict[str, Any]:
+    def _get_model_config(self, model: str) -> dict[str, Any]:
         """
         Get model configuration.
 
@@ -479,7 +478,7 @@ class EmbeddingService:
         self,
         text: str,
         model: str,
-    ) -> List[float]:
+    ) -> list[float]:
         """
         Generate embedding via OpenAI API.
 
@@ -542,9 +541,9 @@ class EmbeddingService:
     async def generate_embedding(
         self,
         text: str,
-        model: Optional[str] = None,
+        model: str | None = None,
         use_cache: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Generate embedding for text.
 
@@ -611,11 +610,11 @@ class EmbeddingService:
     async def generate_embeddings(
         self,
         text: str,
-        model: Optional[str] = None,
-        chunk_size: Optional[int] = None,
+        model: str | None = None,
+        chunk_size: int | None = None,
         overlap: int = 200,
         use_cache: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Generate embeddings for long text with chunking.
 
@@ -679,9 +678,9 @@ class EmbeddingService:
     async def generate_query_embedding(
         self,
         query: str,
-        model: Optional[str] = None,
+        model: str | None = None,
         use_cache: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Generate embedding for search query.
 
@@ -698,11 +697,11 @@ class EmbeddingService:
 
     async def generate_batch_embeddings(
         self,
-        texts: List[str],
-        model: Optional[str] = None,
+        texts: list[str],
+        model: str | None = None,
         use_cache: bool = True,
         batch_size: int = 100,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Generate embeddings for multiple texts efficiently.
 
@@ -774,7 +773,7 @@ class EmbeddingService:
 
                     # Process results
                     for idx, (text, embedding_data) in enumerate(
-                        zip(uncached_texts, response.data)
+                        zip(uncached_texts, response.data, strict=False)
                     ):
                         embedding = embedding_data.embedding
 
@@ -820,7 +819,7 @@ class EmbeddingService:
 
         return results
 
-    def get_cost_report(self) -> Dict[str, Any]:
+    def get_cost_report(self) -> dict[str, Any]:
         """
         Get embedding cost report.
 

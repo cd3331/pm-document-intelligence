@@ -2,14 +2,15 @@
 Comprehensive health checks for liveness and readiness probes
 """
 
-from typing import Dict, Any, Optional
-from enum import Enum
-import psutil
 import time
 from datetime import datetime
+from enum import Enum
+from typing import Any
+
 import boto3
-from sqlalchemy import text
+import psutil
 import redis
+from sqlalchemy import text
 
 
 class HealthStatus(Enum):
@@ -27,7 +28,7 @@ class HealthCheck:
         self.db_session = db_session
         self.start_time = time.time()
 
-    async def liveness(self) -> Dict[str, Any]:
+    async def liveness(self) -> dict[str, Any]:
         """
         Liveness probe - is the application running?
         Should return quickly, just checks if process is alive
@@ -38,7 +39,7 @@ class HealthCheck:
             "uptime_seconds": int(time.time() - self.start_time),
         }
 
-    async def readiness(self) -> Dict[str, Any]:
+    async def readiness(self) -> dict[str, Any]:
         """
         Readiness probe - can the application serve traffic?
         Checks all dependencies
@@ -82,7 +83,7 @@ class HealthCheck:
             "checks": checks,
         }
 
-    async def check_database(self) -> Dict[str, Any]:
+    async def check_database(self) -> dict[str, Any]:
         """Check database connectivity and health"""
         try:
             if not self.db_session:
@@ -107,7 +108,7 @@ class HealthCheck:
                 "message": f"Database error: {str(e)}",
             }
 
-    async def check_aws_services(self) -> Dict[str, Any]:
+    async def check_aws_services(self) -> dict[str, Any]:
         """Check AWS services connectivity"""
         services_status = {}
         overall_healthy = True
@@ -123,7 +124,7 @@ class HealthCheck:
 
         # Check Textract
         try:
-            textract = boto3.client("textract")
+            boto3.client("textract")
             # Simple service check without actual API call
             services_status["textract"] = "healthy"
         except Exception as e:
@@ -137,7 +138,7 @@ class HealthCheck:
             "services": services_status,
         }
 
-    async def check_redis(self) -> Dict[str, Any]:
+    async def check_redis(self) -> dict[str, Any]:
         """Check Redis connectivity"""
         try:
             import os
@@ -161,7 +162,7 @@ class HealthCheck:
                 "message": f"Redis error: {str(e)}",
             }
 
-    def check_disk_space(self, threshold_percent: float = 90.0) -> Dict[str, Any]:
+    def check_disk_space(self, threshold_percent: float = 90.0) -> dict[str, Any]:
         """Check disk space usage"""
         try:
             disk = psutil.disk_usage("/")
@@ -185,7 +186,7 @@ class HealthCheck:
                 "message": f"Disk check error: {str(e)}",
             }
 
-    def check_memory(self, threshold_percent: float = 90.0) -> Dict[str, Any]:
+    def check_memory(self, threshold_percent: float = 90.0) -> dict[str, Any]:
         """Check memory usage"""
         try:
             memory = psutil.virtual_memory()

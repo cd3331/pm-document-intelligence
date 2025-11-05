@@ -2,21 +2,18 @@
 Prometheus metrics for monitoring application performance and business metrics
 """
 
+import time
+from contextlib import contextmanager
+from functools import wraps
+
 from prometheus_client import (
+    REGISTRY,
     Counter,
-    Histogram,
     Gauge,
-    Summary,
+    Histogram,
     Info,
     generate_latest,
-    REGISTRY,
-    CollectorRegistry,
 )
-from typing import Optional, Dict, Any
-import time
-from functools import wraps
-from contextlib import contextmanager
-
 
 # ============================================================================
 # Application Info
@@ -350,7 +347,7 @@ def track_aws_api_call(service: str, operation: str):
 
     try:
         yield
-    except Exception as e:
+    except Exception:
         status = "error"
         raise
     finally:

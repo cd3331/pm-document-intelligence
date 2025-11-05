@@ -1,13 +1,12 @@
 """Q&A Agent with RAG (Retrieval Augmented Generation)."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from app.agents.base_agent import BaseAgent
 from app.services.aws_service import BedrockService
 from app.services.vector_search import VectorSearch
 from app.utils.exceptions import ValidationError
 from app.utils.logger import get_logger
-
 
 logger = get_logger(__name__)
 
@@ -25,13 +24,13 @@ class QAAgent(BaseAgent):
         self.bedrock = BedrockService()
         self.vector_search = VectorSearch()
 
-    def validate_input(self, input_data: Dict[str, Any]) -> None:
+    def validate_input(self, input_data: dict[str, Any]) -> None:
         """Validate input."""
         super().validate_input(input_data)
         if "question" not in input_data or not input_data["question"].strip():
             raise ValidationError(message="Question is required", details={"agent": self.name})
 
-    async def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def process(self, input_data: dict[str, Any]) -> dict[str, Any]:
         """Answer question using RAG."""
         question = input_data["question"]
         user_id = input_data.get("user_id")
@@ -54,7 +53,7 @@ class QAAgent(BaseAgent):
                 use_cache=True,
             )
 
-            for idx, result in enumerate(search_results["results"]):
+            for _idx, result in enumerate(search_results["results"]):
                 # Filter by document_id if specified
                 if document_id and result["document_id"] != document_id:
                     continue

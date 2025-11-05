@@ -3,15 +3,14 @@ Quota Management Service
 Tracks and enforces usage limits based on organization plan tiers
 """
 
-from sqlalchemy.orm import Session
-from sqlalchemy import func, and_
-from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
 import uuid
+from datetime import datetime, timedelta
+from typing import Any
+
+from sqlalchemy import func
+from sqlalchemy.orm import Session
 
 from app.models.organization import Organization, OrganizationUsage, PlanTier
-from app.models.document import Document
-from app.models.user import User
 from app.services.audit_logger import AuditLogger
 
 
@@ -126,7 +125,7 @@ class QuotaManager:
     # Usage Tracking
     # ============================================================================
 
-    async def get_period_usage(self, organization_id: uuid.UUID) -> Dict[str, int]:
+    async def get_period_usage(self, organization_id: uuid.UUID) -> dict[str, int]:
         """
         Get current usage for all tracked metrics
 
@@ -149,7 +148,7 @@ class QuotaManager:
             self.db.query(func.count(OrganizationMember.id))
             .filter(
                 OrganizationMember.organization_id == organization_id,
-                OrganizationMember.is_active == True,
+                OrganizationMember.is_active,
             )
             .scalar()
         )
@@ -208,7 +207,7 @@ class QuotaManager:
                 self.db.query(func.count(OrganizationMember.id))
                 .filter(
                     OrganizationMember.organization_id == organization_id,
-                    OrganizationMember.is_active == True,
+                    OrganizationMember.is_active,
                 )
                 .scalar()
             )
@@ -230,7 +229,7 @@ class QuotaManager:
 
     async def check_quota(
         self, organization_id: uuid.UUID, quota_name: str, increment: int = 1
-    ) -> tuple[bool, Optional[str]]:
+    ) -> tuple[bool, str | None]:
         """
         Check if organization has quota available
 
@@ -407,7 +406,7 @@ class QuotaManager:
         self,
         organization_id: uuid.UUID,
         cost_cents: int,
-        details: Optional[dict] = None,
+        details: dict | None = None,
     ):
         """
         Add cost to organization usage tracking
@@ -479,7 +478,7 @@ class QuotaManager:
             .filter(
                 OrganizationMember.organization_id == organization.id,
                 OrganizationMember.role.in_([Role.ORG_ADMIN.value, Role.SUPER_ADMIN.value]),
-                OrganizationMember.is_active == True,
+                OrganizationMember.is_active,
             )
             .all()
         )
@@ -543,7 +542,7 @@ class QuotaManager:
     # Quota Status and Reporting
     # ============================================================================
 
-    async def get_quota_status(self, organization_id: uuid.UUID) -> Dict[str, Any]:
+    async def get_quota_status(self, organization_id: uuid.UUID) -> dict[str, Any]:
         """
         Get comprehensive quota status for an organization
 
@@ -631,7 +630,7 @@ class QuotaManager:
             "features": limits.get("features", {}),
         }
 
-    async def can_upgrade(self, organization_id: uuid.UUID) -> Dict[str, Any]:
+    async def can_upgrade(self, organization_id: uuid.UUID) -> dict[str, Any]:
         """
         Check if organization can upgrade and get upgrade information
 

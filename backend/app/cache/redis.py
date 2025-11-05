@@ -25,7 +25,7 @@ Usage:
 """
 
 import json
-from typing import Any, Optional, Union
+from typing import Any
 
 import redis.asyncio as aioredis
 from redis.asyncio import Redis
@@ -34,12 +34,11 @@ from redis.exceptions import RedisError
 from app.config import settings
 from app.utils.logger import get_logger
 
-
 logger = get_logger(__name__)
 
 
 # Global Redis client
-_redis_client: Optional[Redis] = None
+_redis_client: Redis | None = None
 
 
 async def get_redis_client() -> Redis:
@@ -129,7 +128,7 @@ async def close_redis_connections() -> None:
         _redis_client = None
 
 
-def _build_cache_key(key: str, prefix: Optional[str] = None) -> str:
+def _build_cache_key(key: str, prefix: str | None = None) -> str:
     """
     Build cache key with optional prefix.
 
@@ -147,9 +146,9 @@ def _build_cache_key(key: str, prefix: Optional[str] = None) -> str:
 
 async def get_cache(
     key: str,
-    prefix: Optional[str] = None,
+    prefix: str | None = None,
     deserialize: bool = True,
-) -> Optional[Any]:
+) -> Any | None:
     """
     Get value from cache.
 
@@ -190,8 +189,8 @@ async def get_cache(
 async def set_cache(
     key: str,
     value: Any,
-    ttl: Optional[int] = None,
-    prefix: Optional[str] = None,
+    ttl: int | None = None,
+    prefix: str | None = None,
     serialize: bool = True,
 ) -> bool:
     """
@@ -235,7 +234,7 @@ async def set_cache(
 
 async def delete_cache(
     key: str,
-    prefix: Optional[str] = None,
+    prefix: str | None = None,
 ) -> bool:
     """
     Delete value from cache.
@@ -266,7 +265,7 @@ async def delete_cache(
 
 async def clear_cache_pattern(
     pattern: str,
-    prefix: Optional[str] = None,
+    prefix: str | None = None,
 ) -> int:
     """
     Clear cache keys matching pattern.
@@ -305,7 +304,7 @@ async def clear_cache_pattern(
 
 async def exists_cache(
     key: str,
-    prefix: Optional[str] = None,
+    prefix: str | None = None,
 ) -> bool:
     """
     Check if cache key exists.
@@ -333,8 +332,8 @@ async def exists_cache(
 
 async def get_cache_ttl(
     key: str,
-    prefix: Optional[str] = None,
-) -> Optional[int]:
+    prefix: str | None = None,
+) -> int | None:
     """
     Get remaining TTL for cache key.
 
@@ -369,9 +368,9 @@ async def get_cache_ttl(
 async def increment_cache(
     key: str,
     amount: int = 1,
-    prefix: Optional[str] = None,
-    ttl: Optional[int] = None,
-) -> Optional[int]:
+    prefix: str | None = None,
+    ttl: int | None = None,
+) -> int | None:
     """
     Increment cache value (for counters).
 

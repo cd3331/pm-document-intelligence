@@ -4,13 +4,12 @@ Action Item Agent for extracting and tracking action items.
 
 import json
 import re
-from typing import Any, Dict, List
+from typing import Any
 
 from app.agents.base_agent import BaseAgent
 from app.services.aws_service import BedrockService
 from app.utils.exceptions import ValidationError
 from app.utils.logger import get_logger
-
 
 logger = get_logger(__name__)
 
@@ -27,13 +26,13 @@ class ActionItemAgent(BaseAgent):
         )
         self.bedrock = BedrockService()
 
-    def validate_input(self, input_data: Dict[str, Any]) -> None:
+    def validate_input(self, input_data: dict[str, Any]) -> None:
         """Validate input data."""
         super().validate_input(input_data)
         if "text" not in input_data or not input_data["text"].strip():
             raise ValidationError(message="Text is required", details={"agent": self.name})
 
-    async def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def process(self, input_data: dict[str, Any]) -> dict[str, Any]:
         """Extract action items from text."""
         text = input_data["text"]
 
@@ -73,7 +72,7 @@ Return JSON array:
             "cost": response["cost"],
         }
 
-    def _parse_actions(self, response_text: str) -> List[Dict[str, Any]]:
+    def _parse_actions(self, response_text: str) -> list[dict[str, Any]]:
         """Parse action items from response."""
         try:
             response_text = re.sub(r"```json?\n?", "", response_text)
@@ -92,7 +91,7 @@ Return JSON array:
             logger.warning("Failed to parse action items JSON")
             return []
 
-    def _validate_action(self, action: Dict[str, Any]) -> bool:
+    def _validate_action(self, action: dict[str, Any]) -> bool:
         """Validate action item structure."""
         required = ["action", "priority", "confidence"]
         if not all(f in action for f in required):

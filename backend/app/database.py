@@ -25,12 +25,11 @@ Usage:
     )
 """
 
-import asyncio
 from contextlib import asynccontextmanager
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
-from supabase import Client, create_client
 from postgrest.exceptions import APIError
+from supabase import Client, create_client
 from tenacity import (
     retry,
     retry_if_exception_type,
@@ -43,7 +42,6 @@ from app.db.session import get_db
 from app.utils.exceptions import DatabaseError, RecordNotFoundError
 from app.utils.logger import get_logger
 
-
 logger = get_logger(__name__)
 
 
@@ -51,7 +49,7 @@ logger = get_logger(__name__)
 # Supabase Client Management
 # ============================================================================
 
-_supabase_client: Optional[Client] = None
+_supabase_client: Client | None = None
 
 
 def get_supabase_client() -> Client:
@@ -165,7 +163,7 @@ async def test_supabase_connection() -> bool:
 
         # Try to query a public table or use auth endpoint
         # This is a lightweight check
-        response = supabase.table("users").select("id").limit(1).execute()
+        supabase.table("users").select("id").limit(1).execute()
 
         logger.debug("Supabase connection test successful")
         return True
@@ -182,9 +180,9 @@ async def test_supabase_connection() -> bool:
 
 async def execute_query(
     query: str,
-    params: Optional[Tuple] = None,
+    params: tuple | None = None,
     fetch_one: bool = False,
-) -> Union[List[Dict[str, Any]], Dict[str, Any], None]:
+) -> list[dict[str, Any]] | dict[str, Any] | None:
     """
     Execute SQL query with parameterized values to prevent SQL injection.
 
@@ -245,9 +243,9 @@ async def execute_query(
 
 async def execute_insert(
     table: str,
-    data: Dict[str, Any],
+    data: dict[str, Any],
     returning: str = "*",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Insert data into table and return the inserted row.
 
@@ -291,10 +289,10 @@ async def execute_insert(
 
 async def execute_update(
     table: str,
-    data: Dict[str, Any],
-    match: Dict[str, Any],
+    data: dict[str, Any],
+    match: dict[str, Any],
     returning: str = "*",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Update data in table.
 
@@ -347,7 +345,7 @@ async def execute_update(
 
 async def execute_delete(
     table: str,
-    match: Dict[str, Any],
+    match: dict[str, Any],
 ) -> bool:
     """
     Delete data from table.
@@ -374,7 +372,7 @@ async def execute_delete(
         for key, value in match.items():
             query = query.eq(key, value)
 
-        response = query.execute()
+        query.execute()
 
         logger.debug(f"Delete from {table} successful")
         return True
@@ -390,11 +388,11 @@ async def execute_delete(
 async def execute_select(
     table: str,
     columns: str = "*",
-    match: Optional[Dict[str, Any]] = None,
-    order: Optional[str] = None,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-) -> List[Dict[str, Any]]:
+    match: dict[str, Any] | None = None,
+    order: str | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
+) -> list[dict[str, Any]]:
     """
     Select data from table.
 
@@ -459,7 +457,7 @@ async def execute_select(
 
 async def execute_count(
     table: str,
-    match: Optional[Dict[str, Any]] = None,
+    match: dict[str, Any] | None = None,
 ) -> int:
     """
     Count rows in table.
@@ -531,9 +529,9 @@ async def transaction():
 
 async def batch_insert(
     table: str,
-    data_list: List[Dict[str, Any]],
+    data_list: list[dict[str, Any]],
     chunk_size: int = 100,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Insert multiple rows in batches.
 
@@ -585,7 +583,7 @@ async def search_full_text(
     search_term: str,
     columns: str = "*",
     limit: int = 10,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Perform full-text search.
 
@@ -626,9 +624,9 @@ async def search_full_text(
 
 async def upsert_data(
     table: str,
-    data: Union[Dict[str, Any], List[Dict[str, Any]]],
+    data: dict[str, Any] | list[dict[str, Any]],
     on_conflict: str = "id",
-) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+) -> dict[str, Any] | list[dict[str, Any]]:
     """
     Upsert data (insert or update on conflict).
 
@@ -686,7 +684,7 @@ def sanitize_table_name(table_name: str) -> str:
 
 def build_filter_query(
     base_query: Any,
-    filters: Dict[str, Any],
+    filters: dict[str, Any],
 ) -> Any:
     """
     Build query with multiple filters.

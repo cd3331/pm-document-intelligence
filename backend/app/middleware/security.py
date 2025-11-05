@@ -26,19 +26,17 @@ Usage:
 
 import time
 import uuid
-from typing import Callable, Optional
-
-from fastapi import Request, Response
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.types import ASGIApp
+from collections.abc import Callable
 
 from app.config import settings
 from app.utils.logger import (
+    clear_request_context,
     get_structured_logger,
     set_request_context,
-    clear_request_context,
 )
-
+from fastapi import Request, Response
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp
 
 logger = get_structured_logger(__name__)
 
@@ -68,7 +66,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         hsts_max_age: int = 31536000,
         hsts_include_subdomains: bool = True,
         hsts_preload: bool = False,
-        csp_directives: Optional[dict[str, str]] = None,
+        csp_directives: dict[str, str] | None = None,
     ):
         """
         Initialize security headers middleware.
@@ -290,9 +288,8 @@ class RequestTrackingMiddleware(BaseHTTPMiddleware):
 
             # Log request completion
             if self.enable_performance_logging:
-                log_level = "info"
                 if duration_ms > self.slow_request_threshold_ms:
-                    log_level = "warning"
+                    pass
 
                 logger.log_api_request(
                     method=request.method,
@@ -356,7 +353,7 @@ class RequestTrackingMiddleware(BaseHTTPMiddleware):
 
         return request_id
 
-    def _extract_user_id(self, request: Request) -> Optional[str]:
+    def _extract_user_id(self, request: Request) -> str | None:
         """
         Extract user ID from request if authenticated.
 

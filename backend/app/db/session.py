@@ -19,28 +19,27 @@ Usage:
             return result.scalar_one_or_none()
 """
 
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator, Optional
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
-    create_async_engine,
     async_sessionmaker,
+    create_async_engine,
 )
 from sqlalchemy.pool import NullPool, QueuePool
 
 from app.config import settings
 from app.utils.logger import get_logger
 
-
 logger = get_logger(__name__)
 
 
 # Global engine instance
-_engine: Optional[AsyncEngine] = None
-_session_factory: Optional[async_sessionmaker[AsyncSession]] = None
+_engine: AsyncEngine | None = None
+_session_factory: async_sessionmaker[AsyncSession] | None = None
 
 
 def get_engine() -> AsyncEngine:

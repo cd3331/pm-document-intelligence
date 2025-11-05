@@ -3,22 +3,22 @@ Distributed tracing with OpenTelemetry
 Traces requests and operations across services
 """
 
+import os
+from contextlib import contextmanager
+from functools import wraps
+from typing import Any
+
 from opentelemetry import trace
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.sdk.resources import Resource, SERVICE_NAME
 from opentelemetry.exporter.jaeger.thrift import JaegerExporter
 from opentelemetry.exporter.zipkin.json import ZipkinExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from opentelemetry.instrumentation.redis import RedisInstrumentor
-from opentelemetry.trace import Status, StatusCode, SpanKind
+from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+from opentelemetry.sdk.resources import SERVICE_NAME, Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.trace import SpanKind, Status, StatusCode
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
-from contextlib import contextmanager
-from typing import Optional, Dict, Any
-from functools import wraps
-import os
-
 
 # ============================================================================
 # Tracer Setup
@@ -91,7 +91,7 @@ def instrument_redis(client):
 def trace_span(
     name: str,
     kind: SpanKind = SpanKind.INTERNAL,
-    attributes: Optional[Dict[str, Any]] = None,
+    attributes: dict[str, Any] | None = None,
 ):
     """
     Context manager to create and manage a trace span
@@ -119,7 +119,7 @@ def trace_span(
             raise
 
 
-def trace_function(name: Optional[str] = None, attributes: Optional[Dict[str, Any]] = None):
+def trace_function(name: str | None = None, attributes: dict[str, Any] | None = None):
     """
     Decorator to trace function execution
 
@@ -295,7 +295,7 @@ def trace_embedding_generation(model: str, text_count: int):
 
 
 @contextmanager
-def trace_database_query(operation: str, table: Optional[str] = None):
+def trace_database_query(operation: str, table: str | None = None):
     """Trace database query"""
     attributes = {"db.operation": operation}
     if table:
@@ -311,7 +311,7 @@ def trace_database_query(operation: str, table: Optional[str] = None):
 
 
 @contextmanager
-def trace_agent_execution(agent_type: str, document_id: Optional[int] = None):
+def trace_agent_execution(agent_type: str, document_id: int | None = None):
     """Trace AI agent execution"""
     attributes = {"agent.type": agent_type}
     if document_id:
@@ -362,7 +362,7 @@ def trace_vector_indexing(document_id: int, text_length: int):
 
 
 @contextmanager
-def trace_api_request(method: str, endpoint: str, user_id: Optional[int] = None):
+def trace_api_request(method: str, endpoint: str, user_id: int | None = None):
     """Trace API request"""
     attributes = {"http.method": method, "http.endpoint": endpoint}
     if user_id:
@@ -379,7 +379,7 @@ def trace_api_request(method: str, endpoint: str, user_id: Optional[int] = None)
 # ============================================================================
 
 
-def inject_trace_context(headers: Dict[str, str]) -> Dict[str, str]:
+def inject_trace_context(headers: dict[str, str]) -> dict[str, str]:
     """
     Inject trace context into headers for propagation
 
@@ -393,7 +393,7 @@ def inject_trace_context(headers: Dict[str, str]) -> Dict[str, str]:
     return headers
 
 
-def extract_trace_context(headers: Dict[str, str]):
+def extract_trace_context(headers: dict[str, str]):
     """
     Extract trace context from headers
 
@@ -408,7 +408,7 @@ def extract_trace_context(headers: Dict[str, str]):
 # ============================================================================
 
 
-def add_span_event(name: str, attributes: Optional[Dict[str, Any]] = None):
+def add_span_event(name: str, attributes: dict[str, Any] | None = None):
     """Add event to current span"""
     span = trace.get_current_span()
     if span:
@@ -430,7 +430,7 @@ def set_span_error(error: Exception):
         span.record_exception(error)
 
 
-def get_trace_id() -> Optional[str]:
+def get_trace_id() -> str | None:
     """Get current trace ID"""
     span = trace.get_current_span()
     if span and span.is_recording():
@@ -438,7 +438,7 @@ def get_trace_id() -> Optional[str]:
     return None
 
 
-def get_span_id() -> Optional[str]:
+def get_span_id() -> str | None:
     """Get current span ID"""
     span = trace.get_current_span()
     if span and span.is_recording():

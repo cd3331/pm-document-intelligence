@@ -14,13 +14,12 @@ Usage:
 
 import asyncio
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Type
 from enum import Enum
+from typing import Any
 
-from app.agents.base_agent import BaseAgent, AgentStatus
-from app.utils.exceptions import ValidationError, AIServiceError
+from app.agents.base_agent import AgentStatus, BaseAgent
+from app.utils.exceptions import ValidationError
 from app.utils.logger import get_logger
-
 
 logger = get_logger(__name__)
 
@@ -51,21 +50,21 @@ class AgentOrchestrator:
 
     def __init__(self):
         """Initialize agent orchestrator."""
-        self.agents: Dict[str, BaseAgent] = {}
-        self.agent_registry: Dict[TaskType, str] = {}
+        self.agents: dict[str, BaseAgent] = {}
+        self.agent_registry: dict[TaskType, str] = {}
 
         # Conversation memory (for Q&A follow-ups)
-        self.conversation_memory: Dict[str, List[Dict[str, Any]]] = {}
+        self.conversation_memory: dict[str, list[dict[str, Any]]] = {}
 
         # Shared context across agents
-        self.shared_context: Dict[str, Any] = {}
+        self.shared_context: dict[str, Any] = {}
 
         logger.info("Agent orchestrator initialized")
 
     def register_agent(
         self,
         agent: BaseAgent,
-        task_types: List[TaskType],
+        task_types: list[TaskType],
     ) -> None:
         """
         Register an agent for specific task types.
@@ -81,7 +80,7 @@ class AgentOrchestrator:
 
         logger.info(f"Registered agent {agent.name} for tasks: " f"{[t.value for t in task_types]}")
 
-    def get_agent(self, task_type: TaskType) -> Optional[BaseAgent]:
+    def get_agent(self, task_type: TaskType) -> BaseAgent | None:
         """
         Get agent for a task type.
 
@@ -97,9 +96,9 @@ class AgentOrchestrator:
     async def route_task(
         self,
         task_type: TaskType,
-        input_data: Dict[str, Any],
-        task_id: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        input_data: dict[str, Any],
+        task_id: str | None = None,
+    ) -> dict[str, Any]:
         """
         Route task to appropriate agent.
 
@@ -136,8 +135,8 @@ class AgentOrchestrator:
         document_text: str,
         user_id: str,
         task: str = "deep_analysis",
-        options: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        options: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         Analyze document with appropriate agent(s).
 
@@ -171,9 +170,9 @@ class AgentOrchestrator:
         document_id: str,
         document_text: str,
         user_id: str,
-        tasks: List[str],
+        tasks: list[str],
         parallel: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Run multiple agents on a document.
 
@@ -225,7 +224,7 @@ class AgentOrchestrator:
 
                 for task, result in zip(
                     [t for t in tasks if t not in [e["task"] for e in errors]],
-                    task_results,
+                    task_results, strict=False,
                 ):
                     if isinstance(result, Exception):
                         errors.append({"task": task, "error": str(result)})
@@ -279,11 +278,11 @@ class AgentOrchestrator:
     async def ask_question(
         self,
         question: str,
-        document_id: Optional[str] = None,
-        user_id: Optional[str] = None,
-        conversation_id: Optional[str] = None,
+        document_id: str | None = None,
+        user_id: str | None = None,
+        conversation_id: str | None = None,
         use_context: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Ask a question about documents using Q&A agent with RAG.
 
@@ -334,7 +333,7 @@ class AgentOrchestrator:
 
         return result
 
-    def update_shared_context(self, context: Dict[str, Any]) -> None:
+    def update_shared_context(self, context: dict[str, Any]) -> None:
         """
         Update shared context across agents.
 
@@ -344,7 +343,7 @@ class AgentOrchestrator:
         self.shared_context.update(context)
         logger.debug(f"Updated shared context: {list(context.keys())}")
 
-    def get_shared_context(self, key: Optional[str] = None) -> Any:
+    def get_shared_context(self, key: str | None = None) -> Any:
         """
         Get shared context.
 
@@ -369,7 +368,7 @@ class AgentOrchestrator:
             del self.conversation_memory[conversation_id]
             logger.info(f"Cleared conversation memory: {conversation_id}")
 
-    def get_all_agent_status(self) -> Dict[str, Any]:
+    def get_all_agent_status(self) -> dict[str, Any]:
         """
         Get status of all agents.
 
@@ -378,7 +377,7 @@ class AgentOrchestrator:
         """
         return {agent_name: agent.get_status() for agent_name, agent in self.agents.items()}
 
-    def get_orchestrator_stats(self) -> Dict[str, Any]:
+    def get_orchestrator_stats(self) -> dict[str, Any]:
         """
         Get orchestrator statistics.
 
@@ -412,7 +411,7 @@ class AgentOrchestrator:
 
         logger.info("Reset metrics for all agents")
 
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> dict[str, Any]:
         """
         Check health of all agents.
 
@@ -445,7 +444,7 @@ class AgentOrchestrator:
 # ============================================================================
 
 # This will be initialized with agents in the application startup
-_orchestrator: Optional[AgentOrchestrator] = None
+_orchestrator: AgentOrchestrator | None = None
 
 
 def get_orchestrator() -> AgentOrchestrator:
@@ -470,11 +469,11 @@ def initialize_agents() -> AgentOrchestrator:
     Returns:
         Configured orchestrator
     """
-    from app.agents.analysis_agent import AnalysisAgent
     from app.agents.action_agent import ActionItemAgent
-    from app.agents.summary_agent import SummaryAgent
+    from app.agents.analysis_agent import AnalysisAgent
     from app.agents.entity_agent import EntityAgent
     from app.agents.qa_agent import QAAgent
+    from app.agents.summary_agent import SummaryAgent
 
     orchestrator = get_orchestrator()
 

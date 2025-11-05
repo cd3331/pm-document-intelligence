@@ -14,7 +14,7 @@ Usage:
     )
 """
 
-from app.agents.base_agent import BaseAgent, AgentStatus, AgentMetrics
+from app.agents.base_agent import AgentMetrics, AgentStatus, BaseAgent
 from app.agents.orchestrator import AgentOrchestrator
 
 __all__ = [

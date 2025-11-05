@@ -3,16 +3,16 @@ Page routes for rendering HTML templates
 These routes serve the main application pages using Jinja2 templates
 """
 
-from fastapi import APIRouter, Request, Depends, HTTPException, status
+import os
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from typing import Optional
-import os
 
-from app.database import get_db
 from app.auth import get_current_user, get_current_user_optional
-from app.models import User, Document
+from app.database import get_db
+from app.models import Document, User
 
 # Initialize router
 router = APIRouter(tags=["pages"])
@@ -46,7 +46,7 @@ templates.env.filters["date"] = format_date
 @router.get("/", response_class=HTMLResponse)
 async def index(
     request: Request,
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ):
     """
@@ -201,7 +201,7 @@ async def profile_page(
 
 
 @router.get("/login", response_class=HTMLResponse)
-async def login_page(request: Request, next: Optional[str] = None):
+async def login_page(request: Request, next: str | None = None):
     """
     Login page
     User authentication

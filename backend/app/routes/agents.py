@@ -5,21 +5,18 @@ This module provides endpoints for interacting with specialized agents.
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, status, Request, BackgroundTasks
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from pydantic import BaseModel, Field
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from app.models import UserInDB
-from app.agents.orchestrator import get_orchestrator, TaskType
+from app.agents.orchestrator import get_orchestrator
 from app.database import execute_select
+from app.models import UserInDB
 from app.utils.auth_helpers import get_current_active_user
-from app.utils.exceptions import ValidationError, AIServiceError
+from app.utils.exceptions import AIServiceError, ValidationError
 from app.utils.logger import get_logger
-
 
 logger = get_logger(__name__)
 
@@ -36,7 +33,7 @@ class AnalysisRequest(BaseModel):
     """Deep analysis request."""
 
     document_id: str
-    document_type: Optional[str] = "general"
+    document_type: str | None = "general"
     include_risks: bool = True
     include_opportunities: bool = True
 
@@ -60,8 +57,8 @@ class QuestionRequest(BaseModel):
     """Q&A request."""
 
     question: str = Field(..., min_length=3, max_length=500)
-    document_id: Optional[str] = None
-    conversation_id: Optional[str] = None
+    document_id: str | None = None
+    conversation_id: str | None = None
     use_context: bool = True
 
 
@@ -69,7 +66,7 @@ class MultiAgentRequest(BaseModel):
     """Multi-agent analysis request."""
 
     document_id: str
-    tasks: List[str] = Field(..., min_items=1, max_items=5)
+    tasks: list[str] = Field(..., min_items=1, max_items=5)
     parallel: bool = True
 
 

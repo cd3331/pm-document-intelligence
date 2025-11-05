@@ -3,22 +3,22 @@ Invitation Service
 Manages user invitations to organizations
 """
 
-from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
-from typing import Optional, List
-import uuid
-import secrets
 import hashlib
+import secrets
+import uuid
+from datetime import datetime, timedelta
+
+from sqlalchemy.orm import Session
 
 from app.models.organization import (
     Organization,
-    OrganizationMember,
     OrganizationInvitation,
+    OrganizationMember,
     Team,
     TeamMember,
 )
-from app.models.user import User
 from app.models.roles import Role
+from app.models.user import User
 from app.services.audit_logger import AuditLogger
 
 
@@ -53,7 +53,7 @@ class InvitationService:
         email: str,
         role: str,
         invited_by: uuid.UUID,
-        team_ids: Optional[List[uuid.UUID]] = None,
+        team_ids: list[uuid.UUID] | None = None,
         expires_in_days: int = 7,
     ) -> OrganizationInvitation:
         """
@@ -186,11 +186,11 @@ PM Document Intelligence Team
         # response = sg.send(message)
 
         # For now, just log
-        print(f"=== EMAIL INVITATION ===")
+        print("=== EMAIL INVITATION ===")
         print(f"To: {invitation.email}")
         print(f"Subject: {email_subject}")
         print(f"Body:\n{email_body}")
-        print(f"=======================")
+        print("=======================")
 
         # Mark invitation as sent (add sent_at field if needed)
         # invitation.sent_at = datetime.utcnow()
@@ -200,7 +200,7 @@ PM Document Intelligence Team
     # Invitation Validation and Acceptance
     # ============================================================================
 
-    async def validate_invitation_token(self, token: str) -> Optional[OrganizationInvitation]:
+    async def validate_invitation_token(self, token: str) -> OrganizationInvitation | None:
         """
         Validate an invitation token
 
@@ -327,7 +327,7 @@ PM Document Intelligence Team
 
         return member
 
-    async def _add_user_to_teams(self, user_id: uuid.UUID, team_ids: List[uuid.UUID]):
+    async def _add_user_to_teams(self, user_id: uuid.UUID, team_ids: list[uuid.UUID]):
         """
         Add user to specified teams
 
@@ -471,7 +471,7 @@ PM Document Intelligence Team
     # Invitation Queries
     # ============================================================================
 
-    async def get_user_invitations(self, email: str) -> List[OrganizationInvitation]:
+    async def get_user_invitations(self, email: str) -> list[OrganizationInvitation]:
         """
         Get all pending invitations for an email address
 
@@ -496,8 +496,8 @@ PM Document Intelligence Team
         return valid_invitations
 
     async def get_organization_invitations(
-        self, organization_id: uuid.UUID, status: Optional[str] = None
-    ) -> List[OrganizationInvitation]:
+        self, organization_id: uuid.UUID, status: str | None = None
+    ) -> list[OrganizationInvitation]:
         """
         Get invitations for an organization
 
@@ -560,10 +560,10 @@ PM Document Intelligence Team
     async def bulk_invite(
         self,
         organization_id: uuid.UUID,
-        email_list: List[str],
+        email_list: list[str],
         role: str,
         invited_by: uuid.UUID,
-        team_ids: Optional[List[uuid.UUID]] = None,
+        team_ids: list[uuid.UUID] | None = None,
     ) -> dict:
         """
         Invite multiple users at once

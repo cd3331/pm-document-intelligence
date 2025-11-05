@@ -25,22 +25,15 @@ Usage:
 """
 
 from datetime import datetime, timedelta
-from typing import Optional
-
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError
 
 from app.cache.redis import get_cache, set_cache
-from app.config import settings
 from app.database import execute_select, execute_update
 from app.models import (
-    User,
+    PermissionLevel,
     UserInDB,
     UserRole,
-    verify_token,
     has_permission,
-    PermissionLevel,
+    verify_token,
 )
 from app.utils.exceptions import (
     AuthenticationError,
@@ -49,7 +42,8 @@ from app.utils.exceptions import (
     TokenExpiredError,
 )
 from app.utils.logger import get_logger
-
+from fastapi import Depends
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 logger = get_logger(__name__)
 
@@ -98,7 +92,7 @@ async def get_token_from_header(
 # ============================================================================
 
 
-async def get_user_by_id(user_id: str) -> Optional[UserInDB]:
+async def get_user_by_id(user_id: str) -> UserInDB | None:
     """
     Get user by ID from database or cache.
 
@@ -188,7 +182,7 @@ async def get_current_user(
 
         return user
 
-    except (TokenExpiredError, InvalidTokenError) as e:
+    except (TokenExpiredError, InvalidTokenError):
         # Re-raise authentication errors
         raise
 
@@ -471,8 +465,8 @@ async def invalidate_user_cache(user_id: str) -> None:
 
 
 async def get_current_user_optional(
-    token: Optional[str] = Depends(get_token_from_header),
-) -> Optional[UserInDB]:
+    token: str | None = Depends(get_token_from_header),
+) -> UserInDB | None:
     """
     Get current user if authenticated, None otherwise.
 

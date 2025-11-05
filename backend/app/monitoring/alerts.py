@@ -2,16 +2,16 @@
 Alert definitions and delivery for monitoring system
 """
 
-from dataclasses import dataclass
-from typing import List, Optional, Dict, Any
-from enum import Enum
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-import requests
-import json
 import os
+import smtplib
+from dataclasses import dataclass
 from datetime import datetime
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from enum import Enum
+from typing import Any
+
+import requests
 
 
 class AlertSeverity(Enum):
@@ -43,8 +43,8 @@ class Alert:
     threshold: float
     comparison: str  # gt, lt, gte, lte, eq
     duration: str  # e.g., "5m", "1h"
-    channels: List[AlertChannel]
-    metadata: Optional[Dict[str, Any]] = None
+    channels: list[AlertChannel]
+    metadata: dict[str, Any] | None = None
 
 
 # ============================================================================

@@ -4,12 +4,12 @@ Defines roles, permissions, and their mappings for multi-tenant access control
 """
 
 import enum
-from typing import Set, Optional
-from sqlalchemy import Column, String, DateTime, Boolean, ForeignKey, Index, Table
+import uuid
+from datetime import datetime
+
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from datetime import datetime
-import uuid
 
 from app.core.database import Base
 
@@ -115,7 +115,7 @@ class Permission(str, enum.Enum):
 
 # Role-Permission Mapping
 # Defines which permissions each role has
-ROLE_PERMISSIONS: dict[Role, Set[Permission]] = {
+ROLE_PERMISSIONS: dict[Role, set[Permission]] = {
     Role.VIEWER: {
         # Read-only access
         Permission.DOCUMENT_READ,
@@ -192,7 +192,7 @@ ROLE_PERMISSIONS: dict[Role, Set[Permission]] = {
     },
     Role.SUPER_ADMIN: {
         # All permissions - system-wide admin
-        *[p for p in Permission]
+        *list(Permission)
     },
 }
 
@@ -204,7 +204,7 @@ class RBACService:
     """
 
     @staticmethod
-    def get_role_permissions(role: Role) -> Set[Permission]:
+    def get_role_permissions(role: Role) -> set[Permission]:
         """Get all permissions for a given role"""
         return ROLE_PERMISSIONS.get(role, set())
 
@@ -215,13 +215,13 @@ class RBACService:
         return permission in role_perms
 
     @staticmethod
-    def has_any_permission(role: Role, permissions: Set[Permission]) -> bool:
+    def has_any_permission(role: Role, permissions: set[Permission]) -> bool:
         """Check if role has any of the specified permissions"""
         role_perms = ROLE_PERMISSIONS.get(role, set())
         return bool(role_perms.intersection(permissions))
 
     @staticmethod
-    def has_all_permissions(role: Role, permissions: Set[Permission]) -> bool:
+    def has_all_permissions(role: Role, permissions: set[Permission]) -> bool:
         """Check if role has all specified permissions"""
         role_perms = ROLE_PERMISSIONS.get(role, set())
         return permissions.issubset(role_perms)
@@ -248,7 +248,7 @@ class RBACService:
             return False
 
     @staticmethod
-    def get_accessible_resources(role: Role) -> dict[str, Set[str]]:
+    def get_accessible_resources(role: Role) -> dict[str, set[str]]:
         """
         Get all resources and actions accessible to a role
 
@@ -256,7 +256,7 @@ class RBACService:
             dict: Mapping of resource -> set of actions
         """
         role_perms = ROLE_PERMISSIONS.get(role, set())
-        resources: dict[str, Set[str]] = {}
+        resources: dict[str, set[str]] = {}
 
         for perm in role_perms:
             resource = perm.resource
@@ -269,7 +269,7 @@ class RBACService:
         return resources
 
     @staticmethod
-    def get_minimum_role_for_permission(permission: Permission) -> Optional[Role]:
+    def get_minimum_role_for_permission(permission: Permission) -> Role | None:
         """
         Get the minimum role required for a permission
 
@@ -336,7 +336,7 @@ class CustomRole(Base):
     def __repr__(self):
         return f"<CustomRole(name={self.name}, org={self.organization_id})>"
 
-    def get_permissions(self) -> Set[Permission]:
+    def get_permissions(self) -> set[Permission]:
         """Get all permissions for this custom role"""
         try:
             base_role = Role(self.base_role)
@@ -468,7 +468,7 @@ class ResourcePermission(Base):
     def __repr__(self):
         return f"<ResourcePermission(user={self.user_id}, resource={self.resource_type}:{self.resource_id})>"
 
-    def get_permissions(self) -> Set[Permission]:
+    def get_permissions(self) -> set[Permission]:
         """Get all permissions granted by this resource permission"""
         perms = set()
         if self.permissions:
@@ -530,7 +530,7 @@ class PermissionCache(Base):
         """Check if cache has expired"""
         return datetime.utcnow() > self.expires_at
 
-    def get_permissions(self) -> Set[Permission]:
+    def get_permissions(self) -> set[Permission]:
         """Get cached permissions"""
         perms = set()
         if self.permissions:
@@ -545,7 +545,7 @@ class PermissionCache(Base):
 # Utility functions for common permission checks
 
 
-def get_user_role_in_org(user_id: uuid.UUID, organization_id: uuid.UUID, db) -> Optional[Role]:
+def get_user_role_in_org(user_id: uuid.UUID, organization_id: uuid.UUID, db) -> Role | None:
     """
     Get user's role in an organization
     Helper function to retrieve role from OrganizationMember
@@ -557,7 +557,7 @@ def get_user_role_in_org(user_id: uuid.UUID, organization_id: uuid.UUID, db) -> 
         .filter(
             OrganizationMember.user_id == user_id,
             OrganizationMember.organization_id == organization_id,
-            OrganizationMember.is_active == True,
+            OrganizationMember.is_active,
         )
         .first()
     )
@@ -571,7 +571,7 @@ def get_user_role_in_org(user_id: uuid.UUID, organization_id: uuid.UUID, db) -> 
         return None
 
 
-def get_user_permissions(user_id: uuid.UUID, organization_id: uuid.UUID, db) -> Set[Permission]:
+def get_user_permissions(user_id: uuid.UUID, organization_id: uuid.UUID, db) -> set[Permission]:
     """
     Get all permissions for a user in an organization
     Combines role permissions, custom role permissions, and resource permissions

@@ -4,8 +4,6 @@ Cost tracking and monitoring for AWS and OpenAI services
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
-import boto3
 
 
 @dataclass
@@ -18,7 +16,7 @@ class CostEntry:
     unit_cost: float
     total_cost: float
     timestamp: datetime
-    metadata: Optional[Dict] = None
+    metadata: dict | None = None
 
 
 class CostTracker:
@@ -40,7 +38,7 @@ class CostTracker:
     }
 
     def __init__(self):
-        self.cost_history: List[CostEntry] = []
+        self.cost_history: list[CostEntry] = []
 
     def track_aws_s3(self, operation: str, size_bytes: int):
         """Track S3 costs"""
@@ -93,7 +91,7 @@ class CostTracker:
         today = datetime.utcnow().date()
         return sum(e.total_cost for e in self.cost_history if e.timestamp.date() == today)
 
-    def get_cost_by_service(self, days: int = 1) -> Dict[str, float]:
+    def get_cost_by_service(self, days: int = 1) -> dict[str, float]:
         """Get costs grouped by service"""
         cutoff = datetime.utcnow() - timedelta(days=days)
         costs = {}

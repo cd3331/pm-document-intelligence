@@ -31,8 +31,8 @@ Usage:
 """
 
 from app.mcp.mcp_server import (
-    PMIntelligenceMCP,
     MCPContext,
+    PMIntelligenceMCP,
     get_mcp_server,
     initialize_mcp,
 )

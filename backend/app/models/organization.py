@@ -3,23 +3,25 @@ Organization and Team Models for Multi-Tenancy
 Implements enterprise-grade multi-tenancy with organizations, teams, and plans
 """
 
+import enum
+import uuid
+from datetime import datetime
+
 from sqlalchemy import (
-    Column,
-    String,
-    DateTime,
     Boolean,
-    Integer,
+    Column,
+    DateTime,
     ForeignKey,
-    JSON,
-    Enum as SQLEnum,
     Index,
+    Integer,
+    String,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import (
+    Enum as SQLEnum,
+)
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
-from datetime import datetime, timedelta
-import uuid
-import enum
 
 from app.core.database import Base
 

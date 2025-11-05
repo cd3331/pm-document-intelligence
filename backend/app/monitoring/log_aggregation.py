@@ -3,12 +3,11 @@ Structured logging with PII masking and context propagation
 """
 
 import logging
-import json
 import re
-from typing import Any, Dict, Optional
 from datetime import datetime
+
+from app.monitoring.tracing import get_span_id, get_trace_id
 from pythonjsonlogger import jsonlogger
-from app.monitoring.tracing import get_trace_id, get_span_id
 
 
 class StructuredLogger:
@@ -43,7 +42,7 @@ class StructuredLogger:
             message = re.sub(pattern, f"[{pattern_name.upper()}_REDACTED]", message)
         return message
 
-    def _add_context(self, extra: Optional[Dict] = None) -> Dict:
+    def _add_context(self, extra: dict | None = None) -> dict:
         """Add trace context to logs"""
         context = {
             "timestamp": datetime.utcnow().isoformat(),

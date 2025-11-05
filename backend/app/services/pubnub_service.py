@@ -31,16 +31,15 @@ Usage:
 
 import asyncio
 import hashlib
-import json
 import time
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 from uuid import uuid4
 
 from pubnub.callbacks import SubscribeCallback
-from pubnub.enums import PNStatusCategory, PNReconnectionPolicy
+from pubnub.enums import PNReconnectionPolicy, PNStatusCategory
 from pubnub.pnconfiguration import PNConfiguration
 from pubnub.pubnub import PubNub
 from pydantic import BaseModel, Field
@@ -48,7 +47,6 @@ from pydantic import BaseModel, Field
 from app.config import settings
 from app.utils.exceptions import ServiceError
 from app.utils.logger import get_logger
-
 
 logger = get_logger(__name__)
 
@@ -98,9 +96,9 @@ class PubNubMessage(BaseModel):
     event_type: EventType
     timestamp: str
     message_id: str = Field(default_factory=lambda: str(uuid4()))
-    data: Dict[str, Any]
+    data: dict[str, Any]
     priority: NotificationPriority = NotificationPriority.MEDIUM
-    dedupe_key: Optional[str] = None
+    dedupe_key: str | None = None
 
 
 class ProcessingProgress(BaseModel):
@@ -111,7 +109,7 @@ class ProcessingProgress(BaseModel):
     current_step: str
     total_steps: int
     step_number: int
-    estimated_time_remaining: Optional[int] = None  # seconds
+    estimated_time_remaining: int | None = None  # seconds
     cancellable: bool = True
 
 
@@ -121,9 +119,9 @@ class NotificationMessage(BaseModel):
     title: str
     message: str
     priority: NotificationPriority = NotificationPriority.MEDIUM
-    action_url: Optional[str] = None
-    action_label: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    action_url: str | None = None
+    action_label: str | None = None
+    metadata: dict[str, Any] | None = None
 
 
 # ============================================================================
@@ -141,10 +139,10 @@ class OfflineMessageQueue:
         Args:
             max_queue_size: Maximum messages to queue per user
         """
-        self.queues: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+        self.queues: dict[str, list[dict[str, Any]]] = defaultdict(list)
         self.max_queue_size = max_queue_size
 
-    def add_message(self, user_id: str, message: Dict[str, Any]) -> None:
+    def add_message(self, user_id: str, message: dict[str, Any]) -> None:
         """
         Add message to user's offline queue.
 
@@ -161,7 +159,7 @@ class OfflineMessageQueue:
         queue.append(message)
         logger.info(f"Queued message for offline user {user_id}")
 
-    def get_messages(self, user_id: str) -> List[Dict[str, Any]]:
+    def get_messages(self, user_id: str) -> list[dict[str, Any]]:
         """
         Get all queued messages for user.
 
@@ -211,7 +209,7 @@ class RateLimiter:
         """
         self.max_messages = max_messages
         self.window_seconds = window_seconds
-        self.message_times: Dict[str, List[float]] = defaultdict(list)
+        self.message_times: dict[str, list[float]] = defaultdict(list)
 
     def check_limit(self, key: str) -> bool:
         """
@@ -296,8 +294,8 @@ class PubNubService:
         self,
         publish_key: str,
         subscribe_key: str,
-        secret_key: Optional[str] = None,
-        user_id: Optional[str] = None,
+        secret_key: str | None = None,
+        user_id: str | None = None,
     ):
         """
         Initialize PubNub service.
@@ -325,8 +323,8 @@ class PubNubService:
         # Initialize components
         self.offline_queue = OfflineMessageQueue()
         self.rate_limiter = RateLimiter(max_messages=60, window_seconds=60)
-        self.message_cache: Set[str] = set()  # For deduplication
-        self.active_users: Dict[str, Set[str]] = defaultdict(set)  # channel -> users
+        self.message_cache: set[str] = set()  # For deduplication
+        self.active_users: dict[str, set[str]] = defaultdict(set)  # channel -> users
 
         logger.info("PubNub service initialized")
 
@@ -374,9 +372,9 @@ class PubNubService:
         self,
         channel: str,
         event_type: EventType,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         priority: NotificationPriority = NotificationPriority.MEDIUM,
-        dedupe_key: Optional[str] = None,
+        dedupe_key: str | None = None,
     ) -> bool:
         """
         Publish an update to a channel.
@@ -440,7 +438,7 @@ class PubNubService:
         current_step: str,
         total_steps: int,
         step_number: int,
-        estimated_time_remaining: Optional[int] = None,
+        estimated_time_remaining: int | None = None,
         cancellable: bool = True,
     ) -> bool:
         """
@@ -501,9 +499,9 @@ class PubNubService:
         title: str,
         message: str,
         priority: NotificationPriority = NotificationPriority.MEDIUM,
-        action_url: Optional[str] = None,
-        action_label: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        action_url: str | None = None,
+        action_label: str | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         """
         Publish user notification.
@@ -570,7 +568,7 @@ class PubNubService:
         document_id: str,
         user_id: str,
         filename: str,
-        results_summary: Dict[str, Any],
+        results_summary: dict[str, Any],
     ) -> bool:
         """
         Publish processing completed event.
@@ -635,7 +633,7 @@ class PubNubService:
         user_id: str,
         action_item_id: str,
         title: str,
-        due_date: Optional[str],
+        due_date: str | None,
         priority: str,
     ) -> bool:
         """
@@ -725,7 +723,7 @@ class PubNubService:
     # ========================================================================
 
     async def _publish_with_retry(
-        self, channel: str, message: Dict[str, Any], max_retries: int = 3
+        self, channel: str, message: dict[str, Any], max_retries: int = 3
     ) -> Any:
         """
         Publish message with retry logic.
@@ -824,7 +822,7 @@ class PubNubService:
         self.active_users[channel].discard(user_id)
         logger.warning(f"User {user_id} timed out on {channel}")
 
-    def on_message_received(self, channel: str, message: Dict[str, Any]) -> None:
+    def on_message_received(self, channel: str, message: dict[str, Any]) -> None:
         """
         Handle incoming message.
 
@@ -848,7 +846,7 @@ class PubNubService:
         channel = self.get_user_channel(user_id)
         return user_id in self.active_users.get(channel, set())
 
-    def get_active_users(self, channel: str) -> Set[str]:
+    def get_active_users(self, channel: str) -> set[str]:
         """
         Get active users on channel.
 
@@ -864,7 +862,7 @@ class PubNubService:
     # History and Cleanup
     # ========================================================================
 
-    def get_message_history(self, channel: str, count: int = 100) -> List[Dict[str, Any]]:
+    def get_message_history(self, channel: str, count: int = 100) -> list[dict[str, Any]]:
         """
         Get message history for channel.
 
@@ -929,7 +927,7 @@ def validate_webhook_signature(body: bytes, signature: str, secret_key: str) -> 
 # Global Service Instance
 # ============================================================================
 
-_pubnub_service: Optional[PubNubService] = None
+_pubnub_service: PubNubService | None = None
 
 
 def get_pubnub_service() -> PubNubService:

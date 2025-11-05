@@ -26,12 +26,11 @@ Usage:
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
 from app.utils.logger import get_logger
-
 
 logger = get_logger(__name__)
 
@@ -102,8 +101,8 @@ class ExtractedEntity(BaseModel):
     type: str = Field(..., description="Entity type (person, organization, location, etc.)")
     text: str = Field(..., description="Entity text")
     confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score")
-    start_offset: Optional[int] = Field(None, description="Start character offset")
-    end_offset: Optional[int] = Field(None, description="End character offset")
+    start_offset: int | None = Field(None, description="Start character offset")
+    end_offset: int | None = Field(None, description="End character offset")
 
     class Config:
         """Pydantic configuration."""
@@ -124,8 +123,8 @@ class ActionItem(BaseModel):
 
     text: str = Field(..., description="Action item text")
     priority: str = Field(default="medium", description="Priority level")
-    assignee: Optional[str] = Field(None, description="Assigned person")
-    due_date: Optional[datetime] = Field(None, description="Due date")
+    assignee: str | None = Field(None, description="Assigned person")
+    due_date: datetime | None = Field(None, description="Due date")
     status: str = Field(default="pending", description="Action item status")
     confidence: float = Field(default=0.0, ge=0.0, le=1.0, description="Confidence score")
 
@@ -172,11 +171,11 @@ class S3Reference(BaseModel):
 
     bucket: str = Field(..., description="S3 bucket name")
     key: str = Field(..., description="S3 object key")
-    version_id: Optional[str] = Field(None, description="S3 object version ID")
-    etag: Optional[str] = Field(None, description="S3 object ETag")
-    size: Optional[int] = Field(None, description="Object size in bytes")
-    url: Optional[str] = Field(None, description="Presigned URL")
-    expires_at: Optional[datetime] = Field(None, description="URL expiration time")
+    version_id: str | None = Field(None, description="S3 object version ID")
+    etag: str | None = Field(None, description="S3 object ETag")
+    size: int | None = Field(None, description="Object size in bytes")
+    url: str | None = Field(None, description="Presigned URL")
+    expires_at: datetime | None = Field(None, description="URL expiration time")
 
     class Config:
         """Pydantic configuration."""
@@ -198,7 +197,7 @@ class VectorEmbedding(BaseModel):
     model: str = Field(..., description="Embedding model used")
     dimension: int = Field(..., description="Embedding dimension")
     chunk_count: int = Field(default=0, description="Number of text chunks embedded")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    metadata: dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
 
     class Config:
         """Pydantic configuration."""
@@ -219,7 +218,7 @@ class ProcessingError(BaseModel):
     stage: ProcessingStage = Field(..., description="Processing stage where error occurred")
     error_type: str = Field(..., description="Error type")
     message: str = Field(..., description="Error message")
-    details: Dict[str, Any] = Field(default_factory=dict, description="Error details")
+    details: dict[str, Any] = Field(default_factory=dict, description="Error details")
     timestamp: datetime = Field(default_factory=datetime.utcnow, description="Error timestamp")
     retryable: bool = Field(default=False, description="Whether error is retryable")
 
@@ -249,9 +248,9 @@ class DocumentBase(BaseModel):
     filename: str = Field(..., min_length=1, max_length=255, description="Original filename")
     file_type: str = Field(..., description="MIME type of the file")
     size: int = Field(..., gt=0, description="File size in bytes")
-    description: Optional[str] = Field(None, max_length=1000, description="Document description")
-    tags: List[str] = Field(default_factory=list, description="Document tags")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    description: str | None = Field(None, max_length=1000, description="Document description")
+    tags: list[str] = Field(default_factory=list, description="Document tags")
+    metadata: dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
 
     @field_validator("filename")
     @classmethod
@@ -263,16 +262,16 @@ class DocumentBase(BaseModel):
         # Check for potentially dangerous characters
         dangerous_chars = ["../", "..\\", "<", ">", "|", ":", "*", "?", '"']
         if any(char in v for char in dangerous_chars):
-            raise ValueError(f"Filename contains invalid characters")
+            raise ValueError("Filename contains invalid characters")
 
         return v.strip()
 
     @field_validator("tags")
     @classmethod
-    def validate_tags(cls, v: List[str]) -> List[str]:
+    def validate_tags(cls, v: list[str]) -> list[str]:
         """Validate and normalize tags."""
         # Remove duplicates and normalize
-        unique_tags = list(set(tag.lower().strip() for tag in v if tag.strip()))
+        unique_tags = list({tag.lower().strip() for tag in v if tag.strip()})
         return unique_tags[:50]  # Limit to 50 tags
 
 
@@ -299,10 +298,10 @@ class DocumentCreate(DocumentBase):
 class DocumentUpdate(BaseModel):
     """Model for updating document metadata."""
 
-    description: Optional[str] = Field(None, max_length=1000)
-    tags: Optional[List[str]] = None
-    metadata: Optional[Dict[str, Any]] = None
-    status: Optional[DocumentStatus] = None
+    description: str | None = Field(None, max_length=1000)
+    tags: list[str] | None = None
+    metadata: dict[str, Any] | None = None
+    status: DocumentStatus | None = None
 
     class Config:
         """Pydantic configuration."""
@@ -325,52 +324,52 @@ class DocumentInDB(DocumentBase):
         default=DocumentStatus.UPLOADED,
         description="Processing status",
     )
-    current_stage: Optional[ProcessingStage] = Field(
+    current_stage: ProcessingStage | None = Field(
         None,
         description="Current processing stage",
     )
 
     # Extracted content
-    extracted_text: Optional[str] = Field(None, description="Extracted text content")
-    entities: List[ExtractedEntity] = Field(
+    extracted_text: str | None = Field(None, description="Extracted text content")
+    entities: list[ExtractedEntity] = Field(
         default_factory=list,
         description="Extracted entities",
     )
-    action_items: List[ActionItem] = Field(
+    action_items: list[ActionItem] = Field(
         default_factory=list,
         description="Extracted action items",
     )
-    sentiment: Optional[SentimentScore] = Field(None, description="Sentiment analysis")
-    key_phrases: List[str] = Field(default_factory=list, description="Key phrases")
-    summary: Optional[str] = Field(None, description="Document summary")
+    sentiment: SentimentScore | None = Field(None, description="Sentiment analysis")
+    key_phrases: list[str] = Field(default_factory=list, description="Key phrases")
+    summary: str | None = Field(None, description="Document summary")
 
     # Storage references
-    s3_reference: Optional[S3Reference] = Field(None, description="S3 storage reference")
-    vector_embedding: Optional[VectorEmbedding] = Field(
+    s3_reference: S3Reference | None = Field(None, description="S3 storage reference")
+    vector_embedding: VectorEmbedding | None = Field(
         None,
         description="Vector embedding reference",
     )
 
     # Processing metadata
-    processing_started_at: Optional[datetime] = Field(
+    processing_started_at: datetime | None = Field(
         None,
         description="Processing start time",
     )
-    processing_completed_at: Optional[datetime] = Field(
+    processing_completed_at: datetime | None = Field(
         None,
         description="Processing completion time",
     )
-    processing_duration_seconds: Optional[float] = Field(
+    processing_duration_seconds: float | None = Field(
         None,
         description="Processing duration in seconds",
     )
-    ai_models_used: List[str] = Field(
+    ai_models_used: list[str] = Field(
         default_factory=list,
         description="AI models used for processing",
     )
 
     # Error tracking
-    errors: List[ProcessingError] = Field(
+    errors: list[ProcessingError] = Field(
         default_factory=list,
         description="Processing errors",
     )
@@ -379,14 +378,14 @@ class DocumentInDB(DocumentBase):
     # Timestamps
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
-    accessed_at: Optional[datetime] = Field(None, description="Last access timestamp")
+    accessed_at: datetime | None = Field(None, description="Last access timestamp")
 
     # Page count for multi-page documents
-    page_count: Optional[int] = Field(None, description="Number of pages")
+    page_count: int | None = Field(None, description="Number of pages")
 
     # Character and word counts
-    character_count: Optional[int] = Field(None, description="Character count")
-    word_count: Optional[int] = Field(None, description="Word count")
+    character_count: int | None = Field(None, description="Character count")
+    word_count: int | None = Field(None, description="Word count")
 
     class Config:
         """Pydantic configuration."""
@@ -416,7 +415,7 @@ class Document(DocumentBase):
     id: str = Field(..., description="Document ID (UUID)")
     user_id: str = Field(..., description="User ID who uploaded the document")
     status: DocumentStatus = Field(..., description="Processing status")
-    current_stage: Optional[ProcessingStage] = Field(None, description="Current processing stage")
+    current_stage: ProcessingStage | None = Field(None, description="Current processing stage")
 
     # Summary information (not full content)
     has_extracted_text: bool = Field(default=False, description="Whether text was extracted")
@@ -425,19 +424,19 @@ class Document(DocumentBase):
     has_sentiment: bool = Field(default=False, description="Whether sentiment was analyzed")
 
     # Storage info
-    s3_reference: Optional[S3Reference] = None
+    s3_reference: S3Reference | None = None
 
     # Processing info
-    processing_completed_at: Optional[datetime] = None
-    processing_duration_seconds: Optional[float] = None
+    processing_completed_at: datetime | None = None
+    processing_duration_seconds: float | None = None
 
     # Timestamps
     created_at: datetime
     updated_at: datetime
 
     # Page and word counts
-    page_count: Optional[int] = None
-    word_count: Optional[int] = None
+    page_count: int | None = None
+    word_count: int | None = None
 
     class Config:
         """Pydantic configuration."""
@@ -460,8 +459,8 @@ class DocumentStats(BaseModel):
     """Document statistics."""
 
     total_documents: int = Field(..., description="Total number of documents")
-    by_status: Dict[str, int] = Field(..., description="Document count by status")
-    by_type: Dict[str, int] = Field(..., description="Document count by type")
+    by_status: dict[str, int] = Field(..., description="Document count by status")
+    by_type: dict[str, int] = Field(..., description="Document count by type")
     total_size_bytes: int = Field(..., description="Total size of all documents")
     average_processing_time: float = Field(..., description="Average processing time in seconds")
     total_entities: int = Field(..., description="Total extracted entities")

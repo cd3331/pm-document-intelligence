@@ -16,19 +16,18 @@ Features:
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from fastapi import APIRouter, Depends, status, Request, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from pydantic import BaseModel, Field
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
+from app.mcp.mcp_server import get_mcp_server
 from app.models import UserInDB
-from app.mcp.mcp_server import get_mcp_server, PMIntelligenceMCP
 from app.utils.auth_helpers import get_current_active_user
-from app.utils.exceptions import ValidationError, AIServiceError, AuthorizationError
+from app.utils.exceptions import AIServiceError, AuthorizationError, ValidationError
 from app.utils.logger import get_logger
-
 
 logger = get_logger(__name__)
 
@@ -45,8 +44,8 @@ class ToolExecutionRequest(BaseModel):
     """Request to execute an MCP tool."""
 
     tool_name: str = Field(..., description="Name of tool to execute")
-    parameters: Dict[str, Any] = Field(..., description="Tool parameters")
-    conversation_id: Optional[str] = Field(None, description="Conversation ID for context")
+    parameters: dict[str, Any] = Field(..., description="Tool parameters")
+    conversation_id: str | None = Field(None, description="Conversation ID for context")
     track_cost: bool = Field(default=True, description="Track execution cost")
 
 
@@ -55,9 +54,9 @@ class ToolExecutionResponse(BaseModel):
 
     success: bool
     tool_name: str
-    result: Dict[str, Any]
+    result: dict[str, Any]
     execution_time: float
-    cost: Optional[float] = None
+    cost: float | None = None
     timestamp: str
 
 
@@ -78,12 +77,12 @@ class MCPChatRequest(BaseModel):
     """Request for MCP-enabled chat."""
 
     message: str = Field(..., min_length=1, max_length=5000)
-    conversation_id: Optional[str] = None
+    conversation_id: str | None = None
     allow_tools: bool = Field(default=True, description="Allow tool use")
-    allowed_tools: Optional[List[str]] = Field(
+    allowed_tools: list[str] | None = Field(
         None, description="Specific tools to allow (null = all)"
     )
-    context: Optional[Dict[str, Any]] = Field(None, description="Additional context")
+    context: dict[str, Any] | None = Field(None, description="Additional context")
 
 
 class ToolInfo(BaseModel):
@@ -91,8 +90,8 @@ class ToolInfo(BaseModel):
 
     name: str
     description: str
-    parameters: Dict[str, Any]
-    example_usage: Optional[str] = None
+    parameters: dict[str, Any]
+    example_usage: str | None = None
 
 
 # ============================================================================
@@ -103,8 +102,8 @@ class ToolInfo(BaseModel):
 async def log_tool_execution(
     user_id: str,
     tool_name: str,
-    parameters: Dict[str, Any],
-    result: Dict[str, Any],
+    parameters: dict[str, Any],
+    result: dict[str, Any],
     duration: float,
     success: bool,
 ) -> None:
@@ -279,7 +278,7 @@ async def execute_tool(
 @router.get("/tools", summary="List available MCP tools")
 async def list_tools(
     current_user: UserInDB = Depends(get_current_active_user),
-) -> List[ToolInfo]:
+) -> list[ToolInfo]:
     """
     List all available MCP tools.
 
@@ -326,7 +325,7 @@ async def list_tools(
 @router.get("/resources", summary="List available MCP resources")
 async def list_resources(
     current_user: UserInDB = Depends(get_current_active_user),
-) -> List[Dict[str, str]]:
+) -> list[dict[str, str]]:
     """
     List available MCP resource schemes.
 
@@ -357,7 +356,7 @@ async def get_resource(
     request: Request,
     resource_request: ResourceAccessRequest,
     current_user: UserInDB = Depends(get_current_active_user),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Access an MCP resource by URI.
 
@@ -405,7 +404,7 @@ async def get_resource(
 @router.get("/prompts", summary="List available prompt templates")
 async def list_prompts(
     current_user: UserInDB = Depends(get_current_active_user),
-) -> Dict[str, List[str]]:
+) -> dict[str, list[str]]:
     """
     List available MCP prompt templates.
 
@@ -426,9 +425,9 @@ async def list_prompts(
 @router.post("/prompt", summary="Get prompt template")
 async def get_prompt(
     template_name: str,
-    variables: Dict[str, str],
+    variables: dict[str, str],
     current_user: UserInDB = Depends(get_current_active_user),
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """
     Get a formatted prompt template.
 
@@ -470,7 +469,7 @@ async def mcp_chat(
     chat_request: MCPChatRequest,
     background_tasks: BackgroundTasks,
     current_user: UserInDB = Depends(get_current_active_user),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Chat with an MCP-enabled AI agent.
 
@@ -512,7 +511,7 @@ async def mcp_chat(
         )
 
         logger.info(
-            f"MCP Chat request",
+            "MCP Chat request",
             extra={
                 "user_id": current_user.id,
                 "conversation_id": conversation_id,
@@ -529,7 +528,7 @@ async def mcp_chat(
         history = mcp_server.context.get_conversation(conversation_id)
 
         # Build context for agent
-        conversation_context = "\n".join(
+        "\n".join(
             [f"{msg['role']}: {msg['content']}" for msg in history[-5:]]  # Last 5 messages
         )
 
@@ -584,7 +583,7 @@ async def mcp_chat(
 async def clear_conversation(
     conversation_id: str,
     current_user: UserInDB = Depends(get_current_active_user),
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """
     Clear conversation history.
 
@@ -622,7 +621,7 @@ async def clear_conversation(
 @router.get("/stats", summary="Get MCP statistics")
 async def get_mcp_stats(
     current_user: UserInDB = Depends(get_current_active_user),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get MCP server statistics.
 
@@ -641,7 +640,7 @@ async def get_mcp_stats(
 
 
 @router.get("/health", summary="MCP health check")
-async def mcp_health_check() -> Dict[str, Any]:
+async def mcp_health_check() -> dict[str, Any]:
     """
     Check MCP server health.
 

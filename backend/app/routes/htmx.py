@@ -3,19 +3,18 @@ htmx API routes for HTML fragments
 These routes return HTML fragments for dynamic page updates via htmx
 """
 
-from fastapi import APIRouter, Request, Depends, HTTPException, status, Query
-from fastapi.responses import HTMLResponse
-from sqlalchemy.orm import Session
-from sqlalchemy import desc, func
-from typing import Optional, List
-from datetime import datetime, timedelta
-import json
+from datetime import datetime
 
-from app.database import get_db
-from app.auth import get_current_user
-from app.models import User, Document, ActionItem
-from app.services.vector_search import VectorSearch
+from fastapi import APIRouter, Depends, Query
+from fastapi.responses import HTMLResponse
+from sqlalchemy import desc, func
+from sqlalchemy.orm import Session
+
 from app.agents.orchestrator import get_orchestrator
+from app.auth import get_current_user
+from app.database import get_db
+from app.models import ActionItem, Document, User
+from app.services.vector_search import VectorSearch
 
 router = APIRouter(tags=["htmx"])
 
@@ -458,10 +457,10 @@ async def search_documents(
     sort: str = Query("relevance"),
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
-    types: Optional[str] = Query(None),
-    statuses: Optional[str] = Query(None),
-    date_from: Optional[str] = Query(None),
-    date_to: Optional[str] = Query(None),
+    types: str | None = Query(None),
+    statuses: str | None = Query(None),
+    date_from: str | None = Query(None),
+    date_to: str | None = Query(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):

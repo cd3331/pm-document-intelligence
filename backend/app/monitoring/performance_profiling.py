@@ -3,12 +3,11 @@ Performance profiling and analysis tools
 """
 
 import cProfile
-import pstats
 import io
-from functools import wraps
+import pstats
 import time
-from typing import Callable, Any
-from memory_profiler import profile as memory_profile
+from collections.abc import Callable
+from functools import wraps
 
 
 def profile_function(func: Callable) -> Callable:

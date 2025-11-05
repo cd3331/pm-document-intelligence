@@ -3,40 +3,36 @@ Organization Management API Routes
 Endpoints for managing organizations, teams, members, and invitations
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
-from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, or_
-from typing import List, Optional
-from datetime import datetime, timedelta
-from pydantic import BaseModel, EmailStr, Field
 import uuid
-import secrets
+from datetime import datetime
 
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
+from pydantic import BaseModel, EmailStr, Field
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+
+from app.core.auth import get_current_user
 from app.core.database import get_db
-from app.models.user import User
+from app.middleware.rbac import (
+    OrganizationContext,
+    get_organization_context,
+    require_org_admin,
+    require_permission,
+)
 from app.models.organization import (
     Organization,
-    OrganizationMember,
-    Team,
-    TeamMember,
     OrganizationInvitation,
-    OrganizationUsage,
+    OrganizationMember,
     OrganizationStatus,
     PlanTier,
+    Team,
+    TeamMember,
 )
-from app.models.roles import Role, Permission
-from app.middleware.rbac import (
-    get_organization_context,
-    OrganizationContext,
-    require_permission,
-    require_role,
-    require_org_admin,
-)
-from app.core.auth import get_current_user
+from app.models.roles import Permission, Role
+from app.models.user import User
 from app.services.audit_logger import AuditLogger
 from app.services.invitation_service import InvitationService
 from app.services.quota_manager import QuotaManager
-
 
 router = APIRouter(prefix="/api/organizations", tags=["organizations"])
 
@@ -48,24 +44,24 @@ router = APIRouter(prefix="/api/organizations", tags=["organizations"])
 
 class OrganizationCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=255)
-    slug: Optional[str] = Field(None, min_length=2, max_length=255)
-    contact_email: Optional[EmailStr] = None
-    contact_phone: Optional[str] = None
+    slug: str | None = Field(None, min_length=2, max_length=255)
+    contact_email: EmailStr | None = None
+    contact_phone: str | None = None
 
 
 class OrganizationUpdate(BaseModel):
-    name: Optional[str] = Field(None, min_length=2, max_length=255)
-    contact_email: Optional[EmailStr] = None
-    contact_phone: Optional[str] = None
-    logo_url: Optional[str] = None
-    primary_color: Optional[str] = None
-    custom_domain: Optional[str] = None
-    address_line1: Optional[str] = None
-    address_line2: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
-    postal_code: Optional[str] = None
-    country: Optional[str] = None
+    name: str | None = Field(None, min_length=2, max_length=255)
+    contact_email: EmailStr | None = None
+    contact_phone: str | None = None
+    logo_url: str | None = None
+    primary_color: str | None = None
+    custom_domain: str | None = None
+    address_line1: str | None = None
+    address_line2: str | None = None
+    city: str | None = None
+    state: str | None = None
+    postal_code: str | None = None
+    country: str | None = None
 
 
 class OrganizationResponse(BaseModel):
@@ -84,18 +80,18 @@ class OrganizationResponse(BaseModel):
 
 class TeamCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=255)
-    description: Optional[str] = Field(None, max_length=1000)
+    description: str | None = Field(None, max_length=1000)
 
 
 class TeamUpdate(BaseModel):
-    name: Optional[str] = Field(None, min_length=2, max_length=255)
-    description: Optional[str] = None
+    name: str | None = Field(None, min_length=2, max_length=255)
+    description: str | None = None
 
 
 class TeamResponse(BaseModel):
     id: uuid.UUID
     name: str
-    description: Optional[str]
+    description: str | None
     member_count: int
     created_at: datetime
 
@@ -123,7 +119,7 @@ class MemberRoleUpdate(BaseModel):
 class InviteUserRequest(BaseModel):
     email: EmailStr
     role: str
-    team_ids: List[uuid.UUID] = Field(default_factory=list)
+    team_ids: list[uuid.UUID] = Field(default_factory=list)
     expires_in_days: int = Field(default=7, ge=1, le=30)
 
 
@@ -237,7 +233,7 @@ async def get_organization(
         db.query(func.count(OrganizationMember.id))
         .filter(
             OrganizationMember.organization_id == organization.id,
-            OrganizationMember.is_active == True,
+            OrganizationMember.is_active,
         )
         .scalar()
     )
@@ -370,7 +366,7 @@ async def get_organization_usage(
 # ============================================================================
 
 
-@router.get("/{organization_id}/members", response_model=List[MemberResponse])
+@router.get("/{organization_id}/members", response_model=list[MemberResponse])
 @require_permission(Permission.USER_READ)
 async def list_organization_members(
     organization_id: str,
@@ -385,7 +381,7 @@ async def list_organization_members(
         db.query(OrganizationMember)
         .filter(
             OrganizationMember.organization_id == org_ctx.organization_id,
-            OrganizationMember.is_active == True,
+            OrganizationMember.is_active,
         )
         .offset(skip)
         .limit(limit)
@@ -641,11 +637,11 @@ async def invite_user(
     )
 
 
-@router.get("/{organization_id}/invitations", response_model=List[InvitationResponse])
+@router.get("/{organization_id}/invitations", response_model=list[InvitationResponse])
 @require_permission(Permission.USER_READ)
 async def list_invitations(
     organization_id: str,
-    status: Optional[str] = Query(None),
+    status: str | None = Query(None),
     current_user: User = Depends(get_current_user),
     org_ctx: OrganizationContext = Depends(get_organization_context),
     db: Session = Depends(get_db),
@@ -795,7 +791,7 @@ async def create_team(
     )
 
 
-@router.get("/{organization_id}/teams", response_model=List[TeamResponse])
+@router.get("/{organization_id}/teams", response_model=list[TeamResponse])
 @require_permission(Permission.TEAM_READ)
 async def list_teams(
     organization_id: str,
@@ -959,7 +955,7 @@ async def delete_team(
     return {"message": "Team deleted successfully"}
 
 
-@router.get("/{organization_id}/teams/{team_id}/members", response_model=List[MemberResponse])
+@router.get("/{organization_id}/teams/{team_id}/members", response_model=list[MemberResponse])
 @require_permission(Permission.TEAM_READ)
 async def list_team_members(
     organization_id: str,
@@ -1038,7 +1034,7 @@ async def add_team_member(
         .filter(
             OrganizationMember.organization_id == org_ctx.organization_id,
             OrganizationMember.user_id == user_uuid,
-            OrganizationMember.is_active == True,
+            OrganizationMember.is_active,
         )
         .first()
     )

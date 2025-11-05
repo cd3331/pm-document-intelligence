@@ -27,12 +27,11 @@ Usage:
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
 from app.utils.logger import get_logger
-
 
 logger = get_logger(__name__)
 
@@ -115,13 +114,13 @@ class EntityExtraction(BaseModel):
 
     type: EntityType = Field(..., description="Entity type")
     text: str = Field(..., description="Entity text")
-    normalized_text: Optional[str] = Field(None, description="Normalized entity text")
+    normalized_text: str | None = Field(None, description="Normalized entity text")
     confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score")
     start_offset: int = Field(..., description="Start character offset in document")
     end_offset: int = Field(..., description="End character offset in document")
-    page_number: Optional[int] = Field(None, description="Page number where entity appears")
-    context: Optional[str] = Field(None, max_length=500, description="Surrounding context")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    page_number: int | None = Field(None, description="Page number where entity appears")
+    context: str | None = Field(None, max_length=500, description="Surrounding context")
+    metadata: dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
 
     class Config:
         """Pydantic configuration."""
@@ -146,9 +145,9 @@ class EntitySummary(BaseModel):
 
     entity_type: EntityType = Field(..., description="Entity type")
     count: int = Field(..., description="Number of entities of this type")
-    unique_values: List[str] = Field(..., description="Unique entity values")
-    most_common: Optional[str] = Field(None, description="Most frequently mentioned entity")
-    frequency: Dict[str, int] = Field(
+    unique_values: list[str] = Field(..., description="Unique entity values")
+    most_common: str | None = Field(None, description="Most frequently mentioned entity")
+    frequency: dict[str, int] = Field(
         default_factory=dict,
         description="Frequency count for each entity",
     )
@@ -180,24 +179,24 @@ class ActionItemDetail(BaseModel):
         default=ActionPriority.MEDIUM,
         description="Priority level",
     )
-    assignee: Optional[str] = Field(None, description="Assigned person or team")
-    due_date: Optional[datetime] = Field(None, description="Due date")
+    assignee: str | None = Field(None, description="Assigned person or team")
+    due_date: datetime | None = Field(None, description="Due date")
     status: str = Field(default="pending", description="Status (pending, in_progress, completed)")
     confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score")
-    page_number: Optional[int] = Field(None, description="Page number where action appears")
-    context: Optional[str] = Field(None, max_length=500, description="Surrounding context")
-    dependencies: List[str] = Field(
+    page_number: int | None = Field(None, description="Page number where action appears")
+    context: str | None = Field(None, max_length=500, description="Surrounding context")
+    dependencies: list[str] = Field(
         default_factory=list,
         description="Dependencies (other action items)",
     )
-    tags: List[str] = Field(default_factory=list, description="Action item tags")
-    estimated_effort: Optional[str] = Field(None, description="Estimated effort (hours/days)")
+    tags: list[str] = Field(default_factory=list, description="Action item tags")
+    estimated_effort: str | None = Field(None, description="Estimated effort (hours/days)")
 
     @field_validator("tags")
     @classmethod
-    def validate_tags(cls, v: List[str]) -> List[str]:
+    def validate_tags(cls, v: list[str]) -> list[str]:
         """Validate and normalize tags."""
-        return list(set(tag.lower().strip() for tag in v if tag.strip()))[:20]
+        return list({tag.lower().strip() for tag in v if tag.strip()})[:20]
 
     class Config:
         """Pydantic configuration."""
@@ -234,17 +233,17 @@ class SentimentAnalysis(BaseModel):
     confidence: float = Field(..., ge=0.0, le=1.0, description="Overall confidence")
 
     # Sentiment by section
-    section_sentiments: List[Dict[str, Any]] = Field(
+    section_sentiments: list[dict[str, Any]] = Field(
         default_factory=list,
         description="Sentiment scores by document section",
     )
 
     # Key phrases by sentiment
-    positive_phrases: List[str] = Field(
+    positive_phrases: list[str] = Field(
         default_factory=list,
         description="Positive key phrases",
     )
-    negative_phrases: List[str] = Field(
+    negative_phrases: list[str] = Field(
         default_factory=list,
         description="Negative key phrases",
     )
@@ -275,10 +274,10 @@ class Topic(BaseModel):
     """Identified topic or theme."""
 
     name: str = Field(..., description="Topic name")
-    keywords: List[str] = Field(..., description="Topic keywords")
+    keywords: list[str] = Field(..., description="Topic keywords")
     relevance_score: float = Field(..., ge=0.0, le=1.0, description="Topic relevance score")
     mentions: int = Field(..., description="Number of mentions")
-    page_numbers: List[int] = Field(
+    page_numbers: list[int] = Field(
         default_factory=list,
         description="Pages where topic appears",
     )
@@ -303,7 +302,7 @@ class KeyPhrase(BaseModel):
     text: str = Field(..., description="Key phrase text")
     importance_score: float = Field(..., ge=0.0, le=1.0, description="Importance score")
     frequency: int = Field(..., description="Frequency count")
-    category: Optional[str] = Field(None, description="Phrase category")
+    category: str | None = Field(None, description="Phrase category")
 
     class Config:
         """Pydantic configuration."""
@@ -330,17 +329,17 @@ class RiskIndicator(BaseModel):
     description: str = Field(..., description="Risk description")
     level: RiskLevel = Field(..., description="Risk level")
     confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score")
-    evidence: List[str] = Field(..., description="Evidence supporting this risk")
-    page_numbers: List[int] = Field(
+    evidence: list[str] = Field(..., description="Evidence supporting this risk")
+    page_numbers: list[int] = Field(
         default_factory=list,
         description="Pages where risk is mentioned",
     )
-    mitigation_suggestions: List[str] = Field(
+    mitigation_suggestions: list[str] = Field(
         default_factory=list,
         description="Suggested mitigation strategies",
     )
-    impact: Optional[str] = Field(None, description="Potential impact description")
-    likelihood: Optional[str] = Field(None, description="Likelihood assessment")
+    impact: str | None = Field(None, description="Potential impact description")
+    likelihood: str | None = Field(None, description="Likelihood assessment")
 
     class Config:
         """Pydantic configuration."""
@@ -375,7 +374,7 @@ class AnalysisBase(BaseModel):
     """Base analysis model."""
 
     document_id: str = Field(..., description="Document ID being analyzed")
-    ai_models_used: List[str] = Field(..., description="AI models used for analysis")
+    ai_models_used: list[str] = Field(..., description="AI models used for analysis")
     processing_duration_seconds: float = Field(..., description="Processing duration")
 
     class Config:
@@ -396,12 +395,12 @@ class AnalysisBase(BaseModel):
 class AnalysisCreate(AnalysisBase):
     """Model for creating new analysis."""
 
-    entities: List[EntityExtraction] = Field(default_factory=list)
-    action_items: List[ActionItemDetail] = Field(default_factory=list)
-    sentiment: Optional[SentimentAnalysis] = None
-    topics: List[Topic] = Field(default_factory=list)
-    key_phrases: List[KeyPhrase] = Field(default_factory=list)
-    risks: List[RiskIndicator] = Field(default_factory=list)
+    entities: list[EntityExtraction] = Field(default_factory=list)
+    action_items: list[ActionItemDetail] = Field(default_factory=list)
+    sentiment: SentimentAnalysis | None = None
+    topics: list[Topic] = Field(default_factory=list)
+    key_phrases: list[KeyPhrase] = Field(default_factory=list)
+    risks: list[RiskIndicator] = Field(default_factory=list)
 
 
 class AnalysisInDB(AnalysisBase):
@@ -411,27 +410,27 @@ class AnalysisInDB(AnalysisBase):
     user_id: str = Field(..., description="User ID who owns the document")
 
     # Entity extraction
-    entities: List[EntityExtraction] = Field(default_factory=list)
-    entity_summary: List[EntitySummary] = Field(default_factory=list)
+    entities: list[EntityExtraction] = Field(default_factory=list)
+    entity_summary: list[EntitySummary] = Field(default_factory=list)
     total_entities: int = Field(default=0, description="Total number of entities")
 
     # Action items
-    action_items: List[ActionItemDetail] = Field(default_factory=list)
-    action_items_by_priority: Dict[str, int] = Field(
+    action_items: list[ActionItemDetail] = Field(default_factory=list)
+    action_items_by_priority: dict[str, int] = Field(
         default_factory=dict,
         description="Action item count by priority",
     )
 
     # Sentiment
-    sentiment: Optional[SentimentAnalysis] = None
+    sentiment: SentimentAnalysis | None = None
 
     # Topics and themes
-    topics: List[Topic] = Field(default_factory=list)
-    key_phrases: List[KeyPhrase] = Field(default_factory=list)
-    top_keywords: List[str] = Field(default_factory=list, description="Most important keywords")
+    topics: list[Topic] = Field(default_factory=list)
+    key_phrases: list[KeyPhrase] = Field(default_factory=list)
+    top_keywords: list[str] = Field(default_factory=list, description="Most important keywords")
 
     # Risk indicators
-    risks: List[RiskIndicator] = Field(default_factory=list)
+    risks: list[RiskIndicator] = Field(default_factory=list)
     overall_risk_level: RiskLevel = Field(default=RiskLevel.NONE)
 
     # Confidence scores
@@ -446,17 +445,17 @@ class AnalysisInDB(AnalysisBase):
     sentiment_confidence: float = Field(default=0.0, ge=0.0, le=1.0)
 
     # Model versions
-    bedrock_model_version: Optional[str] = None
-    comprehend_model_version: Optional[str] = None
-    textract_model_version: Optional[str] = None
-    openai_model_version: Optional[str] = None
+    bedrock_model_version: str | None = None
+    comprehend_model_version: str | None = None
+    textract_model_version: str | None = None
+    openai_model_version: str | None = None
 
     # Timestamps
     created_at: datetime = Field(..., description="Analysis creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
 
     # Metadata
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
     class Config:
         """Pydantic configuration."""
@@ -477,15 +476,15 @@ class Analysis(AnalysisBase):
     total_topics: int = Field(default=0)
 
     # High-level results
-    overall_sentiment: Optional[SentimentType] = None
+    overall_sentiment: SentimentType | None = None
     overall_risk_level: RiskLevel = Field(default=RiskLevel.NONE)
     overall_confidence: float = Field(default=0.0)
 
     # Top results
-    top_entities: List[EntityExtraction] = Field(default_factory=list)
-    top_action_items: List[ActionItemDetail] = Field(default_factory=list)
-    top_topics: List[Topic] = Field(default_factory=list)
-    top_risks: List[RiskIndicator] = Field(default_factory=list)
+    top_entities: list[EntityExtraction] = Field(default_factory=list)
+    top_action_items: list[ActionItemDetail] = Field(default_factory=list)
+    top_topics: list[Topic] = Field(default_factory=list)
+    top_risks: list[RiskIndicator] = Field(default_factory=list)
 
     # Timestamps
     created_at: datetime
@@ -521,25 +520,25 @@ class AnalysisStats(BaseModel):
     average_processing_time: float = Field(..., description="Average processing time in seconds")
 
     # Sentiment distribution
-    sentiment_distribution: Dict[str, int] = Field(
+    sentiment_distribution: dict[str, int] = Field(
         default_factory=dict,
         description="Document count by sentiment",
     )
 
     # Risk distribution
-    risk_distribution: Dict[str, int] = Field(
+    risk_distribution: dict[str, int] = Field(
         default_factory=dict,
         description="Risk count by level",
     )
 
     # Most common entities
-    most_common_entities: Dict[str, int] = Field(
+    most_common_entities: dict[str, int] = Field(
         default_factory=dict,
         description="Most frequently mentioned entities",
     )
 
     # Most common topics
-    most_common_topics: List[str] = Field(
+    most_common_topics: list[str] = Field(
         default_factory=list,
         description="Most common topics across documents",
     )
@@ -601,7 +600,7 @@ def calculate_overall_confidence(analysis: AnalysisInDB) -> float:
     return 0.0
 
 
-def determine_overall_risk_level(risks: List[RiskIndicator]) -> RiskLevel:
+def determine_overall_risk_level(risks: list[RiskIndicator]) -> RiskLevel:
     """
     Determine overall risk level from individual risks.
 

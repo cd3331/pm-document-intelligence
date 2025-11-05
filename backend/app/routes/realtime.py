@@ -15,22 +15,20 @@ Features:
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastapi import APIRouter, Depends, Header, Request, Response, status
 from pydantic import BaseModel, Field
 
 from app.models import UserInDB
 from app.services.pubnub_service import (
+    NotificationPriority,
     get_pubnub_service,
     validate_webhook_signature,
-    EventType,
-    NotificationPriority,
 )
 from app.utils.auth_helpers import get_current_active_user
-from app.utils.exceptions import ValidationError, AuthorizationError
+from app.utils.exceptions import AuthorizationError, ValidationError
 from app.utils.logger import get_logger
-
 
 logger = get_logger(__name__)
 
@@ -46,10 +44,10 @@ class WebhookEvent(BaseModel):
     """PubNub webhook event."""
 
     channel: str
-    subscription: Optional[str] = None
+    subscription: str | None = None
     timetoken: str
-    message: Dict[str, Any]
-    publisher: Optional[str] = None
+    message: dict[str, Any]
+    publisher: str | None = None
 
 
 class PresenceEvent(BaseModel):
@@ -59,7 +57,7 @@ class PresenceEvent(BaseModel):
     channel: str
     uuid: str
     timestamp: str
-    occupancy: Optional[int] = None
+    occupancy: int | None = None
 
 
 class SendNotificationRequest(BaseModel):
@@ -68,8 +66,8 @@ class SendNotificationRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
     message: str = Field(..., min_length=1, max_length=1000)
     priority: NotificationPriority = NotificationPriority.MEDIUM
-    action_url: Optional[str] = None
-    action_label: Optional[str] = None
+    action_url: str | None = None
+    action_label: str | None = None
 
 
 class PresenceResponse(BaseModel):
@@ -77,7 +75,7 @@ class PresenceResponse(BaseModel):
 
     channel: str
     online: bool
-    active_users: List[str]
+    active_users: list[str]
     total_users: int
 
 
@@ -90,7 +88,7 @@ class PresenceResponse(BaseModel):
 async def pubnub_message_webhook(
     request: Request,
     event: WebhookEvent,
-    x_pubnub_signature: Optional[str] = Header(None),
+    x_pubnub_signature: str | None = Header(None),
 ):
     """
     Receive message delivery confirmations from PubNub.
@@ -121,7 +119,7 @@ async def pubnub_message_webhook(
                 raise AuthorizationError("Invalid webhook signature")
 
         logger.info(
-            f"Message webhook received",
+            "Message webhook received",
             extra={
                 "channel": event.channel,
                 "timetoken": event.timetoken,
@@ -151,7 +149,7 @@ async def pubnub_message_webhook(
 async def pubnub_presence_webhook(
     request: Request,
     event: PresenceEvent,
-    x_pubnub_signature: Optional[str] = Header(None),
+    x_pubnub_signature: str | None = Header(None),
 ):
     """
     Receive presence events from PubNub.
@@ -313,7 +311,7 @@ async def get_channel_presence(
 @router.get("/status", summary="Get user connection status")
 async def get_connection_status(
     current_user: UserInDB = Depends(get_current_active_user),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get current user's connection status.
 
@@ -351,7 +349,7 @@ async def get_message_history(
     channel: str,
     count: int = 100,
     current_user: UserInDB = Depends(get_current_active_user),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get message history for a channel.
 
@@ -380,7 +378,7 @@ async def get_message_history(
 @router.delete("/queue", summary="Clear queued messages")
 async def clear_message_queue(
     current_user: UserInDB = Depends(get_current_active_user),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Clear all queued messages for current user.
 
@@ -403,7 +401,7 @@ async def clear_message_queue(
 @router.get("/channels", summary="Get user's channels")
 async def get_user_channels(
     current_user: UserInDB = Depends(get_current_active_user),
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """
     Get all channels relevant to the current user.
 
@@ -434,7 +432,7 @@ async def get_user_channels(
 
 
 @router.get("/health", summary="PubNub health check")
-async def pubnub_health_check() -> Dict[str, Any]:
+async def pubnub_health_check() -> dict[str, Any]:
     """
     Check PubNub service health.
 

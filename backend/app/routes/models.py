@@ -3,20 +3,19 @@ Model Management API Routes
 Endpoints for model performance, feedback, and version management
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
-from typing import Optional, List
-from datetime import datetime, timedelta
-from pydantic import BaseModel
 import uuid
+from datetime import datetime, timedelta
 
-from app.core.database import get_db
+from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
 from app.core.auth import get_current_user
+from app.core.database import get_db
 from app.models.user import User
-from app.services.feedback_loop import FeedbackCollector, FeedbackAnalyzer
-from ml.monitoring.model_performance import ModelPerformanceMonitor, AlertManager
+from app.services.feedback_loop import FeedbackAnalyzer, FeedbackCollector
 from ml.models.prompt_templates import get_optimization_tracker
-
+from ml.monitoring.model_performance import AlertManager, ModelPerformanceMonitor
 
 router = APIRouter(prefix="/api/models", tags=["models"])
 
@@ -25,9 +24,9 @@ router = APIRouter(prefix="/api/models", tags=["models"])
 class FeedbackSubmission(BaseModel):
     result_id: uuid.UUID
     rating: str  # 'positive', 'negative', 'neutral'
-    corrections: Optional[dict] = None
-    comments: Optional[str] = None
-    specific_issues: Optional[List[str]] = None
+    corrections: dict | None = None
+    comments: str | None = None
+    specific_issues: list[str] | None = None
 
 
 class ModelVersionInfo(BaseModel):
@@ -45,8 +44,8 @@ class ModelVersionInfo(BaseModel):
 
 @router.get("/performance")
 async def get_model_performance(
-    model_version: Optional[str] = Query(None),
-    task_type: Optional[str] = Query(None),
+    model_version: str | None = Query(None),
+    task_type: str | None = Query(None),
     days: int = Query(7, ge=1, le=90),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -159,8 +158,8 @@ async def submit_feedback(
 
 @router.get("/feedback/summary")
 async def get_feedback_summary(
-    document_type: Optional[str] = Query(None),
-    task_type: Optional[str] = Query(None),
+    document_type: str | None = Query(None),
+    task_type: str | None = Query(None),
     days: int = Query(30, ge=1, le=365),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -304,7 +303,7 @@ async def compare_model_versions(
 
 @router.get("/prompts/performance")
 async def get_prompt_performance(
-    template_id: Optional[str] = Query(None),
+    template_id: str | None = Query(None),
     current_user: User = Depends(get_current_user),
 ):
     """
@@ -327,7 +326,7 @@ async def get_prompt_performance(
 
 @router.get("/prompts/compare")
 async def compare_prompts(
-    template_ids: List[str] = Query(...), current_user: User = Depends(get_current_user)
+    template_ids: list[str] = Query(...), current_user: User = Depends(get_current_user)
 ):
     """
     Compare performance across multiple prompt templates
@@ -355,7 +354,7 @@ async def get_cost_summary(
     """
     monitor = ModelPerformanceMonitor(db)
 
-    metrics = monitor.get_success_metrics_summary(timedelta(days=days))
+    monitor.get_success_metrics_summary(timedelta(days=days))
 
     # Add cost breakdown
     # This would query actual cost data

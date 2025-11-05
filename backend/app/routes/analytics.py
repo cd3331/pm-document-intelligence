@@ -4,20 +4,20 @@ Advanced analytics, reporting, and insights endpoints
 """
 
 from datetime import datetime, timedelta
-from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
-from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, or_, desc
-import pandas as pd
 
+import pandas as pd
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from sqlalchemy import desc, func
+from sqlalchemy.orm import Session
+
+from app.core.auth import get_current_admin_user, get_current_user
 from app.core.database import get_db
-from app.core.auth import get_current_user, get_current_admin_user
-from app.models.user import User
 from app.models.document import Document
+from app.models.user import User
+from app.monitoring.log_aggregation import api_logger
+from app.monitoring.metrics import analytics_requests_total, track_request_duration
 from app.services.analytics_service import AnalyticsService
 from app.services.report_generator import ReportGenerator
-from app.monitoring.metrics import analytics_requests_total, track_request_duration
-from app.monitoring.log_aggregation import api_logger
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
@@ -28,9 +28,9 @@ router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
 @router.get("/documents/stats")
 async def get_document_stats(
-    start_date: Optional[datetime] = Query(None),
-    end_date: Optional[datetime] = Query(None),
-    document_type: Optional[str] = Query(None),
+    start_date: datetime | None = Query(None),
+    end_date: datetime | None = Query(None),
+    document_type: str | None = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -78,7 +78,7 @@ async def get_document_stats(
                 .all()
             )
 
-            documents_by_status = {status: count for status, count in status_counts}
+            documents_by_status = dict(status_counts)
 
             # Documents by type
             type_counts = (
@@ -87,7 +87,7 @@ async def get_document_stats(
                 .all()
             )
 
-            documents_by_type = {doc_type: count for doc_type, count in type_counts}
+            documents_by_type = dict(type_counts)
 
             # Processing success rate
             completed_docs = documents_by_status.get("completed", 0)
@@ -131,8 +131,8 @@ async def get_document_stats(
 
 @router.get("/documents/insights")
 async def get_document_insights(
-    start_date: Optional[datetime] = Query(None),
-    end_date: Optional[datetime] = Query(None),
+    start_date: datetime | None = Query(None),
+    end_date: datetime | None = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -180,8 +180,8 @@ async def get_document_insights(
 
 @router.get("/users/activity")
 async def get_user_activity(
-    start_date: Optional[datetime] = Query(None),
-    end_date: Optional[datetime] = Query(None),
+    start_date: datetime | None = Query(None),
+    end_date: datetime | None = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user),  # Admin only
 ):
@@ -258,8 +258,8 @@ async def get_user_activity(
 
 @router.get("/users/behavior")
 async def get_user_behavior(
-    start_date: Optional[datetime] = Query(None),
-    end_date: Optional[datetime] = Query(None),
+    start_date: datetime | None = Query(None),
+    end_date: datetime | None = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user),  # Admin only
 ):
@@ -313,9 +313,9 @@ async def get_user_behavior(
 
 @router.get("/costs/breakdown")
 async def get_cost_breakdown(
-    start_date: Optional[datetime] = Query(None),
-    end_date: Optional[datetime] = Query(None),
-    group_by: Optional[str] = Query("service"),  # service, user, document_type, day
+    start_date: datetime | None = Query(None),
+    end_date: datetime | None = Query(None),
+    group_by: str | None = Query("service"),  # service, user, document_type, day
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user),  # Admin only
 ):
@@ -516,8 +516,8 @@ async def get_cost_optimization(
 
 @router.get("/performance/api")
 async def get_api_performance(
-    start_date: Optional[datetime] = Query(None),
-    end_date: Optional[datetime] = Query(None),
+    start_date: datetime | None = Query(None),
+    end_date: datetime | None = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user),  # Admin only
 ):
@@ -534,10 +534,6 @@ async def get_api_performance(
 
     with track_request_duration(method="GET", endpoint="/analytics/performance/api"):
         try:
-            from app.monitoring.metrics import (
-                http_requests_total,
-                http_request_duration_seconds,
-            )
 
             # This would typically query Prometheus for metrics
             # For now, we'll return mock data structure
@@ -565,8 +561,8 @@ async def get_api_performance(
 
 @router.get("/performance/processing")
 async def get_processing_performance(
-    start_date: Optional[datetime] = Query(None),
-    end_date: Optional[datetime] = Query(None),
+    start_date: datetime | None = Query(None),
+    end_date: datetime | None = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user),  # Admin only
 ):
@@ -610,10 +606,10 @@ async def get_processing_performance(
 @router.post("/reports/generate")
 async def generate_report(
     report_type: str = Query(..., regex="^(daily|weekly|monthly|custom)$"),
-    start_date: Optional[datetime] = Query(None),
-    end_date: Optional[datetime] = Query(None),
+    start_date: datetime | None = Query(None),
+    end_date: datetime | None = Query(None),
     format: str = Query("pdf", regex="^(pdf|excel|json)$"),
-    email_to: Optional[str] = Query(None),
+    email_to: str | None = Query(None),
     background_tasks: BackgroundTasks = BackgroundTasks(),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user),  # Admin only
@@ -742,16 +738,17 @@ async def update_dashboard_config(
 @router.get("/export/csv")
 async def export_to_csv(
     data_type: str = Query(..., regex="^(documents|users|costs)$"),
-    start_date: Optional[datetime] = Query(None),
-    end_date: Optional[datetime] = Query(None),
+    start_date: datetime | None = Query(None),
+    end_date: datetime | None = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """
     Export analytics data to CSV
     """
-    from fastapi.responses import StreamingResponse
     import io
+
+    from fastapi.responses import StreamingResponse
 
     try:
         analytics_service = AnalyticsService(db)

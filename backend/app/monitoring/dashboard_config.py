@@ -5,7 +5,6 @@ Export these as JSON files for version control
 
 import json
 
-
 # System Overview Dashboard
 SYSTEM_OVERVIEW_DASHBOARD = {
     "dashboard": {

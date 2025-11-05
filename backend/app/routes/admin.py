@@ -8,7 +8,6 @@ from fastapi import APIRouter, HTTPException, status
 
 from app.utils.logger import get_logger
 
-
 logger = get_logger(__name__)
 router = APIRouter()
 

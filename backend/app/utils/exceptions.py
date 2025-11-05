@@ -23,7 +23,7 @@ Usage:
         )
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
@@ -49,10 +49,10 @@ class BaseAPIException(HTTPException):
 
     def __init__(
         self,
-        message: Optional[str] = None,
-        error_code: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None,
-        status_code: Optional[int] = None,
+        message: str | None = None,
+        error_code: str | None = None,
+        details: dict[str, Any] | None = None,
+        status_code: int | None = None,
     ):
         """
         Initialize base API exception.
@@ -74,7 +74,7 @@ class BaseAPIException(HTTPException):
             detail=self.to_dict(),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """
         Convert exception to dictionary format.
 
@@ -227,10 +227,10 @@ class AuthenticationError(BaseAPIException):
 
     def __init__(
         self,
-        message: Optional[str] = None,
-        error_code: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None,
-        status_code: Optional[int] = None,
+        message: str | None = None,
+        error_code: str | None = None,
+        details: dict[str, Any] | None = None,
+        status_code: int | None = None,
     ):
         """Initialize authentication error with WWW-Authenticate header."""
         super().__init__(message, error_code, details, status_code)
@@ -302,11 +302,11 @@ class RateLimitError(BaseAPIException):
 
     def __init__(
         self,
-        message: Optional[str] = None,
-        error_code: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None,
-        status_code: Optional[int] = None,
-        retry_after: Optional[int] = None,
+        message: str | None = None,
+        error_code: str | None = None,
+        details: dict[str, Any] | None = None,
+        status_code: int | None = None,
+        retry_after: int | None = None,
     ):
         """
         Initialize rate limit error.

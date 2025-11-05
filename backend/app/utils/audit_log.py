@@ -33,14 +33,11 @@ Usage:
 """
 
 from datetime import datetime
-from typing import Any, Dict, Optional
-
-from fastapi import Request
+from typing import Any
 
 from app.database import execute_insert
-from app.utils.exceptions import DatabaseError
 from app.utils.logger import get_logger
-
+from fastapi import Request
 
 logger = get_logger(__name__)
 
@@ -106,7 +103,7 @@ class AuditStatus:
 # ============================================================================
 
 
-def get_client_ip(request: Request) -> Optional[str]:
+def get_client_ip(request: Request) -> str | None:
     """
     Extract client IP address from request.
 
@@ -134,7 +131,7 @@ def get_client_ip(request: Request) -> Optional[str]:
     return None
 
 
-def get_user_agent(request: Request) -> Optional[str]:
+def get_user_agent(request: Request) -> str | None:
     """
     Extract user agent from request.
 
@@ -147,7 +144,7 @@ def get_user_agent(request: Request) -> Optional[str]:
     return request.headers.get("User-Agent")
 
 
-def get_request_id(request: Request) -> Optional[str]:
+def get_request_id(request: Request) -> str | None:
     """
     Extract request ID from request state.
 
@@ -160,7 +157,7 @@ def get_request_id(request: Request) -> Optional[str]:
     return getattr(request.state, "request_id", None)
 
 
-def mask_sensitive_data(data: Dict[str, Any]) -> Dict[str, Any]:
+def mask_sensitive_data(data: dict[str, Any]) -> dict[str, Any]:
     """
     Mask sensitive data in audit log.
 
@@ -202,16 +199,16 @@ def mask_sensitive_data(data: Dict[str, Any]) -> Dict[str, Any]:
 async def create_audit_log(
     action: str,
     resource_type: str,
-    user_id: Optional[str] = None,
-    resource_id: Optional[str] = None,
+    user_id: str | None = None,
+    resource_id: str | None = None,
     status: str = AuditStatus.SUCCESS,
-    error_message: Optional[str] = None,
-    old_values: Optional[Dict[str, Any]] = None,
-    new_values: Optional[Dict[str, Any]] = None,
-    metadata: Optional[Dict[str, Any]] = None,
-    ip_address: Optional[str] = None,
-    user_agent: Optional[str] = None,
-    request_id: Optional[str] = None,
+    error_message: str | None = None,
+    old_values: dict[str, Any] | None = None,
+    new_values: dict[str, Any] | None = None,
+    metadata: dict[str, Any] | None = None,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+    request_id: str | None = None,
 ) -> bool:
     """
     Create an audit log entry.
@@ -286,12 +283,12 @@ async def create_audit_log(
 
 async def log_auth_event(
     action: str,
-    user_id: Optional[str] = None,
-    email: Optional[str] = None,
+    user_id: str | None = None,
+    email: str | None = None,
     status: str = AuditStatus.SUCCESS,
-    error_message: Optional[str] = None,
-    request: Optional[Request] = None,
-    metadata: Optional[Dict[str, Any]] = None,
+    error_message: str | None = None,
+    request: Request | None = None,
+    metadata: dict[str, Any] | None = None,
 ) -> bool:
     """
     Log authentication event.
@@ -346,7 +343,7 @@ async def log_auth_event(
 async def log_failed_login(
     email: str,
     reason: str,
-    request: Optional[Request] = None,
+    request: Request | None = None,
 ) -> bool:
     """
     Log failed login attempt.
@@ -373,7 +370,7 @@ async def log_account_lockout(
     user_id: str,
     email: str,
     failed_attempts: int,
-    request: Optional[Request] = None,
+    request: Request | None = None,
 ) -> bool:
     """
     Log account lockout event.
@@ -409,8 +406,8 @@ async def log_document_access(
     user_id: str,
     document_id: str,
     action: str,
-    request: Optional[Request] = None,
-    metadata: Optional[Dict[str, Any]] = None,
+    request: Request | None = None,
+    metadata: dict[str, Any] | None = None,
 ) -> bool:
     """
     Log document access event.
@@ -459,9 +456,9 @@ async def log_document_change(
     user_id: str,
     document_id: str,
     action: str,
-    old_values: Optional[Dict[str, Any]] = None,
-    new_values: Optional[Dict[str, Any]] = None,
-    request: Optional[Request] = None,
+    old_values: dict[str, Any] | None = None,
+    new_values: dict[str, Any] | None = None,
+    request: Request | None = None,
 ) -> bool:
     """
     Log document change event.
@@ -509,13 +506,13 @@ async def log_ai_service_call(
     user_id: str,
     service: str,
     action: str,
-    document_id: Optional[str] = None,
-    tokens_used: Optional[int] = None,
-    cost: Optional[float] = None,
-    duration_seconds: Optional[float] = None,
+    document_id: str | None = None,
+    tokens_used: int | None = None,
+    cost: float | None = None,
+    duration_seconds: float | None = None,
     status: str = AuditStatus.SUCCESS,
-    error_message: Optional[str] = None,
-    request: Optional[Request] = None,
+    error_message: str | None = None,
+    request: Request | None = None,
 ) -> bool:
     """
     Log AI service usage.
@@ -583,10 +580,10 @@ async def log_admin_action(
     admin_user_id: str,
     action: str,
     resource_type: str,
-    resource_id: Optional[str] = None,
-    old_values: Optional[Dict[str, Any]] = None,
-    new_values: Optional[Dict[str, Any]] = None,
-    request: Optional[Request] = None,
+    resource_id: str | None = None,
+    old_values: dict[str, Any] | None = None,
+    new_values: dict[str, Any] | None = None,
+    request: Request | None = None,
 ) -> bool:
     """
     Log administrative action.
@@ -682,6 +679,7 @@ async def get_recent_failed_logins(
     """
     try:
         from datetime import timedelta
+
         from app.database import execute_query
 
         since_time = datetime.utcnow() - timedelta(minutes=since_minutes)

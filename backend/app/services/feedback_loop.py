@@ -3,13 +3,13 @@ Feedback Loop Service
 Collect user feedback on AI outputs for continuous improvement
 """
 
-from typing import Dict, Any, Optional, List
-from sqlalchemy.orm import Session
-from datetime import datetime
 import uuid
+from datetime import datetime
+from typing import Any
 
-from app.models.document import ProcessingResult, Document
-from app.models.user import User
+from sqlalchemy.orm import Session
+
+from app.models.document import Document, ProcessingResult
 
 
 class FeedbackCollector:
@@ -23,10 +23,10 @@ class FeedbackCollector:
         result_id: uuid.UUID,
         user_id: uuid.UUID,
         rating: str,  # 'positive', 'negative', 'neutral'
-        corrections: Optional[Dict[str, Any]] = None,
-        comments: Optional[str] = None,
-        specific_issues: Optional[List[str]] = None,
-    ) -> Dict[str, Any]:
+        corrections: dict[str, Any] | None = None,
+        comments: str | None = None,
+        specific_issues: list[str] | None = None,
+    ) -> dict[str, Any]:
         """
         Submit feedback on a processing result
 
@@ -69,10 +69,10 @@ class FeedbackCollector:
 
     def get_feedback_summary(
         self,
-        document_type: Optional[str] = None,
-        task_type: Optional[str] = None,
+        document_type: str | None = None,
+        task_type: str | None = None,
         time_window_days: int = 30,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get summary of feedback
 
@@ -130,7 +130,7 @@ class FeedbackCollector:
 
     def get_corrections_for_training(
         self, min_confidence: float = 0.8, limit: int = 100
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Get high-quality corrections for fine-tuning
 
@@ -215,7 +215,7 @@ class FeedbackAnalyzer:
     def __init__(self, db: Session):
         self.db = db
 
-    def analyze_issue_trends(self, time_window_days: int = 90) -> Dict[str, Any]:
+    def analyze_issue_trends(self, time_window_days: int = 90) -> dict[str, Any]:
         """Analyze trends in reported issues"""
         from datetime import timedelta
 
@@ -243,7 +243,7 @@ class FeedbackAnalyzer:
 
         return {"weekly_trends": weekly_issues}
 
-    def identify_improvement_opportunities(self) -> List[Dict[str, Any]]:
+    def identify_improvement_opportunities(self) -> list[dict[str, Any]]:
         """Identify areas for improvement based on feedback"""
         collector = FeedbackCollector(self.db)
         summary = collector.get_feedback_summary()
