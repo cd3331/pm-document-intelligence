@@ -884,9 +884,7 @@ Be concise but thorough. If the question relates to previous conversation, maint
 
         return filtered
 
-    def _in_date_range(
-        self, date_str: str | None, start: str | None, end: str | None
-    ) -> bool:
+    def _in_date_range(self, date_str: str | None, start: str | None, end: str | None) -> bool:
         """Check if date is in range."""
         if not date_str:
             return False

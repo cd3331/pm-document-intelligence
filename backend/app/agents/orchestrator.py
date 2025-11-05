@@ -224,7 +224,8 @@ class AgentOrchestrator:
 
                 for task, result in zip(
                     [t for t in tasks if t not in [e["task"] for e in errors]],
-                    task_results, strict=False,
+                    task_results,
+                    strict=False,
                 ):
                     if isinstance(result, Exception):
                         errors.append({"task": task, "error": str(result)})

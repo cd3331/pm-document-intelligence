@@ -528,9 +528,7 @@ async def mcp_chat(
         history = mcp_server.context.get_conversation(conversation_id)
 
         # Build context for agent
-        "\n".join(
-            [f"{msg['role']}: {msg['content']}" for msg in history[-5:]]  # Last 5 messages
-        )
+        "\n".join([f"{msg['role']}: {msg['content']}" for msg in history[-5:]])  # Last 5 messages
 
         # Use Q&A agent with MCP tools available
         result = await orchestrator.ask_question(
