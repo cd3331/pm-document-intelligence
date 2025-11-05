@@ -173,9 +173,39 @@ jobs:
 
       - name: Run tests
         env:
+          # Test environment
+          TESTING: "true"
+          ENVIRONMENT: test
+
+          # Database
           DATABASE_URL: postgresql://testuser:testpass@localhost:5432/testdb
+
+          # Redis
           REDIS_URL: redis://localhost:6379/0
+
+          # Security
           JWT_SECRET_KEY: test-secret-key
+          SECRET_KEY: test-secret-key
+
+          # OpenAI (mock)
+          OPENAI_API_KEY: sk-test-mock-key-for-testing
+          OPENAI_MODEL: gpt-4o
+
+          # AWS (mock)
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test
+          AWS_DEFAULT_REGION: us-east-1
+          AWS_S3_BUCKET: test-bucket
+
+          # Supabase (mock)
+          SUPABASE_URL: https://test.supabase.co
+          SUPABASE_KEY: test-key
+          SUPABASE_SERVICE_KEY: test-service-key
+
+          # PubNub (mock)
+          PUBNUB_PUBLISH_KEY: test-pub-key
+          PUBNUB_SUBSCRIBE_KEY: test-sub-key
+
           PYTHONPATH: backend
         run: |
           pytest backend/tests/ -v --cov=backend/app --cov-report=xml --cov-report=html
