@@ -183,10 +183,10 @@ jobs:
           # Redis
           REDIS_URL: redis://localhost:6379/0
 
-          # Security
-          JWT_SECRET_KEY: test-secret-key
-          SECRET_KEY: test-secret-key
-          API_KEY_SALT: test-api-key-salt
+          # Security (all keys must be at least 32 characters)
+          JWT_SECRET_KEY: test-jwt-secret-key-for-testing-environment-12345
+          SECRET_KEY: test-secret-key-for-testing-environment-secure-12345
+          API_KEY_SALT: test-api-key-salt-for-testing-environment-secure
 
           # OpenAI (mock)
           OPENAI_API_KEY: sk-test-mock-key-for-testing
@@ -200,14 +200,14 @@ jobs:
 
           # Supabase (mock)
           SUPABASE_URL: https://test.supabase.co
-          SUPABASE_KEY: test-key
-          SUPABASE_SERVICE_KEY: test-service-key
-          SUPABASE_JWT_SECRET: test-jwt-secret
+          SUPABASE_KEY: test-supabase-key-for-testing-environment-secure-12345
+          SUPABASE_SERVICE_KEY: test-supabase-service-key-for-testing-environment
+          SUPABASE_JWT_SECRET: test-supabase-jwt-secret-for-testing-environment
 
           # PubNub (mock)
-          PUBNUB_PUBLISH_KEY: test-pub-key
-          PUBNUB_SUBSCRIBE_KEY: test-sub-key
-          PUBNUB_SECRET_KEY: test-secret-key
+          PUBNUB_PUBLISH_KEY: test-pubnub-publish-key-for-testing-environment
+          PUBNUB_SUBSCRIBE_KEY: test-pubnub-subscribe-key-for-testing-environment
+          PUBNUB_SECRET_KEY: test-pubnub-secret-key-for-testing-environment-secure
 
           PYTHONPATH: backend
         run: |
