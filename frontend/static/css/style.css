@@ -1,0 +1,688 @@
+/**
+ * PM Document Intelligence - Custom Styles
+ * Brand Colors: Joy Teal (#00B4B4), Deep Navy (#1B3A5F), Warm Coral (#FF6B6B)
+ */
+
+/* ============================================
+   CSS Variables
+   ============================================ */
+:root {
+    /* Brand Colors */
+    --joy-teal: #00B4B4;
+    --joy-teal-light: #00D4D4;
+    --joy-teal-dark: #009494;
+    --deep-navy: #1B3A5F;
+    --deep-navy-light: #2B4A6F;
+    --deep-navy-dark: #0B2A4F;
+    --warm-coral: #FF6B6B;
+    --warm-coral-light: #FF8B8B;
+    --warm-coral-dark: #FF4B4B;
+
+    /* Neutral Colors */
+    --gray-50: #F9FAFB;
+    --gray-100: #F3F4F6;
+    --gray-200: #E5E7EB;
+    --gray-300: #D1D5DB;
+    --gray-400: #9CA3AF;
+    --gray-500: #6B7280;
+    --gray-600: #4B5563;
+    --gray-700: #374151;
+    --gray-800: #1F2937;
+    --gray-900: #111827;
+
+    /* Spacing */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    --spacing-2xl: 3rem;
+
+    /* Border Radius */
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+    /* Transitions */
+    --transition-fast: 150ms ease-in-out;
+    --transition-base: 300ms ease-in-out;
+    --transition-slow: 500ms ease-in-out;
+}
+
+/* Dark mode variables */
+.dark {
+    --gray-50: #111827;
+    --gray-100: #1F2937;
+    --gray-200: #374151;
+    --gray-300: #4B5563;
+    --gray-400: #6B7280;
+    --gray-500: #9CA3AF;
+    --gray-600: #D1D5DB;
+    --gray-700: #E5E7EB;
+    --gray-800: #F3F4F6;
+    --gray-900: #F9FAFB;
+}
+
+/* ============================================
+   Base Styles
+   ============================================ */
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================
+   Components
+   ============================================ */
+
+/* Cards */
+.card {
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700;
+}
+
+.card-hover {
+    @apply card transition-shadow hover:shadow-lg;
+}
+
+/* Buttons */
+.btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center;
+}
+
+.btn-primary {
+    @apply btn bg-joy-teal text-white hover:bg-[#009494] focus:ring-joy-teal;
+}
+
+.btn-secondary {
+    @apply btn bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 focus:ring-gray-400;
+}
+
+.btn-danger {
+    @apply btn bg-warm-coral text-white hover:bg-[#FF4B4B] focus:ring-warm-coral;
+}
+
+.btn-outline {
+    @apply btn border-2 border-joy-teal text-joy-teal hover:bg-joy-teal hover:text-white focus:ring-joy-teal;
+}
+
+.btn-sm {
+    @apply px-3 py-1.5 text-sm;
+}
+
+.btn-lg {
+    @apply px-6 py-3 text-lg;
+}
+
+/* Inputs */
+.input {
+    @apply w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-joy-teal focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors;
+}
+
+.input-error {
+    @apply border-red-500 focus:ring-red-500;
+}
+
+/* Navigation */
+.nav-link {
+    @apply inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors;
+    @apply text-white/80 hover:text-white hover:bg-white/10;
+}
+
+.nav-link.active {
+    @apply text-white bg-white/10;
+}
+
+.mobile-nav-link {
+    @apply block px-3 py-2 text-base font-medium rounded-md transition-colors;
+    @apply text-white/80 hover:text-white hover:bg-white/10;
+}
+
+/* Flash Messages / Toasts */
+.flash-message {
+    @apply rounded-lg p-4 shadow-lg border-l-4 animate-slide-in-right;
+    min-width: 300px;
+    max-width: 500px;
+}
+
+.flash-success {
+    @apply bg-green-50 dark:bg-green-900/20 border-green-500 text-green-800 dark:text-green-200;
+}
+
+.flash-error {
+    @apply bg-red-50 dark:bg-red-900/20 border-red-500 text-red-800 dark:text-red-200;
+}
+
+.flash-warning {
+    @apply bg-yellow-50 dark:bg-yellow-900/20 border-yellow-500 text-yellow-800 dark:text-yellow-200;
+}
+
+.flash-info {
+    @apply bg-blue-50 dark:bg-blue-900/20 border-blue-500 text-blue-800 dark:text-blue-200;
+}
+
+/* Badges */
+.badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.badge-success {
+    @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200;
+}
+
+.badge-warning {
+    @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200;
+}
+
+.badge-error {
+    @apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200;
+}
+
+.badge-info {
+    @apply bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200;
+}
+
+/* Progress Bars */
+.progress-bar-container {
+    @apply w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden;
+}
+
+.progress-bar {
+    @apply h-full bg-joy-teal transition-all duration-300 rounded-full;
+}
+
+/* Loading Spinner */
+.spinner {
+    @apply inline-block w-6 h-6 border-2 border-current border-t-transparent rounded-full animate-spin;
+}
+
+.spinner-lg {
+    @apply w-12 h-12 border-4;
+}
+
+/* Skeleton Loaders */
+.skeleton {
+    @apply animate-pulse bg-gray-200 dark:bg-gray-700 rounded;
+}
+
+.skeleton-text {
+    @apply skeleton h-4 mb-2;
+}
+
+.skeleton-title {
+    @apply skeleton h-6 w-3/4 mb-4;
+}
+
+.skeleton-circle {
+    @apply skeleton rounded-full;
+}
+
+/* Dividers */
+.divider {
+    @apply border-t border-gray-200 dark:border-gray-700 my-4;
+}
+
+/* Status Indicators */
+.status-dot {
+    @apply inline-block w-2 h-2 rounded-full;
+}
+
+.status-online {
+    @apply bg-green-500;
+}
+
+.status-offline {
+    @apply bg-gray-400;
+}
+
+.status-busy {
+    @apply bg-red-500;
+}
+
+.status-away {
+    @apply bg-yellow-500;
+}
+
+/* Tags */
+.tag {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300;
+}
+
+/* Tooltips (using title attribute, enhanced) */
+[title] {
+    position: relative;
+}
+
+/* ============================================
+   Animations
+   ============================================ */
+
+@keyframes slide-in-right {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slide-in-left {
+    from {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slide-in-up {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slide-in-down {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fade-out {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes scale-in {
+    from {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes bounce-in {
+    0% {
+        transform: scale(0.3);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    70% {
+        transform: scale(0.9);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(0, 180, 180, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(0, 180, 180, 0);
+    }
+}
+
+/* Animation Classes */
+.animate-slide-in-right {
+    animation: slide-in-right 0.3s ease-out;
+}
+
+.animate-slide-in-left {
+    animation: slide-in-left 0.3s ease-out;
+}
+
+.animate-slide-in-up {
+    animation: slide-in-up 0.3s ease-out;
+}
+
+.animate-slide-in-down {
+    animation: slide-in-down 0.3s ease-out;
+}
+
+.animate-fade-in {
+    animation: fade-in 0.3s ease-out;
+}
+
+.animate-fade-out {
+    animation: fade-out 0.3s ease-out;
+}
+
+.animate-scale-in {
+    animation: scale-in 0.2s ease-out;
+}
+
+.animate-bounce-in {
+    animation: bounce-in 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.animate-pulse-glow {
+    animation: pulse-glow 2s infinite;
+}
+
+/* ============================================
+   Utility Classes
+   ============================================ */
+
+/* Text Truncation */
+.line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Scrollbars */
+.scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+    @apply bg-gray-100 dark:bg-gray-800;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400 dark:bg-gray-500;
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
+/* Accessibility */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+.focus-visible:focus {
+    @apply outline-none ring-2 ring-joy-teal ring-offset-2;
+}
+
+/* Prose (for document content) */
+.prose {
+    @apply max-w-none;
+}
+
+.prose h1 {
+    @apply text-3xl font-bold mb-4 text-gray-900 dark:text-white;
+}
+
+.prose h2 {
+    @apply text-2xl font-bold mb-3 text-gray-900 dark:text-white;
+}
+
+.prose h3 {
+    @apply text-xl font-bold mb-2 text-gray-900 dark:text-white;
+}
+
+.prose p {
+    @apply mb-4 text-gray-700 dark:text-gray-300;
+}
+
+.prose ul, .prose ol {
+    @apply mb-4 ml-6 text-gray-700 dark:text-gray-300;
+}
+
+.prose li {
+    @apply mb-2;
+}
+
+.prose a {
+    @apply text-joy-teal hover:text-[#009494] underline;
+}
+
+.prose code {
+    @apply bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-sm font-mono;
+}
+
+.prose pre {
+    @apply bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto mb-4;
+}
+
+.prose blockquote {
+    @apply border-l-4 border-joy-teal pl-4 italic text-gray-600 dark:text-gray-400 mb-4;
+}
+
+/* ============================================
+   Dark Mode Specific
+   ============================================ */
+
+.dark .prose-invert h1,
+.dark .prose-invert h2,
+.dark .prose-invert h3 {
+    @apply text-white;
+}
+
+.dark .prose-invert p,
+.dark .prose-invert li {
+    @apply text-gray-300;
+}
+
+/* ============================================
+   Responsive Utilities
+   ============================================ */
+
+/* Print styles */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+
+    body {
+        @apply bg-white text-black;
+    }
+
+    .card {
+        @apply border border-gray-300 shadow-none;
+    }
+}
+
+/* Mobile-specific */
+@media (max-width: 640px) {
+    .card {
+        @apply p-4;
+    }
+
+    h1 {
+        @apply text-2xl;
+    }
+
+    h2 {
+        @apply text-xl;
+    }
+}
+
+/* ============================================
+   htmx Integration
+   ============================================ */
+
+/* htmx request indicators */
+.htmx-request {
+    @apply opacity-50 pointer-events-none;
+}
+
+.htmx-swapping {
+    @apply opacity-0 transition-opacity duration-300;
+}
+
+.htmx-settling {
+    @apply opacity-100 transition-opacity duration-300;
+}
+
+/* htmx loading states */
+.htmx-indicator {
+    display: none;
+}
+
+.htmx-request .htmx-indicator {
+    display: inline-block;
+}
+
+/* ============================================
+   Custom Document Viewer
+   ============================================ */
+
+.document-viewer {
+    @apply bg-gray-50 dark:bg-gray-900 rounded-lg p-6;
+}
+
+.document-content {
+    @apply font-mono text-sm whitespace-pre-wrap;
+}
+
+/* Syntax highlighting for code blocks */
+.code-block {
+    @apply bg-gray-800 text-gray-100 p-4 rounded-lg overflow-x-auto;
+}
+
+.code-line-numbers {
+    @apply text-gray-500 select-none mr-4;
+}
+
+/* ============================================
+   Real-time Indicators
+   ============================================ */
+
+.realtime-pulse {
+    position: relative;
+}
+
+.realtime-pulse::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: inherit;
+    background: var(--joy-teal);
+    animation: pulse-glow 2s infinite;
+    pointer-events: none;
+}
+
+/* Processing status animations */
+@keyframes processing {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+.processing-gradient {
+    background: linear-gradient(90deg, var(--joy-teal), var(--warm-coral), var(--joy-teal));
+    background-size: 200% 100%;
+    animation: processing 2s ease infinite;
+}
+
+/* ============================================
+   Custom Focus Styles
+   ============================================ */
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+    @apply outline-none ring-2 ring-joy-teal ring-offset-2 dark:ring-offset-gray-900;
+}
+
+/* ============================================
+   Transitions
+   ============================================ */
+
+.transition-base {
+    transition: all var(--transition-base);
+}
+
+.transition-fast {
+    transition: all var(--transition-fast);
+}
+
+.transition-slow {
+    transition: all var(--transition-slow);
+}

@@ -1,0 +1,575 @@
+{% extends "base.html" %}
+
+{% block title %}Search Documents - PM Document Intelligence{% endblock %}
+
+{% block content %}
+<div class="space-y-6" x-data="searchHandler()">
+    <!-- Page header -->
+    <div>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Search Documents</h1>
+        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            Find documents using semantic search or keyword matching
+        </p>
+    </div>
+
+    <!-- Search bar -->
+    <div class="card">
+        <form @submit.prevent="performSearch" class="space-y-4">
+            <!-- Search input with autocomplete -->
+            <div class="relative">
+                <div class="relative">
+                    <input type="text"
+                           x-model="query"
+                           @input.debounce.300ms="loadSuggestions"
+                           placeholder="Search documents..."
+                           class="input w-full pl-12 pr-4"
+                           autocomplete="off">
+                    <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                </div>
+
+                <!-- Suggestions dropdown -->
+                <div x-show="suggestions.length > 0 && query.length > 0"
+                     @click.away="suggestions = []"
+                     x-transition
+                     class="absolute z-10 w-full mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden">
+                    <template x-for="suggestion in suggestions" :key="suggestion.id">
+                        <button type="button"
+                                @click="query = suggestion.text; suggestions = []; performSearch()"
+                                class="w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 border-b dark:border-gray-700 last:border-b-0">
+                            <div class="flex items-start space-x-3">
+                                <i class="fas fa-search text-gray-400 mt-1"></i>
+                                <div class="flex-1">
+                                    <p class="text-sm text-gray-900 dark:text-white" x-text="suggestion.text"></p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400" x-text="suggestion.source"></p>
+                                </div>
+                            </div>
+                        </button>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Search options -->
+            <div class="flex flex-wrap items-center gap-4">
+                <!-- Semantic search toggle -->
+                <label class="flex items-center cursor-pointer">
+                    <input type="checkbox"
+                           x-model="semanticSearch"
+                           class="rounded border-gray-300 text-joy-teal focus:ring-joy-teal mr-2">
+                    <span class="text-sm text-gray-700 dark:text-gray-300">
+                        <i class="fas fa-brain mr-1 text-joy-teal"></i> Semantic Search
+                    </span>
+                </label>
+
+                <!-- Sort options -->
+                <div class="flex items-center space-x-2">
+                    <label class="text-sm text-gray-700 dark:text-gray-300">Sort by:</label>
+                    <select x-model="sortBy"
+                            @change="performSearch"
+                            class="input py-1 text-sm">
+                        <option value="relevance">Relevance</option>
+                        <option value="date_desc">Newest First</option>
+                        <option value="date_asc">Oldest First</option>
+                        <option value="name_asc">Name (A-Z)</option>
+                        <option value="name_desc">Name (Z-A)</option>
+                    </select>
+                </div>
+
+                <!-- Save search button -->
+                <button type="button"
+                        @click="saveSearch"
+                        :disabled="!query.trim()"
+                        class="btn-secondary text-sm"
+                        :class="{ 'opacity-50 cursor-not-allowed': !query.trim() }">
+                    <i class="fas fa-bookmark mr-1"></i> Save Search
+                </button>
+
+                <!-- Clear filters -->
+                <button type="button"
+                        @click="clearFilters"
+                        class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
+                    <i class="fas fa-times mr-1"></i> Clear Filters
+                </button>
+            </div>
+
+            <!-- Search button -->
+            <button type="submit"
+                    :disabled="!query.trim() || searching"
+                    class="btn-primary"
+                    :class="{ 'opacity-50 cursor-not-allowed': !query.trim() || searching }">
+                <template x-if="!searching">
+                    <span><i class="fas fa-search mr-2"></i> Search</span>
+                </template>
+                <template x-if="searching">
+                    <span><i class="fas fa-spinner fa-spin mr-2"></i> Searching...</span>
+                </template>
+            </button>
+        </form>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- Filters sidebar -->
+        <div class="lg:col-span-1">
+            <div class="card sticky top-4">
+                <h3 class="font-semibold text-gray-900 dark:text-white mb-4">Filters</h3>
+
+                <div class="space-y-6">
+                    <!-- Document type filter -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Document Type
+                        </label>
+                        <div class="space-y-2">
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox"
+                                       value="general"
+                                       x-model="filters.types"
+                                       class="rounded border-gray-300 text-joy-teal focus:ring-joy-teal mr-2">
+                                <span class="text-sm text-gray-700 dark:text-gray-300">General</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox"
+                                       value="meeting_notes"
+                                       x-model="filters.types"
+                                       class="rounded border-gray-300 text-joy-teal focus:ring-joy-teal mr-2">
+                                <span class="text-sm text-gray-700 dark:text-gray-300">Meeting Notes</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox"
+                                       value="project_plan"
+                                       x-model="filters.types"
+                                       class="rounded border-gray-300 text-joy-teal focus:ring-joy-teal mr-2">
+                                <span class="text-sm text-gray-700 dark:text-gray-300">Project Plan</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox"
+                                       value="financial_report"
+                                       x-model="filters.types"
+                                       class="rounded border-gray-300 text-joy-teal focus:ring-joy-teal mr-2">
+                                <span class="text-sm text-gray-700 dark:text-gray-300">Financial Report</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox"
+                                       value="technical_doc"
+                                       x-model="filters.types"
+                                       class="rounded border-gray-300 text-joy-teal focus:ring-joy-teal mr-2">
+                                <span class="text-sm text-gray-700 dark:text-gray-300">Technical Doc</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox"
+                                       value="contract"
+                                       x-model="filters.types"
+                                       class="rounded border-gray-300 text-joy-teal focus:ring-joy-teal mr-2">
+                                <span class="text-sm text-gray-700 dark:text-gray-300">Contract</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Status filter -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Status
+                        </label>
+                        <div class="space-y-2">
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox"
+                                       value="completed"
+                                       x-model="filters.statuses"
+                                       class="rounded border-gray-300 text-joy-teal focus:ring-joy-teal mr-2">
+                                <span class="text-sm text-gray-700 dark:text-gray-300">Completed</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox"
+                                       value="processing"
+                                       x-model="filters.statuses"
+                                       class="rounded border-gray-300 text-joy-teal focus:ring-joy-teal mr-2">
+                                <span class="text-sm text-gray-700 dark:text-gray-300">Processing</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox"
+                                       value="failed"
+                                       x-model="filters.statuses"
+                                       class="rounded border-gray-300 text-joy-teal focus:ring-joy-teal mr-2">
+                                <span class="text-sm text-gray-700 dark:text-gray-300">Failed</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Date range filter -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Date Range
+                        </label>
+                        <div class="space-y-2">
+                            <input type="date"
+                                   x-model="filters.dateFrom"
+                                   class="input w-full text-sm"
+                                   placeholder="From">
+                            <input type="date"
+                                   x-model="filters.dateTo"
+                                   class="input w-full text-sm"
+                                   placeholder="To">
+                        </div>
+                    </div>
+
+                    <!-- Apply filters button -->
+                    <button @click="performSearch"
+                            class="btn-primary w-full">
+                        <i class="fas fa-filter mr-2"></i> Apply Filters
+                    </button>
+                </div>
+            </div>
+
+            <!-- Saved searches -->
+            <div class="card mt-6">
+                <h3 class="font-semibold text-gray-900 dark:text-white mb-4">Saved Searches</h3>
+                <div class="space-y-2" x-show="savedSearches.length > 0">
+                    <template x-for="search in savedSearches" :key="search.id">
+                        <div class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                            <button @click="loadSavedSearch(search)"
+                                    class="flex-1 text-left text-sm text-gray-700 dark:text-gray-300 hover:text-joy-teal">
+                                <i class="fas fa-bookmark mr-2"></i>
+                                <span x-text="search.name"></span>
+                            </button>
+                            <button @click="deleteSavedSearch(search.id)"
+                                    class="text-gray-400 hover:text-red-500">
+                                <i class="fas fa-trash text-xs"></i>
+                            </button>
+                        </div>
+                    </template>
+                </div>
+                <p x-show="savedSearches.length === 0"
+                   class="text-sm text-gray-500 dark:text-gray-400 text-center">
+                    No saved searches
+                </p>
+            </div>
+        </div>
+
+        <!-- Search results -->
+        <div class="lg:col-span-3">
+            <!-- Results count and info -->
+            <div x-show="hasSearched" class="mb-4 flex justify-between items-center">
+                <div>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        Found <span class="font-semibold text-gray-900 dark:text-white" x-text="totalResults"></span> results
+                        <span x-show="searchTime > 0">
+                            in <span x-text="searchTime"></span>ms
+                        </span>
+                    </p>
+                </div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">
+                    Page <span x-text="currentPage"></span> of <span x-text="totalPages"></span>
+                </div>
+            </div>
+
+            <!-- Results list -->
+            <div class="space-y-4">
+                <!-- Loading state -->
+                <div x-show="searching" class="card">
+                    <div class="text-center py-8">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-joy-teal mx-auto"></div>
+                        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Searching...</p>
+                    </div>
+                </div>
+
+                <!-- No results -->
+                <div x-show="!searching && hasSearched && results.length === 0" class="card">
+                    <div class="text-center py-12">
+                        <i class="fas fa-search text-4xl text-gray-300 dark:text-gray-600 mb-4"></i>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">No results found</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                            Try adjusting your search terms or filters
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Results -->
+                <template x-for="result in results" :key="result.id">
+                    <div class="card hover:shadow-lg transition cursor-pointer"
+                         @click="window.location.href = `/document/${result.id}`">
+                        <div class="flex items-start space-x-4">
+                            <!-- Document icon -->
+                            <div class="w-12 h-12 bg-joy-teal/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <i class="fas text-2xl text-joy-teal"
+                                   :class="{
+                                       'fa-file-pdf': result.filename.endsWith('.pdf'),
+                                       'fa-file-word': result.filename.endsWith('.docx') || result.filename.endsWith('.doc'),
+                                       'fa-file-alt': result.filename.endsWith('.txt'),
+                                       'fa-file-image': result.filename.endsWith('.png') || result.filename.endsWith('.jpg'),
+                                       'fa-file': !result.filename.match(/\.(pdf|docx?|txt|png|jpe?g)$/i)
+                                   }"></i>
+                            </div>
+
+                            <!-- Document info -->
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1"
+                                            x-html="result.highlighted_filename || result.filename"></h3>
+                                        <div class="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                            <span><i class="fas fa-clock mr-1"></i> <span x-text="result.created_at"></span></span>
+                                            <span><i class="fas fa-file mr-1"></i> <span x-text="result.document_type"></span></span>
+                                            <span x-show="result.score"
+                                                  class="text-joy-teal font-medium">
+                                                <i class="fas fa-chart-line mr-1"></i> <span x-text="Math.round(result.score * 100)"></span>% match
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <span class="ml-4 px-2 py-1 rounded text-xs font-medium whitespace-nowrap"
+                                          :class="{
+                                              'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200': result.status === 'completed',
+                                              'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200': result.status === 'processing',
+                                              'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200': result.status === 'failed'
+                                          }"
+                                          x-text="result.status"></span>
+                                </div>
+
+                                <!-- Excerpt with highlighting -->
+                                <div x-show="result.excerpt"
+                                     class="text-sm text-gray-700 dark:text-gray-300 line-clamp-3"
+                                     x-html="result.highlighted_excerpt || result.excerpt"></div>
+
+                                <!-- Tags/metadata -->
+                                <div x-show="result.tags && result.tags.length > 0"
+                                     class="flex flex-wrap gap-2 mt-2">
+                                    <template x-for="tag in result.tags" :key="tag">
+                                        <span class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-xs rounded"
+                                              x-text="tag"></span>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Pagination -->
+            <div x-show="totalPages > 1" class="mt-6 flex justify-center items-center space-x-2">
+                <button @click="goToPage(1)"
+                        :disabled="currentPage === 1"
+                        class="px-3 py-2 rounded border dark:border-gray-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <i class="fas fa-angle-double-left"></i>
+                </button>
+                <button @click="goToPage(currentPage - 1)"
+                        :disabled="currentPage === 1"
+                        class="px-3 py-2 rounded border dark:border-gray-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <i class="fas fa-angle-left"></i>
+                </button>
+
+                <template x-for="page in paginationPages" :key="page">
+                    <button @click="goToPage(page)"
+                            :class="{ 'bg-joy-teal text-white': page === currentPage, 'hover:bg-gray-100 dark:hover:bg-gray-700': page !== currentPage }"
+                            class="px-4 py-2 rounded border dark:border-gray-700 text-sm"
+                            x-text="page"></button>
+                </template>
+
+                <button @click="goToPage(currentPage + 1)"
+                        :disabled="currentPage === totalPages"
+                        class="px-3 py-2 rounded border dark:border-gray-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <i class="fas fa-angle-right"></i>
+                </button>
+                <button @click="goToPage(totalPages)"
+                        :disabled="currentPage === totalPages"
+                        class="px-3 py-2 rounded border dark:border-gray-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <i class="fas fa-angle-double-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function searchHandler() {
+    return {
+        query: '',
+        semanticSearch: true,
+        sortBy: 'relevance',
+        searching: false,
+        hasSearched: false,
+        results: [],
+        totalResults: 0,
+        searchTime: 0,
+        currentPage: 1,
+        totalPages: 1,
+        pageSize: 10,
+        suggestions: [],
+        savedSearches: [],
+        filters: {
+            types: [],
+            statuses: ['completed'],
+            dateFrom: '',
+            dateTo: ''
+        },
+
+        init() {
+            // Load saved searches from localStorage
+            const saved = localStorage.getItem('saved_searches');
+            if (saved) {
+                this.savedSearches = JSON.parse(saved);
+            }
+
+            // Check for query params
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('q')) {
+                this.query = urlParams.get('q');
+                this.performSearch();
+            }
+        },
+
+        async loadSuggestions() {
+            if (this.query.length < 2) {
+                this.suggestions = [];
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/search/suggestions?q=${encodeURIComponent(this.query)}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    this.suggestions = data.suggestions || [];
+                }
+            } catch (error) {
+                console.error('Error loading suggestions:', error);
+            }
+        },
+
+        async performSearch() {
+            if (!this.query.trim()) return;
+
+            this.searching = true;
+            this.hasSearched = true;
+
+            const startTime = Date.now();
+
+            try {
+                const params = new URLSearchParams({
+                    q: this.query,
+                    semantic: this.semanticSearch,
+                    sort: this.sortBy,
+                    page: this.currentPage,
+                    page_size: this.pageSize
+                });
+
+                // Add filters
+                if (this.filters.types.length > 0) {
+                    params.append('types', this.filters.types.join(','));
+                }
+                if (this.filters.statuses.length > 0) {
+                    params.append('statuses', this.filters.statuses.join(','));
+                }
+                if (this.filters.dateFrom) {
+                    params.append('date_from', this.filters.dateFrom);
+                }
+                if (this.filters.dateTo) {
+                    params.append('date_to', this.filters.dateTo);
+                }
+
+                const response = await fetch(`/api/search?${params}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    this.results = data.results || [];
+                    this.totalResults = data.total || 0;
+                    this.totalPages = Math.ceil(this.totalResults / this.pageSize);
+                    this.searchTime = Date.now() - startTime;
+
+                    // Update URL with query
+                    const url = new URL(window.location);
+                    url.searchParams.set('q', this.query);
+                    window.history.pushState({}, '', url);
+                } else {
+                    showToast('Search failed. Please try again.', 'error');
+                }
+            } catch (error) {
+                console.error('Search error:', error);
+                showToast('Search failed. Please try again.', 'error');
+            } finally {
+                this.searching = false;
+            }
+        },
+
+        goToPage(page) {
+            if (page < 1 || page > this.totalPages || page === this.currentPage) return;
+            this.currentPage = page;
+            this.performSearch();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
+
+        get paginationPages() {
+            const pages = [];
+            const maxVisible = 5;
+            let start = Math.max(1, this.currentPage - Math.floor(maxVisible / 2));
+            let end = Math.min(this.totalPages, start + maxVisible - 1);
+
+            if (end - start < maxVisible - 1) {
+                start = Math.max(1, end - maxVisible + 1);
+            }
+
+            for (let i = start; i <= end; i++) {
+                pages.push(i);
+            }
+
+            return pages;
+        },
+
+        saveSearch() {
+            if (!this.query.trim()) return;
+
+            const name = prompt('Enter a name for this search:', this.query.substring(0, 30));
+            if (!name) return;
+
+            const search = {
+                id: Date.now(),
+                name: name,
+                query: this.query,
+                semanticSearch: this.semanticSearch,
+                sortBy: this.sortBy,
+                filters: { ...this.filters }
+            };
+
+            this.savedSearches.push(search);
+            localStorage.setItem('saved_searches', JSON.stringify(this.savedSearches));
+            showToast('Search saved successfully!', 'success');
+        },
+
+        loadSavedSearch(search) {
+            this.query = search.query;
+            this.semanticSearch = search.semanticSearch;
+            this.sortBy = search.sortBy;
+            this.filters = { ...search.filters };
+            this.currentPage = 1;
+            this.performSearch();
+        },
+
+        deleteSavedSearch(id) {
+            this.savedSearches = this.savedSearches.filter(s => s.id !== id);
+            localStorage.setItem('saved_searches', JSON.stringify(this.savedSearches));
+            showToast('Saved search deleted', 'success');
+        },
+
+        clearFilters() {
+            this.filters = {
+                types: [],
+                statuses: ['completed'],
+                dateFrom: '',
+                dateTo: ''
+            };
+            this.sortBy = 'relevance';
+            if (this.hasSearched) {
+                this.performSearch();
+            }
+        }
+    };
+}
+</script>
+{% endblock %}

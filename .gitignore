@@ -2,6 +2,8 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyo
+*.pyd
 *.so
 .Python
 build/
@@ -47,11 +49,15 @@ poetry.lock
 .env.production
 .env.development
 *.env
+secrets.yml
+secrets.yml.*
+!secrets.yml.example
 
 # AWS
 .aws/
 *.pem
 *.key
+*.crt
 aws-credentials.json
 credentials
 
@@ -80,6 +86,8 @@ coverage.xml
 *.log
 .hypothesis/
 .cache
+nosetests.xml
+test-reports/
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -98,6 +106,7 @@ yarn-error.log*
 .DS_Store
 .DS_Store?
 ._*
+.AppleDouble
 .Spotlight-V100
 .Trashes
 ehthumbs.db
@@ -148,6 +157,20 @@ temp/
 # Documentation
 docs/_build/
 site/
+
+# Docker
+docker-compose.override.yml
+.docker/
+*.pid
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.cache/
+frontend/.parcel-cache/
+frontend/.next/
+frontend/.nuxt/
+frontend/out/
 
 # Celery
 celerybeat-schedule

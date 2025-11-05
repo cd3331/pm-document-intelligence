@@ -1,0 +1,231 @@
+groups:
+  - name: application_alerts
+    interval: 30s
+    rules:
+      # High Error Rate Alert
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status_code=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          component: backend
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+          runbook_url: "https://docs.example.com/runbooks/high-error-rate"
+
+      # Slow Response Time Alert
+      - alert: SlowResponseTime
+        expr: |
+          histogram_quantile(0.95,
+            rate(http_request_duration_seconds_bucket[5m])
+          ) > 2.0
+        for: 10m
+        labels:
+          severity: warning
+          component: backend
+        annotations:
+          summary: "Slow API response times"
+          description: "95th percentile response time is {{ $value }}s (threshold: 2s)"
+          runbook_url: "https://docs.example.com/runbooks/slow-response"
+
+      # AWS Service Failure Alert
+      - alert: AWSServiceFailure
+        expr: |
+          rate(aws_api_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          component: aws
+        annotations:
+          summary: "AWS service failures detected"
+          description: "AWS API error rate: {{ $value }} errors/sec"
+          runbook_url: "https://docs.example.com/runbooks/aws-failures"
+
+      # Database Connection Issues
+      - alert: DatabaseConnectionError
+        expr: |
+          database_pool_connections_failed_total > 0
+        for: 2m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Database connection failures"
+          description: "Failed database connections: {{ $value }}"
+          runbook_url: "https://docs.example.com/runbooks/database-connection"
+
+      # High Database Query Time
+      - alert: SlowDatabaseQueries
+        expr: |
+          histogram_quantile(0.95,
+            rate(database_query_duration_seconds_bucket[5m])
+          ) > 1.0
+        for: 10m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Slow database queries detected"
+          description: "95th percentile query time: {{ $value }}s (threshold: 1s)"
+
+      # Document Processing Failures
+      - alert: DocumentProcessingFailures
+        expr: |
+          rate(documents_failed_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: document-processor
+        annotations:
+          summary: "High document processing failure rate"
+          description: "Document failures: {{ $value }} failures/sec"
+
+      # Daily Cost Threshold
+      - alert: HighDailyCost
+        expr: |
+          total_cost_usd_daily > 100
+        for: 1h
+        labels:
+          severity: warning
+          component: cost-tracking
+        annotations:
+          summary: "Daily cost threshold exceeded"
+          description: "Daily cost: ${{ $value }} (threshold: $100)"
+          runbook_url: "https://docs.example.com/runbooks/cost-control"
+
+  - name: infrastructure_alerts
+    interval: 30s
+    rules:
+      # High Memory Usage
+      - alert: HighMemoryUsage
+        expr: |
+          (
+            system_memory_usage_bytes
+            /
+            system_memory_total_bytes
+          ) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: infrastructure
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage: {{ $value | humanizePercentage }} (threshold: 90%)"
+
+      # High CPU Usage
+      - alert: HighCPUUsage
+        expr: |
+          system_cpu_usage_percent > 80
+        for: 10m
+        labels:
+          severity: warning
+          component: infrastructure
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage: {{ $value }}% (threshold: 80%)"
+
+      # Disk Space Low
+      - alert: LowDiskSpace
+        expr: |
+          (
+            node_filesystem_avail_bytes{mountpoint="/"}
+            /
+            node_filesystem_size_bytes{mountpoint="/"}
+          ) < 0.1
+        for: 5m
+        labels:
+          severity: critical
+          component: infrastructure
+        annotations:
+          summary: "Low disk space"
+          description: "Available disk space: {{ $value | humanizePercentage }} (threshold: 10%)"
+
+      # Container Down
+      - alert: ContainerDown
+        expr: |
+          up == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: infrastructure
+        annotations:
+          summary: "Container {{ $labels.job }} is down"
+          description: "Container has been down for more than 2 minutes"
+
+      # Redis Down
+      - alert: RedisDown
+        expr: |
+          up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: redis
+        annotations:
+          summary: "Redis is down"
+          description: "Redis has been unreachable for more than 1 minute"
+
+  - name: cache_alerts
+    interval: 30s
+    rules:
+      # Low Cache Hit Rate
+      - alert: LowCacheHitRate
+        expr: |
+          (
+            cache_hits_total
+            /
+            (cache_hits_total + cache_misses_total)
+          ) < 0.5
+        for: 15m
+        labels:
+          severity: warning
+          component: cache
+        annotations:
+          summary: "Low cache hit rate"
+          description: "Cache hit rate: {{ $value | humanizePercentage }} (threshold: 50%)"
+
+      # High Cache Memory Usage
+      - alert: HighCacheMemoryUsage
+        expr: |
+          cache_memory_usage_bytes > 1073741824  # 1GB
+        for: 10m
+        labels:
+          severity: warning
+          component: cache
+        annotations:
+          summary: "High cache memory usage"
+          description: "Cache memory: {{ $value | humanize }}B (threshold: 1GB)"
+
+  - name: agent_alerts
+    interval: 30s
+    rules:
+      # Agent Execution Failures
+      - alert: AgentExecutionFailures
+        expr: |
+          rate(agent_execution_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: agents
+        annotations:
+          summary: "High agent execution failure rate"
+          description: "Agent failures: {{ $value }} failures/sec for {{ $labels.agent_type }}"
+
+      # Slow Agent Execution
+      - alert: SlowAgentExecution
+        expr: |
+          histogram_quantile(0.95,
+            rate(agent_execution_duration_seconds_bucket[5m])
+          ) > 30
+        for: 10m
+        labels:
+          severity: warning
+          component: agents
+        annotations:
+          summary: "Slow agent execution times"
+          description: "95th percentile agent execution: {{ $value }}s (threshold: 30s) for {{ $labels.agent_type }}"

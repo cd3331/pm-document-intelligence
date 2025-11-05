@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - PM Document Intelligence{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Page header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Welcome back, {{ user.username }}!</p>
+        </div>
+        <div class="flex space-x-3">
+            <a href="/upload" class="btn-primary">
+                <i class="fas fa-upload mr-2"></i> Upload Document
+            </a>
+            <button onclick="window.location.href='/search'" class="btn-secondary">
+                <i class="fas fa-search mr-2"></i> Search
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistics cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+         hx-get="/api/stats"
+         hx-trigger="load, every 30s"
+         hx-swap="innerHTML">
+        <!-- Loading state -->
+        <div class="card">
+            <div class="animate-pulse">
+                <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-4"></div>
+                <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="animate-pulse">
+                <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-4"></div>
+                <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="animate-pulse">
+                <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-4"></div>
+                <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="animate-pulse">
+                <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-4"></div>
+                <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Recent documents -->
+        <div class="lg:col-span-2">
+            <div class="card">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Recent Documents</h2>
+                    <a href="/documents" class="text-sm text-joy-teal hover:text-joy-teal/80">
+                        View all <i class="fas fa-arrow-right ml-1"></i>
+                    </a>
+                </div>
+
+                <div id="recent-documents"
+                     hx-get="/api/documents/list?limit=5"
+                     hx-trigger="load, documentUploaded from:body"
+                     hx-swap="innerHTML">
+                    <!-- Loading state -->
+                    <div class="space-y-4">
+                        <div class="animate-pulse flex items-center space-x-4 p-4 border dark:border-gray-700 rounded-lg">
+                            <div class="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                            <div class="flex-1 space-y-2">
+                                <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+                                <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick actions & Processing status -->
+        <div class="space-y-6">
+            <!-- Quick actions -->
+            <div class="card">
+                <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
+                <div class="space-y-3">
+                    <button onclick="window.location.href='/upload'"
+                            class="w-full flex items-center p-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition">
+                        <i class="fas fa-upload text-joy-teal mr-3 text-lg"></i>
+                        <div class="text-left">
+                            <div class="font-medium text-gray-900 dark:text-white">Upload Document</div>
+                            <div class="text-xs text-gray-600 dark:text-gray-400">PDF, DOCX, TXT, Images</div>
+                        </div>
+                    </button>
+
+                    <button onclick="window.location.href='/search'"
+                            class="w-full flex items-center p-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition">
+                        <i class="fas fa-search text-joy-teal mr-3 text-lg"></i>
+                        <div class="text-left">
+                            <div class="font-medium text-gray-900 dark:text-white">Search Documents</div>
+                            <div class="text-xs text-gray-600 dark:text-gray-400">Semantic & keyword search</div>
+                        </div>
+                    </button>
+
+                    <button hx-get="/api/chat/start"
+                            hx-target="#chat-modal"
+                            hx-swap="innerHTML"
+                            class="w-full flex items-center p-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition">
+                        <i class="fas fa-comments text-joy-teal mr-3 text-lg"></i>
+                        <div class="text-left">
+                            <div class="font-medium text-gray-900 dark:text-white">Ask AI</div>
+                            <div class="text-xs text-gray-600 dark:text-gray-400">Chat with your documents</div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Processing status -->
+            <div class="card">
+                <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Processing</h2>
+                <div id="processing-status"
+                     hx-get="/api/processing/status"
+                     hx-trigger="load, every 5s"
+                     hx-swap="innerHTML">
+                    <p class="text-sm text-gray-600 dark:text-gray-400 text-center py-4">
+                        No documents processing
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Real-time notifications area -->
+    <div id="realtime-notifications" class="hidden">
+        <!-- Notifications will be injected here by PubNub -->
+    </div>
+</div>
+
+<!-- Chat modal placeholder -->
+<div id="chat-modal"></div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Listen for document upload events
+    document.body.addEventListener('documentUploaded', function() {
+        // Refresh recent documents
+        htmx.trigger('#recent-documents', 'load');
+        // Refresh stats
+        htmx.trigger('[hx-get="/api/stats"]', 'load');
+    });
+
+    // Initialize real-time updates
+    if (window.pubnubClient) {
+        window.pubnubClient.subscribe({
+            channels: ['user-{{ user.id }}']
+        });
+    }
+</script>
+{% endblock %}

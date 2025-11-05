@@ -1,0 +1,126 @@
+# ============================================
+# PM Document Intelligence - Terraform Variables
+# ============================================
+# IMPORTANT: Copy this file to terraform.tfvars and fill in actual values
+# DO NOT commit terraform.tfvars to version control!
+#
+# Usage:
+#   1. Copy: cp terraform.tfvars.example terraform.tfvars
+#   2. Fill in actual values in terraform.tfvars
+#   3. Ensure terraform.tfvars is in .gitignore
+# ============================================
+
+# ==========================================
+# General Configuration
+# ==========================================
+project_name = "pm-doc-intel"
+environment  = "production"  # development, staging, or production
+aws_region   = "us-east-1"
+cost_center  = "engineering"
+
+# ==========================================
+# Network Configuration
+# ==========================================
+vpc_cidr = "10.0.0.0/16"
+az_count = 2  # Number of availability zones
+
+# ==========================================
+# ECS Configuration
+# ==========================================
+ecs_task_cpu                 = "4096"  # 4 vCPU
+ecs_task_memory              = "8192"  # 8 GB
+ecs_service_desired_count    = 3
+ecs_autoscaling_min_capacity = 2
+ecs_autoscaling_max_capacity = 10
+
+# ECR Repository URL (replace with your actual ECR repository)
+ecr_repository_url = "123456789012.dkr.ecr.us-east-1.amazonaws.com/pm-document-intelligence"
+image_tag          = "latest"
+
+# ==========================================
+# RDS Configuration
+# ==========================================
+db_engine_version          = "15.4"
+db_instance_class          = "db.r6g.xlarge"  # For production
+db_name                    = "pm_document_intelligence"
+db_username                = "pmadmin"
+db_allocated_storage       = 100  # GB
+db_max_allocated_storage   = 500  # GB
+db_backup_retention_period = 7    # days
+db_backup_window           = "03:00-04:00"
+db_maintenance_window      = "sun:04:00-sun:05:00"
+
+# ==========================================
+# ElastiCache Configuration
+# ==========================================
+redis_engine_version = "7.0"
+redis_node_type      = "cache.r6g.large"  # For production
+
+# ==========================================
+# SSL/TLS Configuration
+# ==========================================
+# SSL certificate ARN from AWS Certificate Manager
+ssl_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+# Domain name for the application
+domain_name = "example.com"  # Will create api.example.com
+
+# ==========================================
+# Logging Configuration
+# ==========================================
+log_retention_days = 30  # CloudWatch log retention
+
+# ==========================================
+# Backup Configuration
+# ==========================================
+backup_retention_days = 30  # S3 backup retention
+
+# ==========================================
+# Feature Flags
+# ==========================================
+enable_container_insights  = true
+enable_deletion_protection = true   # Recommended for production
+enable_multi_az            = true   # Recommended for production
+enable_performance_insights = true
+
+# ==========================================
+# Common Tags
+# ==========================================
+common_tags = {
+  Environment = "production"
+  Project     = "PM Document Intelligence"
+  ManagedBy   = "Terraform"
+  Team        = "Engineering"
+  CostCenter  = "engineering"
+}
+
+# ==========================================
+# Environment-Specific Examples
+# ==========================================
+
+# For Development:
+# environment = "development"
+# ecs_task_cpu = "1024"
+# ecs_task_memory = "2048"
+# ecs_service_desired_count = 1
+# db_instance_class = "db.t3.small"
+# redis_node_type = "cache.t3.micro"
+# enable_multi_az = false
+
+# For Staging:
+# environment = "staging"
+# ecs_task_cpu = "2048"
+# ecs_task_memory = "4096"
+# ecs_service_desired_count = 2
+# db_instance_class = "db.t3.medium"
+# redis_node_type = "cache.t3.small"
+# enable_multi_az = false
+
+# For Production:
+# environment = "production"
+# ecs_task_cpu = "4096"
+# ecs_task_memory = "8192"
+# ecs_service_desired_count = 3
+# db_instance_class = "db.r6g.xlarge"
+# redis_node_type = "cache.r6g.large"
+# enable_multi_az = true

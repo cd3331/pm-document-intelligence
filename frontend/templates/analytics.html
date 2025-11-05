@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Dashboard - PM Document Intelligence</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <!-- Date Range Picker -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <script src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+
+    <!-- jsPDF for export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        .stat-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 250px;
+            }
+        }
+
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .widget {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .metric-positive {
+            color: #10b981;
+        }
+
+        .metric-negative {
+            color: #ef4444;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation Bar -->
+    <nav class="bg-white shadow-sm mb-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <h1 class="text-2xl font-bold text-gray-900">
+                        <i class="fas fa-chart-line mr-2 text-blue-600"></i>
+                        Analytics Dashboard
+                    </h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <!-- Date Range Picker -->
+                    <div>
+                        <input type="text" id="daterange" class="px-4 py-2 border rounded-lg cursor-pointer" />
+                    </div>
+
+                    <!-- Refresh Button -->
+                    <button onclick="refreshDashboard()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                        <i class="fas fa-sync-alt mr-2"></i>Refresh
+                    </button>
+
+                    <!-- Export Menu -->
+                    <div class="relative">
+                        <button onclick="toggleExportMenu()" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition">
+                            <i class="fas fa-download mr-2"></i>Export
+                        </button>
+                        <div id="exportMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg z-10">
+                            <a href="#" onclick="exportToPDF()" class="block px-4 py-2 hover:bg-gray-100"><i class="fas fa-file-pdf mr-2"></i>Export as PDF</a>
+                            <a href="#" onclick="exportToExcel()" class="block px-4 py-2 hover:bg-gray-100"><i class="fas fa-file-excel mr-2"></i>Export as Excel</a>
+                            <a href="#" onclick="exportToCSV()" class="block px-4 py-2 hover:bg-gray-100"><i class="fas fa-file-csv mr-2"></i>Export as CSV</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-6 flex flex-col items-center">
+                <div class="loading-spinner mb-4"></div>
+                <p class="text-gray-700">Loading analytics...</p>
+            </div>
+        </div>
+
+        <!-- Key Metrics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Total Documents -->
+            <div class="stat-card bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Total Documents</p>
+                        <p id="totalDocs" class="text-3xl font-bold text-gray-900">0</p>
+                        <p id="docsChange" class="text-sm mt-2">
+                            <span class="metric-positive"><i class="fas fa-arrow-up"></i> 0%</span> from last period
+                        </p>
+                    </div>
+                    <div class="bg-blue-100 rounded-full p-3">
+                        <i class="fas fa-file-alt text-2xl text-blue-600"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Success Rate -->
+            <div class="stat-card bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Success Rate</p>
+                        <p id="successRate" class="text-3xl font-bold text-gray-900">0%</p>
+                        <p id="rateChange" class="text-sm mt-2">
+                            <span class="metric-positive"><i class="fas fa-arrow-up"></i> 0%</span> from last period
+                        </p>
+                    </div>
+                    <div class="bg-green-100 rounded-full p-3">
+                        <i class="fas fa-check-circle text-2xl text-green-600"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Users -->
+            <div class="stat-card bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Active Users</p>
+                        <p id="activeUsers" class="text-3xl font-bold text-gray-900">0</p>
+                        <p id="usersChange" class="text-sm mt-2">
+                            <span class="metric-positive"><i class="fas fa-arrow-up"></i> 0%</span> from last period
+                        </p>
+                    </div>
+                    <div class="bg-purple-100 rounded-full p-3">
+                        <i class="fas fa-users text-2xl text-purple-600"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Cost -->
+            <div class="stat-card bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Total Cost</p>
+                        <p id="totalCost" class="text-3xl font-bold text-gray-900">$0</p>
+                        <p id="costChange" class="text-sm mt-2">
+                            <span class="metric-negative"><i class="fas fa-arrow-down"></i> 0%</span> from last period
+                        </p>
+                    </div>
+                    <div class="bg-yellow-100 rounded-full p-3">
+                        <i class="fas fa-dollar-sign text-2xl text-yellow-600"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row 1 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- Document Processing Trend -->
+            <div class="widget">
+                <h3 class="text-lg font-semibold mb-4">Document Processing Trend</h3>
+                <div class="chart-container">
+                    <canvas id="documentsChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Documents by Status -->
+            <div class="widget">
+                <h3 class="text-lg font-semibold mb-4">Documents by Status</h3>
+                <div class="chart-container">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row 2 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- Cost Breakdown -->
+            <div class="widget">
+                <h3 class="text-lg font-semibold mb-4">Cost Breakdown by Service</h3>
+                <div class="chart-container">
+                    <canvas id="costChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Processing Performance -->
+            <div class="widget">
+                <h3 class="text-lg font-semibold mb-4">Average Processing Time</h3>
+                <div class="chart-container">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Activity Section (Admin Only) -->
+        <div id="adminSection" class="hidden">
+            <div class="widget mb-6">
+                <h3 class="text-lg font-semibold mb-4">Peak Usage Times</h3>
+                <div class="chart-container">
+                    <canvas id="usageChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Top Users Table -->
+            <div class="widget">
+                <h3 class="text-lg font-semibold mb-4">Top Active Users</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Documents</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Active</th>
+                            </tr>
+                        </thead>
+                        <tbody id="topUsersTable" class="bg-white divide-y divide-gray-200">
+                            <!-- Data will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Insights Section -->
+        <div class="widget mt-6">
+            <h3 class="text-lg font-semibold mb-4">
+                <i class="fas fa-lightbulb mr-2 text-yellow-500"></i>
+                AI-Generated Insights
+            </h3>
+            <div id="insightsContainer" class="space-y-4">
+                <!-- Insights will be populated by JavaScript -->
+                <div class="flex items-start p-4 bg-blue-50 rounded-lg">
+                    <i class="fas fa-info-circle text-blue-600 mt-1 mr-3"></i>
+                    <div>
+                        <p class="font-medium text-gray-900">Loading insights...</p>
+                        <p class="text-sm text-gray-600 mt-1">Please wait while we analyze your data.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics JavaScript -->
+    <script src="/static/js/analytics.js"></script>
+</body>
+</html>

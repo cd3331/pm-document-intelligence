@@ -1,0 +1,44 @@
+# Development Dependencies
+# Install with: pip install -r requirements-dev.txt
+
+# Include base requirements
+-r requirements.txt
+
+# ============================================================================
+# Additional Development Tools
+# ============================================================================
+
+# Debugging
+ipython==8.20.0
+ipdb==0.13.13
+pdbpp==0.10.3
+
+# Code Quality
+bandit==1.7.6  # Security linting
+safety==3.0.1  # Dependency security checker
+radon==6.0.1   # Code complexity analysis
+
+# Pre-commit hooks
+pre-commit==3.6.0
+
+# Testing enhancements
+pytest-xdist==3.5.0  # Parallel test execution
+pytest-html==4.1.1   # HTML test reports
+pytest-benchmark==4.0.0  # Performance benchmarking
+
+# Load testing
+locust==2.20.0
+
+# API testing
+tavern==2.7.0
+
+# Documentation
+sphinx==7.2.6
+sphinx-rtd-theme==2.0.0
+autodoc-pydantic==2.0.1
+
+# Database tools
+alembic==1.13.1  # Database migrations
+
+# Environment management
+python-decouple==3.8

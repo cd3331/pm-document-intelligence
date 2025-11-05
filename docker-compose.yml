@@ -1,0 +1,240 @@
+version: '3.8'
+
+# ============================================
+# PM Document Intelligence - Local Development Stack
+# ============================================
+
+services:
+  # ==========================================
+  # Backend API Application
+  # ==========================================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: pm-backend
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      # Hot reload - mount source code
+      - ./backend:/app:cached
+      # Logs directory
+      - ./logs:/app/logs
+    environment:
+      - APP_ENV=development
+      - DATABASE_URL=postgresql://pmuser:pmpassword@postgres:5432/pm_document_intelligence
+      - REDIS_URL=redis://:redispassword@redis:6379/0
+      - SUPABASE_URL=http://supabase:8000
+      - SUPABASE_KEY=${SUPABASE_KEY:-your-supabase-key}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_DEFAULT_REGION=us-east-1
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-sk-test-key}
+      - PUBNUB_PUBLISH_KEY=${PUBNUB_PUBLISH_KEY:-demo}
+      - PUBNUB_SUBSCRIBE_KEY=${PUBNUB_SUBSCRIBE_KEY:-demo}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-dev-secret-key-change-in-production}
+      - LOG_LEVEL=DEBUG
+      - PROMETHEUS_ENABLED=false
+      - METRICS_ENABLED=false
+      - JAEGER_AGENT_HOST=jaeger
+      - JAEGER_AGENT_PORT=6831
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      localstack:
+        condition: service_started
+    networks:
+      - pm-network
+    restart: unless-stopped
+
+  # ==========================================
+  # PostgreSQL Database with pgvector
+  # ==========================================
+  postgres:
+    image: ankane/pgvector:latest
+    container_name: pm-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=pmuser
+      - POSTGRES_PASSWORD=pmpassword
+      - POSTGRES_DB=pm_document_intelligence
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/scripts/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pmuser -d pm_document_intelligence"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pm-network
+    restart: unless-stopped
+
+  # ==========================================
+  # Redis Cache
+  # ==========================================
+  redis:
+    image: redis:7-alpine
+    container_name: pm-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass redispassword
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - pm-network
+    restart: unless-stopped
+
+  # ==========================================
+  # LocalStack - AWS Services Emulation
+  # ==========================================
+  localstack:
+    image: localstack/localstack:latest
+    container_name: pm-localstack
+    ports:
+      - "4566:4566"
+      - "4510-4559:4510-4559"
+    environment:
+      - SERVICES=s3,textract,comprehend,bedrock-runtime,sqs,sns
+      - DEBUG=1
+      - DATA_DIR=/tmp/localstack/data
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - localstack_data:/tmp/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - pm-network
+    restart: unless-stopped
+
+  # ==========================================
+  # Prometheus - Metrics Collection
+  # ==========================================
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: pm-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infrastructure/monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    networks:
+      - pm-network
+    restart: unless-stopped
+
+  # ==========================================
+  # Grafana - Metrics Visualization
+  # ==========================================
+  grafana:
+    image: grafana/grafana:10.1.0
+    container_name: pm-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./infrastructure/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infrastructure/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+    depends_on:
+      - prometheus
+    networks:
+      - pm-network
+    restart: unless-stopped
+
+  # ==========================================
+  # Jaeger - Distributed Tracing
+  # ==========================================
+  jaeger:
+    image: jaegertracing/all-in-one:1.50
+    container_name: pm-jaeger
+    ports:
+      - "5775:5775/udp"
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "5778:5778"
+      - "16686:16686"
+      - "14250:14250"
+      - "14268:14268"
+      - "14269:14269"
+      - "9411:9411"
+    environment:
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - pm-network
+    restart: unless-stopped
+
+  # ==========================================
+  # Nginx - Reverse Proxy (optional)
+  # ==========================================
+  nginx:
+    image: nginx:alpine
+    container_name: pm-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infrastructure/nginx/proxy_params.conf:/etc/nginx/proxy_params.conf:ro
+      - /tmp/cert.pem:/etc/nginx/ssl/cert.pem:ro
+      - /tmp/key.pem:/etc/nginx/ssl/key.pem:ro
+      - ./frontend/dist:/usr/share/nginx/html:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - backend
+    networks:
+      - pm-network
+    restart: unless-stopped
+
+# ==========================================
+# Networks
+# ==========================================
+networks:
+  pm-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+
+# ==========================================
+# Volumes
+# ==========================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  localstack_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  nginx_logs:
+    driver: local

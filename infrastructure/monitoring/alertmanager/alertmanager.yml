@@ -1,0 +1,160 @@
+global:
+  resolve_timeout: 5m
+  # Slack webhook URL (configure in production)
+  slack_api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+
+# Templates for alert notifications
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Route tree for alert notifications
+route:
+  # Default receiver
+  receiver: 'default'
+
+  # Group alerts by these labels
+  group_by: ['alertname', 'cluster', 'severity']
+
+  # Wait time before sending first notification
+  group_wait: 10s
+
+  # Wait time before sending notification about new alerts
+  group_interval: 10s
+
+  # Wait time before re-sending notification
+  repeat_interval: 3h
+
+  # Child routes
+  routes:
+    # Critical alerts - send to PagerDuty and Slack
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      continue: false
+      group_wait: 10s
+      repeat_interval: 30m
+
+    # Warning alerts - send to Slack only
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      continue: false
+      group_wait: 30s
+      repeat_interval: 3h
+
+    # Cost alerts - send to email
+    - match:
+        component: cost-tracking
+      receiver: 'cost-alerts'
+      continue: false
+
+    # Database alerts - high priority
+    - match:
+        component: database
+      receiver: 'database-alerts'
+      continue: false
+      group_wait: 5s
+      repeat_interval: 1h
+
+# Alert receivers/notification channels
+receivers:
+  # Default receiver (email)
+  - name: 'default'
+    email_configs:
+      - to: 'ops-team@example.com'
+        from: 'alertmanager@example.com'
+        smarthost: 'smtp.example.com:587'
+        auth_username: 'alertmanager@example.com'
+        auth_password: 'password'
+        headers:
+          Subject: '[PM Document Intelligence] {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          Alert: {{ .Labels.alertname }}
+          Severity: {{ .Labels.severity }}
+          Summary: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          {{ end }}
+
+  # Critical alerts - PagerDuty + Slack
+  - name: 'critical-alerts'
+    pagerduty_configs:
+      - service_key: 'YOUR_PAGERDUTY_SERVICE_KEY'
+        description: '{{ .GroupLabels.alertname }}: {{ .CommonAnnotations.summary }}'
+        severity: '{{ .CommonLabels.severity }}'
+    slack_configs:
+      - channel: '#critical-alerts'
+        title: ':rotating_light: Critical Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+          *Severity:* {{ .CommonLabels.severity }}
+          *Component:* {{ .CommonLabels.component }}
+        color: 'danger'
+        send_resolved: true
+
+  # Warning alerts - Slack only
+  - name: 'warning-alerts'
+    slack_configs:
+      - channel: '#alerts'
+        title: ':warning: Warning: {{ .GroupLabels.alertname }}'
+        text: |
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+          *Component:* {{ .CommonLabels.component }}
+        color: 'warning'
+        send_resolved: true
+
+  # Cost alerts - Email to finance team
+  - name: 'cost-alerts'
+    email_configs:
+      - to: 'finance-team@example.com,ops-team@example.com'
+        from: 'alertmanager@example.com'
+        smarthost: 'smtp.example.com:587'
+        auth_username: 'alertmanager@example.com'
+        auth_password: 'password'
+        headers:
+          Subject: '[Cost Alert] {{ .GroupLabels.alertname }}'
+        text: |
+          Cost Alert Triggered
+
+          {{ range .Alerts }}
+          Alert: {{ .Labels.alertname }}
+          Summary: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Runbook: {{ .Annotations.runbook_url }}
+          {{ end }}
+
+  # Database alerts - High priority Slack + Email
+  - name: 'database-alerts'
+    slack_configs:
+      - channel: '#database-alerts'
+        title: ':database: Database Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+          *Runbook:* {{ .CommonAnnotations.runbook_url }}
+        color: 'danger'
+        send_resolved: true
+    email_configs:
+      - to: 'dba-team@example.com,ops-team@example.com'
+        from: 'alertmanager@example.com'
+        smarthost: 'smtp.example.com:587'
+        auth_username: 'alertmanager@example.com'
+        auth_password: 'password'
+
+# Inhibition rules - suppress certain alerts based on other active alerts
+inhibit_rules:
+  # Suppress warning alerts if critical alert is firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'component']
+
+  # Suppress individual service alerts if entire container is down
+  - source_match:
+      alertname: 'ContainerDown'
+    target_match_re:
+      alertname: '.*'
+    equal: ['job']
