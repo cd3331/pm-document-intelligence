@@ -175,7 +175,7 @@ jobs:
         env:
           # Test environment
           TESTING: "true"
-          ENVIRONMENT: test
+          ENVIRONMENT: development
 
           # Database
           DATABASE_URL: postgresql://testuser:testpass@localhost:5432/testdb
