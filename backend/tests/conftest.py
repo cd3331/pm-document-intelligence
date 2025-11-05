@@ -11,7 +11,7 @@ from typing import AsyncGenerator, Generator
 from unittest.mock import Mock, AsyncMock
 
 # Set test environment
-os.environ["ENVIRONMENT"] = "test"
+os.environ["ENVIRONMENT"] = "development"
 os.environ["DEBUG"] = "true"
 
 
@@ -262,7 +262,7 @@ def api_client():
 def setup_test_env(monkeypatch):
     """Set up test environment variables."""
     test_env = {
-        "ENVIRONMENT": "test",
+        "ENVIRONMENT": "development",
         "DEBUG": "true",
         "DATABASE_URL": "postgresql://test:test@localhost:5432/test_db",
         "REDIS_URL": "redis://localhost:6379/1",
