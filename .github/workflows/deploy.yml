@@ -186,6 +186,7 @@ jobs:
           # Security
           JWT_SECRET_KEY: test-secret-key
           SECRET_KEY: test-secret-key
+          API_KEY_SALT: test-api-key-salt
 
           # OpenAI (mock)
           OPENAI_API_KEY: sk-test-mock-key-for-testing
@@ -206,6 +207,7 @@ jobs:
           # PubNub (mock)
           PUBNUB_PUBLISH_KEY: test-pub-key
           PUBNUB_SUBSCRIBE_KEY: test-sub-key
+          PUBNUB_SECRET_KEY: test-secret-key
 
           PYTHONPATH: backend
         run: |
