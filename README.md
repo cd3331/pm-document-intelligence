@@ -4,14 +4,21 @@
 
 **AI-Powered Project Management Document Processing & Intelligence Platform**
 
-[![Build Status](https://img.shields.io/github/workflow/status/username/pm-document-intelligence/CI?style=flat-square)](https://github.com/cd3331/pm-document-intelligence/actions)
-[![Coverage](https://img.shields.io/codecov/c/github/username/pm-document-intelligence?style=flat-square)](https://codecov.io/gh/username/pm-document-intelligence)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
+[![Build Status](https://img.shields.io/github/workflow/status/cd3331/pm-document-intelligence/CI?style=flat-square)](https://github.com/cd3331/pm-document-intelligence/actions)
+[![Coverage](https://img.shields.io/codecov/c/github/cd3331/pm-document-intelligence?style=flat-square)](https://codecov.io/gh/cd3331/pm-document-intelligence)
+[![License: Custom](https://img.shields.io/badge/License-Portfolio%20Demo-blue.svg?style=flat-square)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg?style=flat-square)](https://www.python.org/downloads/)
 
 [Live Demo](https://demo.pmdocintel.com) • [Documentation](docs/) • [API Docs](https://api.pmdocintel.com/docs)
 
 </div>
+
+---
+
+> **📌 Portfolio Demonstration Project**
+> This is an **AI Engineering capstone project** showcasing advanced AI/ML capabilities.
+> The full commercial product is proprietary to **JoyofPM AI Solutions**.
+> For commercial licensing: **cd3331github@gmail.com**
 
 ---
 
@@ -140,9 +147,35 @@ Contributions welcome! See [Contributing Guide](CONTRIBUTING.md).
 
 ---
 
-## 📄 License
+## 📄 License & Usage
 
-MIT License - see [LICENSE](LICENSE) file for details.
+**Portfolio Demonstration - Educational & Evaluation Purposes Only**
+
+This repository is a **portfolio demonstration** of the PM Document Intelligence platform, created as part of an AI Engineering capstone project.
+
+**✅ Permitted Uses:**
+- View and study the code for educational purposes
+- Reference the architecture in your own learning
+- Evaluate as part of portfolio or job application review
+- Link to this repository in academic or professional contexts
+
+**❌ Prohibited Uses:**
+- Use in production or commercial applications
+- Modify or create derivative works for commercial purposes
+- Sell, sublicense, or redistribute this code
+- Remove copyright notices
+
+**🏢 Commercial Product:**
+
+The full commercial product is proprietary and owned by **JoyofPM AI Solutions**.
+
+For commercial licensing inquiries, contact: **cd3331github@gmail.com**
+
+---
+
+© 2025 Chandra Dunn / JoyofPM AI Solutions. All Rights Reserved.
+
+See [LICENSE](LICENSE) file for complete terms.
 
 ---
 
