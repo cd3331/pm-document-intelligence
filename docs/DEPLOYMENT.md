@@ -822,6 +822,44 @@ fields user_id, document_id
 | limit 20
 ```
 
+### Sentry Error Tracking
+
+**Setup Sentry** (Configured in v1.0.1+):
+
+1. Create Sentry project at https://sentry.io
+2. Add DSN to environment variables:
+```bash
+SENTRY_DSN=https://your-key@sentry.io/project-id
+SENTRY_ENABLED=true
+SENTRY_ENVIRONMENT=production
+SENTRY_TRACES_SAMPLE_RATE=0.1  # 10% of transactions
+```
+
+3. Deploy with environment variables:
+```bash
+# Via ECS task definition
+{
+  "name": "SENTRY_DSN",
+  "value": "https://your-key@sentry.io/project-id"
+},
+{
+  "name": "SENTRY_ENABLED",
+  "value": "true"
+}
+```
+
+**Features**:
+- Automatic error capture and stack traces
+- Performance monitoring with distributed tracing
+- Release tracking for deployments
+- User context and breadcrumbs
+- Alert integration with Slack/email
+
+**View Errors**:
+- Dashboard: https://sentry.io/organizations/your-org/issues/
+- Set up alerts for critical errors
+- Configure issue assignment rules
+
 ---
 
 ## Scaling Configuration

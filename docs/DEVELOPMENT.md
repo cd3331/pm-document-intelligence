@@ -61,9 +61,9 @@ AWS_REGION=us-east-1
 PUBNUB_PUBLISH_KEY=pub-c-...
 PUBNUB_SUBSCRIBE_KEY=sub-c-...
 
-# Monitoring (Optional)
-DATADOG_API_KEY=...
-SENTRY_DSN=...
+# Monitoring (Recommended for production)
+SENTRY_DSN=https://your-sentry-dsn@sentry.io/project-id  # Error tracking
+SENTRY_ENABLED=true  # Set to false for local development if not needed
 ```
 
 ---
@@ -73,7 +73,7 @@ SENTRY_DSN=...
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/username/pm-document-intelligence.git
+git clone https://github.com/cd3331/pm-document-intelligence.git
 cd pm-document-intelligence
 ```
 
@@ -1270,9 +1270,16 @@ make migrate    # Apply migrations
 - **PostgreSQL Docs**: https://www.postgresql.org/docs/
 - **FastAPI Docs**: https://fastapi.tiangolo.com/
 - **htmx Docs**: https://htmx.org/docs/
-- **Project Wiki**: https://github.com/username/pm-document-intelligence/wiki
+- **Project Wiki**: https://github.com/cd3331/pm-document-intelligence/wiki
 
 ---
 
-**Last Updated**: January 2024
+**Last Updated**: November 2025
 **Maintainers**: Engineering Team
+
+**Recent Updates (v1.0.1)**:
+- Fixed Prometheus metrics bug (Counter → Gauge for request tracking)
+- Added Sentry error tracking integration
+- Upgraded dependencies (supabase, pydantic, httpx, websockets)
+- Enhanced .gitignore patterns
+- See [CHANGELOG.md](CHANGELOG.md) for full details

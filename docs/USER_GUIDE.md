@@ -971,7 +971,7 @@ Try:
 - 📖 **Knowledge Base**: https://help.pmdocintel.com
 
 **Contact Support**:
-- 📧 **Email**: support@pmdocintel.com
+- 📧 **Email**: cd3331github@gmail.com
 - 💬 **Live Chat**: Available 9am-5pm EST
 - 📞 **Phone**: Enterprise customers only
 - 🎫 **Ticket**: Submit at https://support.pmdocintel.com
@@ -1021,4 +1021,4 @@ We're always improving! Share your feedback:
 **Last Updated**: January 2024
 **Guide Version**: 1.0.0
 
-Need more help? Contact us at support@pmdocintel.com
+Need more help? Contact us at cd3331github@gmail.com

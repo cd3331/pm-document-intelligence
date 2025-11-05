@@ -1274,7 +1274,7 @@ console.log(summary.result.summary.detailed);
 ## Support
 
 - **API Status**: https://status.pmdocintel.com
-- **Support Email**: api-support@pmdocintel.com
+- **Support Email**: api-cd3331github@gmail.com
 - **Documentation**: https://docs.pmdocintel.com
 - **Community**: https://community.pmdocintel.com
 

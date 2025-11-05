@@ -4,7 +4,7 @@
 
 **AI-Powered Project Management Document Processing & Intelligence Platform**
 
-[![Build Status](https://img.shields.io/github/workflow/status/username/pm-document-intelligence/CI?style=flat-square)](https://github.com/username/pm-document-intelligence/actions)
+[![Build Status](https://img.shields.io/github/workflow/status/username/pm-document-intelligence/CI?style=flat-square)](https://github.com/cd3331/pm-document-intelligence/actions)
 [![Coverage](https://img.shields.io/codecov/c/github/username/pm-document-intelligence?style=flat-square)](https://codecov.io/gh/username/pm-document-intelligence)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg?style=flat-square)](https://www.python.org/downloads/)
@@ -64,7 +64,7 @@ See [Architecture Documentation](docs/ARCHITECTURE.md) for detailed diagrams.
 
 ```bash
 # Clone repository
-git clone https://github.com/username/pm-document-intelligence.git
+git clone https://github.com/cd3331/pm-document-intelligence.git
 cd pm-document-intelligence
 
 # Create virtual environment
@@ -107,6 +107,7 @@ open http://localhost:8000
 | [Deployment](docs/DEPLOYMENT.md) | Production deployment |
 | [Multi-Tenancy](docs/MULTI_TENANCY_GUIDE.md) | Enterprise features |
 | [ML Optimization](docs/ML_OPTIMIZATION_GUIDE.md) | AI fine-tuning guide |
+| [Changelog](docs/CHANGELOG.md) | Version history and updates |
 
 ---
 
@@ -145,10 +146,21 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ---
 
-## 📞 Support
+## 👤 Author
 
-- **Issues**: [GitHub Issues](https://github.com/username/pm-document-intelligence/issues)
-- **Email**: support@pmdocintel.com
+**Chandra Dunn**
+
+- **GitHub**: [@cd3331](https://github.com/cd3331)
+- **LinkedIn**: [chandra-dunn](https://linkedin.com/in/chandra-dunn)
+- **Email**: cd3331github@gmail.com
+
+---
+
+## 📞 Contact
+
+For questions, collaboration opportunities, or support:
+- **Email**: cd3331github@gmail.com
+- **GitHub Issues**: [pm-document-intelligence/issues](https://github.com/cd3331/pm-document-intelligence/issues)
 - **Documentation**: [docs/](docs/)
 
 ---

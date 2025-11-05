@@ -696,7 +696,7 @@ docker-compose up -d
 
 ```bash
 # Clone repository
-git clone https://github.com/username/pm-document-intelligence.git
+git clone https://github.com/cd3331/pm-document-intelligence.git
 cd pm-document-intelligence
 
 # Set up environment variables

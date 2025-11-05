@@ -72,13 +72,13 @@ Production-ready AI platform that automates project management document analysis
 
 ### Links
 
-📦 **[GitHub Repository](https://github.com/username/pm-document-intelligence)** - Full source code with documentation
+📦 **[GitHub Repository](https://github.com/cd3331/pm-document-intelligence)** - Full source code with documentation
 
 🚀 **[Live Demo](https://demo.pmdocintel.com)** - Try it yourself (demo credentials provided)
 
 🎥 **[Demo Video](https://youtube.com/watch?v=...)** - 3-minute overview
 
-📊 **[Architecture Docs](https://github.com/username/pm-document-intelligence/tree/main/docs)** - Comprehensive technical documentation
+📊 **[Architecture Docs](https://github.com/cd3331/pm-document-intelligence/tree/main/docs)** - Comprehensive technical documentation
 
 📝 **[Case Study](#case-study)** - Detailed project breakdown (below)
 
@@ -129,7 +129,7 @@ Designed a multi-layered microservices architecture:
 - **Multi-model AI**: Vendor resilience + cost optimization (44% savings)
 - **Row-level multi-tenancy**: Simplified operations while maintaining security
 
-Created [Architecture Decision Records](https://github.com/username/pm-document-intelligence/tree/main/docs/ADR) documenting all major technical decisions with rationale, alternatives considered, and trade-offs.
+Created [Architecture Decision Records](https://github.com/cd3331/pm-document-intelligence/tree/main/docs/ADR) documenting all major technical decisions with rationale, alternatives considered, and trade-offs.
 
 **2. AI Intelligence Layer (Week 3-6)**
 
@@ -472,30 +472,30 @@ Monitoring: CloudWatch + Prometheus metrics
 
 For technical reviewers, explore:
 
-📖 **[Architecture Documentation](https://github.com/username/pm-document-intelligence/blob/main/docs/ARCHITECTURE.md)**
+📖 **[Architecture Documentation](https://github.com/cd3331/pm-document-intelligence/blob/main/docs/ARCHITECTURE.md)**
 - System architecture with Mermaid diagrams
 - Component descriptions
 - Data flow diagrams
 - Technology choices and rationale
 
-📝 **[Architecture Decision Records](https://github.com/username/pm-document-intelligence/tree/main/docs/ADR)**
+📝 **[Architecture Decision Records](https://github.com/cd3331/pm-document-intelligence/tree/main/docs/ADR)**
 - ADR-001: Choice of FastAPI
 - ADR-002: Claude vs GPT-4 for Analysis
 - ADR-003: pgvector vs Dedicated Vector Database
 - ADR-004: Multi-Tenancy Implementation Strategy
 
-⚡ **[Performance Documentation](https://github.com/username/pm-document-intelligence/blob/main/docs/PERFORMANCE.md)**
+⚡ **[Performance Documentation](https://github.com/cd3331/pm-document-intelligence/blob/main/docs/PERFORMANCE.md)**
 - Benchmarks and load testing results
 - Optimization techniques
 - Scaling characteristics
 
-🔒 **[Security Documentation](https://github.com/username/pm-document-intelligence/blob/main/docs/SECURITY.md)**
+🔒 **[Security Documentation](https://github.com/cd3331/pm-document-intelligence/blob/main/docs/SECURITY.md)**
 - Authentication and authorization
 - Multi-tenancy security
 - Compliance (GDPR, SOC 2)
 - Incident response procedures
 
-💰 **[Cost Analysis](https://github.com/username/pm-document-intelligence/blob/main/docs/COST_ANALYSIS.md)**
+💰 **[Cost Analysis](https://github.com/cd3331/pm-document-intelligence/blob/main/docs/COST_ANALYSIS.md)**
 - Detailed cost breakdown
 - Optimization strategies (44% savings achieved)
 - ROI calculations
@@ -506,7 +506,7 @@ For technical reviewers, explore:
 
 🎥 **Demo Video**: [3-minute overview on YouTube](https://youtube.com/watch?v=...)
 
-📊 **Presentation Deck**: [Slides (PDF)](https://github.com/username/pm-document-intelligence/blob/main/docs/presentation/PM-Doc-Intel-Slides.pdf)
+📊 **Presentation Deck**: [Slides (PDF)](https://github.com/cd3331/pm-document-intelligence/blob/main/docs/presentation/PM-Doc-Intel-Slides.pdf)
 
 📝 **Blog Post**: [Building an AI-Powered Document Intelligence Platform](https://yourblog.com/pm-document-intelligence)
 

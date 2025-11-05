@@ -67,7 +67,7 @@ cd pm-document-intelligence
 
 3. **Add upstream remote**:
 ```bash
-git remote add upstream https://github.com/username/pm-document-intelligence.git
+git remote add upstream https://github.com/cd3331/pm-document-intelligence.git
 ```
 
 4. **Verify remotes**:
@@ -75,8 +75,8 @@ git remote add upstream https://github.com/username/pm-document-intelligence.git
 git remote -v
 # origin    https://github.com/YOUR_USERNAME/pm-document-intelligence.git (fetch)
 # origin    https://github.com/YOUR_USERNAME/pm-document-intelligence.git (push)
-# upstream  https://github.com/username/pm-document-intelligence.git (fetch)
-# upstream  https://github.com/username/pm-document-intelligence.git (push)
+# upstream  https://github.com/cd3331/pm-document-intelligence.git (fetch)
+# upstream  https://github.com/cd3331/pm-document-intelligence.git (push)
 ```
 
 ### Set Up Development Environment
@@ -498,7 +498,7 @@ Before merging, PRs must:
 
 ### Before Reporting
 
-1. **Check existing issues**: Search [GitHub Issues](https://github.com/username/pm-document-intelligence/issues)
+1. **Check existing issues**: Search [GitHub Issues](https://github.com/cd3331/pm-document-intelligence/issues)
 2. **Verify the bug**: Reproduce in latest version
 3. **Gather information**: Logs, error messages, steps to reproduce
 
@@ -553,7 +553,7 @@ We will respond within 48 hours.
 
 ### Before Suggesting
 
-1. **Check existing requests**: Search [GitHub Issues](https://github.com/username/pm-document-intelligence/issues?q=is%3Aissue+label%3Aenhancement)
+1. **Check existing requests**: Search [GitHub Issues](https://github.com/cd3331/pm-document-intelligence/issues?q=is%3Aissue+label%3Aenhancement)
 2. **Consider scope**: Does it fit project goals?
 3. **Think about implementation**: How might it work?
 
@@ -599,7 +599,7 @@ Any other information, mockups, or examples
 
 **For development questions**:
 1. Check [Development Guide](docs/DEVELOPMENT.md)
-2. Search [GitHub Discussions](https://github.com/username/pm-document-intelligence/discussions)
+2. Search [GitHub Discussions](https://github.com/cd3331/pm-document-intelligence/discussions)
 3. Ask in Discord #development channel
 4. Create GitHub Discussion
 
@@ -703,7 +703,7 @@ By contributing, you agree that your contributions will be licensed under the MI
 
 If you have questions about contributing, please:
 1. Check this guide and [Development Guide](docs/DEVELOPMENT.md)
-2. Search [GitHub Discussions](https://github.com/username/pm-document-intelligence/discussions)
+2. Search [GitHub Discussions](https://github.com/cd3331/pm-document-intelligence/discussions)
 3. Ask in Discord #development channel
 4. Email: developers@pmdocintel.com
 

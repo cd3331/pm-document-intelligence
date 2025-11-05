@@ -39,7 +39,7 @@ Your Name
 Portfolio Project | 3 Months | 200 Hours
 
 [Your Photo]
-[GitHub Icon] github.com/username/pm-document-intelligence
+[GitHub Icon] github.com/cd3331/pm-document-intelligence
 [Web Icon] demo.pmdocintel.com
 ```
 
@@ -140,7 +140,7 @@ Impact & Metrics
 
 📧  Let's connect: your@email.com
 💻  Try it: demo.pmdocintel.com
-🔗  GitHub: github.com/username/pm-document-intelligence
+🔗  GitHub: github.com/cd3331/pm-document-intelligence
 ```
 
 **Visuals:**
@@ -382,7 +382,7 @@ Key Learnings
 
 📞  Let's Connect
     📧  your@email.com
-    💼  linkedin.com/in/yourname
+    💼  linkedin.com/in/chandra-dunn
     🔗  github.com/username
 ```
 
@@ -867,8 +867,8 @@ PM Document Intelligence
 98% time savings | 91% accuracy | $237K annual savings
 
 📧  Email: your@email.com
-💼  LinkedIn: linkedin.com/in/yourname
-💻  GitHub: github.com/username/pm-document-intelligence
+💼  LinkedIn: linkedin.com/in/chandra-dunn
+💻  GitHub: github.com/cd3331/pm-document-intelligence
 🌐  Demo: demo.pmdocintel.com
 📄  Resume: [QR Code]
 

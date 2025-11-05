@@ -183,11 +183,11 @@ Impact:
 
 Try it yourself:
 🌐 demo.pmdocintel.com
-💻 github.com/username/pm-document-intelligence
+💻 github.com/cd3331/pm-document-intelligence
 
 Built by: Your Name
 📧 your@email.com
-💼 linkedin.com/in/yourname
+💼 linkedin.com/in/chandra-dunn
 ```
 
 **Voiceover:**
@@ -456,11 +456,11 @@ Impact:
 
 Try it:
 🌐 demo.pmdocintel.com
-💻 github.com/username/pm-document-intelligence
+💻 github.com/cd3331/pm-document-intelligence
 
 Connect:
 📧 your@email.com
-💼 linkedin.com/in/yourname
+💼 linkedin.com/in/chandra-dunn
 ```
 
 **Voiceover:**
@@ -1027,9 +1027,9 @@ I built an AI-powered platform that automates document processing for project ma
 
 🔗 Links:
 • Live Demo: https://demo.pmdocintel.com
-• GitHub: https://github.com/username/pm-document-intelligence
+• GitHub: https://github.com/cd3331/pm-document-intelligence
 • Portfolio: https://yourportfolio.com
-• LinkedIn: https://linkedin.com/in/yourname
+• LinkedIn: https://linkedin.com/in/chandra-dunn
 
 ⏱️ Timestamps:
 0:00 - Introduction & Problem
@@ -1075,7 +1075,7 @@ Watch the 3-minute demo in the video above, or try it yourself at demo.pmdocinte
 
 Building production AI systems that deliver real business value is what I love to do. If your team is working on similar challenges, I'd love to connect!
 
-🔗 GitHub: github.com/username/pm-document-intelligence
+🔗 GitHub: github.com/cd3331/pm-document-intelligence
 📧 DMs open for opportunities
 
 #AI #MachineLearning #SoftwareEngineering #CloudComputing #AWS #Python #OpenToWork
