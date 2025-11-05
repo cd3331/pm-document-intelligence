@@ -3,11 +3,13 @@ name: Deploy to AWS ECS
 on:
   push:
     branches:
-      - main
+      - master  # Production branch
+      - main    # Alternative production branch
       - staging
       - develop
   pull_request:
     branches:
+      - master
       - main
   workflow_dispatch:
     inputs:
@@ -44,7 +46,7 @@ jobs:
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
             echo "should_deploy=true" >> $GITHUB_OUTPUT
-          elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
+          elif [ "${{ github.ref }}" == "refs/heads/master" ] || [ "${{ github.ref }}" == "refs/heads/main" ]; then
             echo "environment=production" >> $GITHUB_OUTPUT
             echo "should_deploy=true" >> $GITHUB_OUTPUT
           elif [ "${{ github.ref }}" == "refs/heads/staging" ]; then
