@@ -3,7 +3,18 @@ Organization and Team Models for Multi-Tenancy
 Implements enterprise-grade multi-tenancy with organizations, teams, and plans
 """
 
-from sqlalchemy import Column, String, DateTime, Boolean, Integer, ForeignKey, JSON, Enum as SQLEnum, Index, UniqueConstraint
+from sqlalchemy import (
+    Column,
+    String,
+    DateTime,
+    Boolean,
+    Integer,
+    ForeignKey,
+    JSON,
+    Enum as SQLEnum,
+    Index,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from datetime import datetime, timedelta
@@ -15,6 +26,7 @@ from app.core.database import Base
 
 class PlanTier(str, enum.Enum):
     """Subscription plan tiers"""
+
     FREE = "free"
     PRO = "pro"
     ENTERPRISE = "enterprise"
@@ -22,6 +34,7 @@ class PlanTier(str, enum.Enum):
 
 class OrganizationStatus(str, enum.Enum):
     """Organization status"""
+
     ACTIVE = "active"
     SUSPENDED = "suspended"
     CANCELLED = "cancelled"
@@ -33,6 +46,7 @@ class Organization(Base):
     Organization model for multi-tenancy
     Each organization represents a separate tenant with isolated data
     """
+
     __tablename__ = "organizations"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -41,7 +55,9 @@ class Organization(Base):
 
     # Plan and billing
     plan = Column(SQLEnum(PlanTier), default=PlanTier.FREE, nullable=False, index=True)
-    status = Column(SQLEnum(OrganizationStatus), default=OrganizationStatus.ACTIVE, nullable=False)
+    status = Column(
+        SQLEnum(OrganizationStatus), default=OrganizationStatus.ACTIVE, nullable=False
+    )
     trial_ends_at = Column(DateTime, nullable=True)
     subscription_id = Column(String(255), nullable=True)  # External billing system ID
 
@@ -67,12 +83,20 @@ class Organization(Base):
 
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at = Column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
     created_by = Column(UUID(as_uuid=True), nullable=True)  # User who created org
 
     # Relationships
-    members = relationship("OrganizationMember", back_populates="organization", cascade="all, delete-orphan")
-    teams = relationship("Team", back_populates="organization", cascade="all, delete-orphan")
+    members = relationship(
+        "OrganizationMember",
+        back_populates="organization",
+        cascade="all, delete-orphan",
+    )
+    teams = relationship(
+        "Team", back_populates="organization", cascade="all, delete-orphan"
+    )
     documents = relationship("Document", back_populates="organization")
 
     def __repr__(self):
@@ -113,8 +137,8 @@ class Organization(Base):
                     "sso": False,
                     "audit_logs": False,
                     "api_access": False,
-                    "priority_support": False
-                }
+                    "priority_support": False,
+                },
             },
             PlanTier.PRO: {
                 "documents_per_month": 500,
@@ -130,8 +154,8 @@ class Organization(Base):
                     "sso": False,
                     "audit_logs": True,
                     "api_access": True,
-                    "priority_support": False
-                }
+                    "priority_support": False,
+                },
             },
             PlanTier.ENTERPRISE: {
                 "documents_per_month": -1,  # Unlimited
@@ -149,9 +173,9 @@ class Organization(Base):
                     "api_access": True,
                     "priority_support": True,
                     "dedicated_support": True,
-                    "custom_integrations": True
-                }
-            }
+                    "custom_integrations": True,
+                },
+            },
         }
 
         plan_limits = limits.get(self.plan, limits[PlanTier.FREE])
@@ -183,10 +207,16 @@ class Team(Base):
     """
     Team model for organizing users within an organization
     """
+
     __tablename__ = "teams"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    organization_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     name = Column(String(255), nullable=False)
     description = Column(String(1000), nullable=True)
 
@@ -195,17 +225,21 @@ class Team(Base):
 
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at = Column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
     created_by = Column(UUID(as_uuid=True), nullable=True)
 
     # Relationships
     organization = relationship("Organization", back_populates="teams")
-    members = relationship("TeamMember", back_populates="team", cascade="all, delete-orphan")
+    members = relationship(
+        "TeamMember", back_populates="team", cascade="all, delete-orphan"
+    )
 
     # Unique constraint: team name must be unique within organization
     __table_args__ = (
-        UniqueConstraint('organization_id', 'name', name='uix_org_team_name'),
-        Index('idx_team_org_id', 'organization_id'),
+        UniqueConstraint("organization_id", "name", name="uix_org_team_name"),
+        Index("idx_team_org_id", "organization_id"),
     )
 
     def __repr__(self):
@@ -216,11 +250,22 @@ class OrganizationMember(Base):
     """
     Organization membership - links users to organizations with roles
     """
+
     __tablename__ = "organization_members"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    organization_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    user_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
 
     # Role in organization (references roles.py Role enum)
     role = Column(String(50), nullable=False, default="member")
@@ -238,9 +283,9 @@ class OrganizationMember(Base):
 
     # Unique constraint: user can only be a member once per organization
     __table_args__ = (
-        UniqueConstraint('organization_id', 'user_id', name='uix_org_user'),
-        Index('idx_org_member_user', 'user_id'),
-        Index('idx_org_member_role', 'role'),
+        UniqueConstraint("organization_id", "user_id", name="uix_org_user"),
+        Index("idx_org_member_user", "user_id"),
+        Index("idx_org_member_role", "role"),
     )
 
     def __repr__(self):
@@ -251,11 +296,22 @@ class TeamMember(Base):
     """
     Team membership - links users to teams
     """
+
     __tablename__ = "team_members"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False, index=True)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    team_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("teams.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    user_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
 
     # Role within team (optional, inherits from org role if not set)
     role = Column(String(50), nullable=True)
@@ -270,8 +326,8 @@ class TeamMember(Base):
 
     # Unique constraint: user can only be in team once
     __table_args__ = (
-        UniqueConstraint('team_id', 'user_id', name='uix_team_user'),
-        Index('idx_team_member_user', 'user_id'),
+        UniqueConstraint("team_id", "user_id", name="uix_team_user"),
+        Index("idx_team_member_user", "user_id"),
     )
 
     def __repr__(self):
@@ -282,10 +338,16 @@ class OrganizationInvitation(Base):
     """
     Invitation system for adding users to organizations
     """
+
     __tablename__ = "organization_invitations"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    organization_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     email = Column(String(255), nullable=False, index=True)
     role = Column(String(50), nullable=False)
 
@@ -293,7 +355,9 @@ class OrganizationInvitation(Base):
     token = Column(String(255), unique=True, nullable=False, index=True)
 
     # Status
-    status = Column(String(20), default="pending", nullable=False)  # pending, accepted, expired, cancelled
+    status = Column(
+        String(20), default="pending", nullable=False
+    )  # pending, accepted, expired, cancelled
 
     # Teams to add user to upon acceptance
     teams = Column(JSONB, default=list, nullable=False)  # List of team IDs
@@ -311,8 +375,8 @@ class OrganizationInvitation(Base):
     organization = relationship("Organization")
 
     __table_args__ = (
-        Index('idx_invitation_email_org', 'email', 'organization_id'),
-        Index('idx_invitation_status', 'status'),
+        Index("idx_invitation_email_org", "email", "organization_id"),
+        Index("idx_invitation_status", "status"),
     )
 
     def __repr__(self):
@@ -333,10 +397,16 @@ class OrganizationUsage(Base):
     """
     Track organization usage for quota management
     """
+
     __tablename__ = "organization_usage"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    organization_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
 
     # Time period
     period_start = Column(DateTime, nullable=False, index=True)
@@ -356,14 +426,16 @@ class OrganizationUsage(Base):
 
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at = Column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
 
     # Relationships
     organization = relationship("Organization")
 
     __table_args__ = (
-        UniqueConstraint('organization_id', 'period_start', name='uix_org_period'),
-        Index('idx_usage_org_period', 'organization_id', 'period_start'),
+        UniqueConstraint("organization_id", "period_start", name="uix_org_period"),
+        Index("idx_usage_org_period", "organization_id", "period_start"),
     )
 
     def __repr__(self):
@@ -372,7 +444,7 @@ class OrganizationUsage(Base):
     @property
     def storage_used_gb(self) -> float:
         """Get storage used in GB"""
-        return self.storage_used_bytes / (1024 ** 3)
+        return self.storage_used_bytes / (1024**3)
 
 
 # Update User model to include organization relationships

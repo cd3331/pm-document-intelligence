@@ -13,6 +13,7 @@ from memory_profiler import profile as memory_profile
 
 def profile_function(func: Callable) -> Callable:
     """Decorator to profile function execution"""
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         profiler = cProfile.Profile()
@@ -22,18 +23,20 @@ def profile_function(func: Callable) -> Callable:
 
         profiler.disable()
         s = io.StringIO()
-        stats = pstats.Stats(profiler, stream=s).sort_stats('cumulative')
+        stats = pstats.Stats(profiler, stream=s).sort_stats("cumulative")
         stats.print_stats(20)  # Top 20 functions
 
         print(f"\n=== Profile for {func.__name__} ===")
         print(s.getvalue())
 
         return result
+
     return wrapper
 
 
 def time_function(func: Callable) -> Callable:
     """Decorator to time function execution"""
+
     @wraps(func)
     async def async_wrapper(*args, **kwargs):
         start = time.time()
@@ -51,6 +54,7 @@ def time_function(func: Callable) -> Callable:
         return result
 
     import asyncio
+
     if asyncio.iscoroutinefunction(func):
         return async_wrapper
     return sync_wrapper

@@ -16,11 +16,11 @@ class StructuredLogger:
 
     # PII patterns to mask
     PII_PATTERNS = {
-        'email': r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
-        'ssn': r'\b\d{3}-\d{2}-\d{4}\b',
-        'credit_card': r'\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b',
-        'phone': r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b',
-        'api_key': r'(api[_-]?key|apikey|access[_-]?token)[\s:=]+["\']?([a-zA-Z0-9_-]+)["\']?'
+        "email": r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
+        "ssn": r"\b\d{3}-\d{2}-\d{4}\b",
+        "credit_card": r"\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b",
+        "phone": r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b",
+        "api_key": r'(api[_-]?key|apikey|access[_-]?token)[\s:=]+["\']?([a-zA-Z0-9_-]+)["\']?',
     }
 
     def __init__(self, name: str, level: str = "INFO"):
@@ -29,7 +29,7 @@ class StructuredLogger:
 
         # JSON formatter
         formatter = jsonlogger.JsonFormatter(
-            '%(timestamp)s %(level)s %(name)s %(message)s %(trace_id)s %(span_id)s'
+            "%(timestamp)s %(level)s %(name)s %(message)s %(trace_id)s %(span_id)s"
         )
 
         # Console handler
@@ -40,15 +40,15 @@ class StructuredLogger:
     def _mask_pii(self, message: str) -> str:
         """Mask PII in log messages"""
         for pattern_name, pattern in self.PII_PATTERNS.items():
-            message = re.sub(pattern, f'[{pattern_name.upper()}_REDACTED]', message)
+            message = re.sub(pattern, f"[{pattern_name.upper()}_REDACTED]", message)
         return message
 
     def _add_context(self, extra: Optional[Dict] = None) -> Dict:
         """Add trace context to logs"""
         context = {
-            'timestamp': datetime.utcnow().isoformat(),
-            'trace_id': get_trace_id(),
-            'span_id': get_span_id()
+            "timestamp": datetime.utcnow().isoformat(),
+            "trace_id": get_trace_id(),
+            "span_id": get_span_id(),
         }
         if extra:
             context.update(extra)

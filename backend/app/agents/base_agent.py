@@ -29,6 +29,7 @@ logger = get_logger(__name__)
 # Agent Status
 # ============================================================================
 
+
 class AgentStatus(str, Enum):
     """Agent execution status."""
 
@@ -43,6 +44,7 @@ class AgentStatus(str, Enum):
 # ============================================================================
 # Agent Metrics
 # ============================================================================
+
 
 class AgentMetrics:
     """Track agent performance metrics."""
@@ -128,7 +130,11 @@ class AgentMetrics:
             "average_duration_seconds": self.get_average_duration(),
             "average_cost_usd": self.get_average_cost(),
             "total_cost_usd": self.total_cost,
-            "last_execution": self.last_execution_time.isoformat() if self.last_execution_time else None,
+            "last_execution": (
+                self.last_execution_time.isoformat()
+                if self.last_execution_time
+                else None
+            ),
             "last_error": self.last_error,
             "errors_by_type": self.errors_by_type.copy(),
         }
@@ -148,6 +154,7 @@ class AgentMetrics:
 # ============================================================================
 # Circuit Breaker
 # ============================================================================
+
 
 class AgentCircuitBreaker:
     """Circuit breaker for agent failures."""
@@ -234,7 +241,9 @@ class AgentCircuitBreaker:
         self.state = "half-open"
         self.success_count = 0
 
-        logger.info(f"Circuit breaker HALF-OPEN for agent {self.agent_name}, testing recovery")
+        logger.info(
+            f"Circuit breaker HALF-OPEN for agent {self.agent_name}, testing recovery"
+        )
 
     def _close_circuit(self) -> None:
         """Close circuit breaker (recovered)."""
@@ -267,6 +276,7 @@ class AgentCircuitBreaker:
 # ============================================================================
 # Base Agent
 # ============================================================================
+
 
 class BaseAgent(ABC):
     """Abstract base class for all agents."""
@@ -339,8 +349,7 @@ class BaseAgent(ABC):
         # Override in subclasses for specific validation
         if not isinstance(input_data, dict):
             raise ValidationError(
-                message="Input must be a dictionary",
-                details={"agent": self.name}
+                message="Input must be a dictionary", details={"agent": self.name}
             )
 
     def validate_output(self, output_data: Dict[str, Any]) -> None:
@@ -356,8 +365,7 @@ class BaseAgent(ABC):
         # Override in subclasses for specific validation
         if not isinstance(output_data, dict):
             raise ValidationError(
-                message="Output must be a dictionary",
-                details={"agent": self.name}
+                message="Output must be a dictionary", details={"agent": self.name}
             )
 
     async def execute(
@@ -387,7 +395,7 @@ class BaseAgent(ABC):
                 details={
                     "agent": self.name,
                     "circuit_state": self.circuit_breaker.get_state(),
-                }
+                },
             )
 
         # Check rate limit
@@ -467,7 +475,7 @@ class BaseAgent(ABC):
 
             raise AIServiceError(
                 message=f"Agent {self.name} execution failed",
-                details={"agent": self.name, "error": str(e)}
+                details={"agent": self.name, "error": str(e)},
             )
 
         finally:
@@ -486,8 +494,7 @@ class BaseAgent(ABC):
 
         # Remove timestamps older than 1 minute
         self.request_timestamps = [
-            ts for ts in self.request_timestamps
-            if now - ts < 60
+            ts for ts in self.request_timestamps if now - ts < 60
         ]
 
         # Check if at limit
@@ -523,7 +530,7 @@ class BaseAgent(ABC):
                 "max_requests_per_minute": self.max_requests_per_minute,
                 "failure_threshold": self.circuit_breaker.failure_threshold,
                 "recovery_timeout": self.circuit_breaker.recovery_timeout,
-            }
+            },
         }
 
     def reset_metrics(self) -> None:

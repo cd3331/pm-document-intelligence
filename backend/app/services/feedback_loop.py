@@ -25,7 +25,7 @@ class FeedbackCollector:
         rating: str,  # 'positive', 'negative', 'neutral'
         corrections: Optional[Dict[str, Any]] = None,
         comments: Optional[str] = None,
-        specific_issues: Optional[List[str]] = None
+        specific_issues: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
         Submit feedback on a processing result
@@ -41,9 +41,11 @@ class FeedbackCollector:
         Returns:
             Feedback record
         """
-        result = self.db.query(ProcessingResult).filter(
-            ProcessingResult.id == result_id
-        ).first()
+        result = (
+            self.db.query(ProcessingResult)
+            .filter(ProcessingResult.id == result_id)
+            .first()
+        )
 
         if not result:
             raise ValueError(f"Result {result_id} not found")
@@ -58,7 +60,7 @@ class FeedbackCollector:
             "corrections": corrections,
             "comments": comments,
             "specific_issues": specific_issues or [],
-            "submitted_at": datetime.utcnow().isoformat()
+            "submitted_at": datetime.utcnow().isoformat(),
         }
 
         self.db.commit()
@@ -66,14 +68,14 @@ class FeedbackCollector:
         return {
             "result_id": str(result_id),
             "feedback_recorded": True,
-            "rating": rating
+            "rating": rating,
         }
 
     def get_feedback_summary(
         self,
         document_type: Optional[str] = None,
         task_type: Optional[str] = None,
-        time_window_days: int = 30
+        time_window_days: int = 30,
     ) -> Dict[str, Any]:
         """
         Get summary of feedback
@@ -95,9 +97,7 @@ class FeedbackCollector:
         )
 
         if document_type:
-            query = query.join(Document).filter(
-                Document.document_type == document_type
-            )
+            query = query.join(Document).filter(Document.document_type == document_type)
 
         results = query.all()
 
@@ -129,23 +129,17 @@ class FeedbackCollector:
             "total_results": len(results),
             "total_with_feedback": total_with_feedback,
             "feedback_rate": total_with_feedback / len(results) if results else 0,
-            "ratings": {
-                "positive": positive,
-                "negative": negative,
-                "neutral": neutral
-            },
-            "positive_rate": positive / total_with_feedback if total_with_feedback > 0 else 0,
+            "ratings": {"positive": positive, "negative": negative, "neutral": neutral},
+            "positive_rate": (
+                positive / total_with_feedback if total_with_feedback > 0 else 0
+            ),
             "common_issues": sorted(
-                issue_counts.items(),
-                key=lambda x: x[1],
-                reverse=True
-            )[:10]
+                issue_counts.items(), key=lambda x: x[1], reverse=True
+            )[:10],
         }
 
     def get_corrections_for_training(
-        self,
-        min_confidence: float = 0.8,
-        limit: int = 100
+        self, min_confidence: float = 0.8, limit: int = 100
     ) -> List[Dict[str, Any]]:
         """
         Get high-quality corrections for fine-tuning
@@ -157,9 +151,12 @@ class FeedbackCollector:
         Returns:
             List of correction examples
         """
-        results = self.db.query(ProcessingResult).filter(
-            ProcessingResult.result_data.isnot(None)
-        ).limit(limit * 2).all()  # Get more to filter
+        results = (
+            self.db.query(ProcessingResult)
+            .filter(ProcessingResult.result_data.isnot(None))
+            .limit(limit * 2)
+            .all()
+        )  # Get more to filter
 
         corrections = []
 
@@ -178,14 +175,18 @@ class FeedbackCollector:
 
             doc = result.document
 
-            corrections.append({
-                "id": str(result.id),
-                "original_output": result.result_data,
-                "corrected_output": feedback["corrections"],
-                "input_text": doc.extracted_text[:4000] if doc.extracted_text else "",
-                "document_type": doc.document_type,
-                "confidence": 1.0 if feedback["rating"] == "positive" else 0.5
-            })
+            corrections.append(
+                {
+                    "id": str(result.id),
+                    "original_output": result.result_data,
+                    "corrected_output": feedback["corrections"],
+                    "input_text": (
+                        doc.extracted_text[:4000] if doc.extracted_text else ""
+                    ),
+                    "document_type": doc.document_type,
+                    "confidence": 1.0 if feedback["rating"] == "positive" else 0.5,
+                }
+            )
 
             if len(corrections) >= limit:
                 break
@@ -226,18 +227,17 @@ class FeedbackAnalyzer:
     def __init__(self, db: Session):
         self.db = db
 
-    def analyze_issue_trends(
-        self,
-        time_window_days: int = 90
-    ) -> Dict[str, Any]:
+    def analyze_issue_trends(self, time_window_days: int = 90) -> Dict[str, Any]:
         """Analyze trends in reported issues"""
         from datetime import timedelta
 
         cutoff = datetime.utcnow() - timedelta(days=time_window_days)
 
-        results = self.db.query(ProcessingResult).filter(
-            ProcessingResult.created_at >= cutoff
-        ).all()
+        results = (
+            self.db.query(ProcessingResult)
+            .filter(ProcessingResult.created_at >= cutoff)
+            .all()
+        )
 
         # Group by week
         weekly_issues = {}
@@ -267,21 +267,25 @@ class FeedbackAnalyzer:
         # Check common issues
         for issue, count in summary["common_issues"]:
             if count > 10:  # Significant issue
-                opportunities.append({
-                    "type": "frequent_issue",
-                    "issue": issue,
-                    "occurrences": count,
-                    "priority": "high" if count > 50 else "medium",
-                    "recommendation": f"Focus on improving {issue} detection/extraction"
-                })
+                opportunities.append(
+                    {
+                        "type": "frequent_issue",
+                        "issue": issue,
+                        "occurrences": count,
+                        "priority": "high" if count > 50 else "medium",
+                        "recommendation": f"Focus on improving {issue} detection/extraction",
+                    }
+                )
 
         # Check feedback rate
         if summary["feedback_rate"] < 0.10:
-            opportunities.append({
-                "type": "low_feedback_rate",
-                "current_rate": summary["feedback_rate"],
-                "priority": "medium",
-                "recommendation": "Improve feedback collection UI/prompts"
-            })
+            opportunities.append(
+                {
+                    "type": "low_feedback_rate",
+                    "current_rate": summary["feedback_rate"],
+                    "priority": "medium",
+                    "recommendation": "Improve feedback collection UI/prompts",
+                }
+            )
 
         return opportunities

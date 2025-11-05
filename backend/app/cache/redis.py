@@ -177,7 +177,9 @@ async def get_cache(
             try:
                 return json.loads(value)
             except json.JSONDecodeError:
-                logger.warning(f"Failed to deserialize cache value for key: {cache_key}")
+                logger.warning(
+                    f"Failed to deserialize cache value for key: {cache_key}"
+                )
                 return value
 
         return value
@@ -293,13 +295,17 @@ async def clear_cache_pattern(
         # Delete keys
         if keys:
             deleted = await client.delete(*keys)
-            logger.info(f"Deleted {deleted} cache keys matching pattern: {cache_pattern}")
+            logger.info(
+                f"Deleted {deleted} cache keys matching pattern: {cache_pattern}"
+            )
             return deleted
 
         return 0
 
     except RedisError as e:
-        logger.error(f"Redis error clearing cache pattern {pattern}: {e}", exc_info=True)
+        logger.error(
+            f"Redis error clearing cache pattern {pattern}: {e}", exc_info=True
+        )
         return 0
 
 
@@ -327,7 +333,9 @@ async def exists_cache(
         return await client.exists(cache_key) > 0
 
     except RedisError as e:
-        logger.error(f"Redis error checking cache existence for key {key}: {e}", exc_info=True)
+        logger.error(
+            f"Redis error checking cache existence for key {key}: {e}", exc_info=True
+        )
         return False
 
 
@@ -401,7 +409,9 @@ async def increment_cache(
         return new_value
 
     except RedisError as e:
-        logger.error(f"Redis error incrementing cache for key {key}: {e}", exc_info=True)
+        logger.error(
+            f"Redis error incrementing cache for key {key}: {e}", exc_info=True
+        )
         return None
 
 

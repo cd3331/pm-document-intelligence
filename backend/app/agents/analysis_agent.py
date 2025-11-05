@@ -28,7 +28,7 @@ class AnalysisAgent(BaseAgent):
             config={
                 "max_requests_per_minute": 30,
                 "failure_threshold": 3,
-            }
+            },
         )
 
         self.bedrock = BedrockService()
@@ -42,13 +42,12 @@ class AnalysisAgent(BaseAgent):
             if field not in input_data:
                 raise ValidationError(
                     message=f"Missing required field: {field}",
-                    details={"agent": self.name, "field": field}
+                    details={"agent": self.name, "field": field},
                 )
 
         if not input_data["text"].strip():
             raise ValidationError(
-                message="Text cannot be empty",
-                details={"agent": self.name}
+                message="Text cannot be empty", details={"agent": self.name}
             )
 
     async def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -106,26 +105,26 @@ Provide analysis as JSON with this structure:
         prompts = {
             "project_plan": """You are an expert project management analyst specializing in project plans.
 Focus on: Timeline feasibility, resource allocation, dependency management, risk mitigation, success criteria.""",
-
             "status_report": """You are an expert at analyzing project status reports.
 Focus on: Progress tracking, blocker identification, resource utilization, trend analysis, corrective actions.""",
-
             "meeting_notes": """You are an expert at extracting insights from meeting notes.
 Focus on: Decision analysis, action item clarity, stakeholder alignment, follow-up requirements.""",
-
             "requirements": """You are an expert business analyst reviewing requirements.
 Focus on: Completeness, clarity, feasibility, acceptance criteria, potential gaps.""",
         }
 
-        return prompts.get(document_type, """You are an expert document analyst.
-Provide deep insights, identify patterns, assess risks, and generate actionable recommendations.""")
+        return prompts.get(
+            document_type,
+            """You are an expert document analyst.
+Provide deep insights, identify patterns, assess risks, and generate actionable recommendations.""",
+        )
 
     def _parse_analysis(self, response_text: str) -> Dict[str, Any]:
         """Parse analysis JSON from response."""
         try:
             # Remove markdown code blocks
-            response_text = re.sub(r'```json?\n?', '', response_text)
-            response_text = re.sub(r'```\n?$', '', response_text).strip()
+            response_text = re.sub(r"```json?\n?", "", response_text)
+            response_text = re.sub(r"```\n?$", "", response_text).strip()
 
             analysis = json.loads(response_text)
             return analysis

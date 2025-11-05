@@ -30,19 +30,19 @@ class AnalyticsService:
         start_date: datetime,
         end_date: datetime,
         document_type: Optional[str],
-        current_user: User
+        current_user: User,
     ) -> float:
         """Calculate average processing time for documents"""
         try:
             query = self.db.query(
                 func.avg(
-                    func.extract('epoch', Document.processed_at) -
-                    func.extract('epoch', Document.created_at)
-                ).label('avg_time')
+                    func.extract("epoch", Document.processed_at)
+                    - func.extract("epoch", Document.created_at)
+                ).label("avg_time")
             ).filter(
-                Document.status == 'completed',
+                Document.status == "completed",
                 Document.processed_at.isnot(None),
-                Document.created_at.between(start_date, end_date)
+                Document.created_at.between(start_date, end_date),
             )
 
             if not current_user.is_superuser:
@@ -63,17 +63,15 @@ class AnalyticsService:
         start_date: datetime,
         end_date: datetime,
         document_type: Optional[str],
-        current_user: User
+        current_user: User,
     ) -> List[Dict]:
         """Get time series data for document creation"""
         try:
             query = self.db.query(
-                func.date(Document.created_at).label('date'),
-                func.count(Document.id).label('count'),
-                Document.status
-            ).filter(
-                Document.created_at.between(start_date, end_date)
-            )
+                func.date(Document.created_at).label("date"),
+                func.count(Document.id).label("count"),
+                Document.status,
+            ).filter(Document.created_at.between(start_date, end_date))
 
             if not current_user.is_superuser:
                 query = query.filter(Document.user_id == current_user.id)
@@ -81,19 +79,22 @@ class AnalyticsService:
             if document_type:
                 query = query.filter(Document.document_type == document_type)
 
-            results = query.group_by(
-                func.date(Document.created_at),
-                Document.status
-            ).order_by('date').all()
+            results = (
+                query.group_by(func.date(Document.created_at), Document.status)
+                .order_by("date")
+                .all()
+            )
 
             # Organize by date
-            time_series_data = defaultdict(lambda: {'date': None, 'total': 0, 'by_status': {}})
+            time_series_data = defaultdict(
+                lambda: {"date": None, "total": 0, "by_status": {}}
+            )
 
             for date, count, status in results:
                 date_str = date.isoformat()
-                time_series_data[date_str]['date'] = date_str
-                time_series_data[date_str]['total'] += count
-                time_series_data[date_str]['by_status'][status] = count
+                time_series_data[date_str]["date"] = date_str
+                time_series_data[date_str]["total"] += count
+                time_series_data[date_str]["by_status"][status] = count
 
             return list(time_series_data.values())
 
@@ -102,10 +103,7 @@ class AnalyticsService:
             return []
 
     async def generate_document_insights(
-        self,
-        start_date: datetime,
-        end_date: datetime,
-        current_user: User
+        self, start_date: datetime, end_date: datetime, current_user: User
     ) -> Dict[str, Any]:
         """Generate AI-powered insights about documents"""
         try:
@@ -113,11 +111,13 @@ class AnalyticsService:
             if current_user.is_superuser:
                 base_query = self.db.query(Document)
             else:
-                base_query = self.db.query(Document).filter(Document.user_id == current_user.id)
+                base_query = self.db.query(Document).filter(
+                    Document.user_id == current_user.id
+                )
 
             documents = base_query.filter(
                 Document.created_at.between(start_date, end_date),
-                Document.status == 'completed'
+                Document.status == "completed",
             ).all()
 
             if not documents:
@@ -126,19 +126,21 @@ class AnalyticsService:
                     "trending_topics": [],
                     "sentiment_trends": {},
                     "risk_indicators": [],
-                    "action_item_completion_rate": 0
+                    "action_item_completion_rate": 0,
                 }
 
             # Extract common themes from entities
             entity_counts = defaultdict(int)
             for doc in documents:
-                if doc.metadata and 'entities' in doc.metadata:
-                    for entity in doc.metadata['entities']:
-                        entity_counts[entity.get('text', '')] += 1
+                if doc.metadata and "entities" in doc.metadata:
+                    for entity in doc.metadata["entities"]:
+                        entity_counts[entity.get("text", "")] += 1
 
             common_themes = [
                 {"theme": theme, "count": count}
-                for theme, count in sorted(entity_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+                for theme, count in sorted(
+                    entity_counts.items(), key=lambda x: x[1], reverse=True
+                )[:10]
             ]
 
             # Trending topics (themes that increased recently)
@@ -159,7 +161,7 @@ class AnalyticsService:
                 "sentiment_trends": sentiment_trends,
                 "risk_indicators": risk_indicators,
                 "action_item_completion_rate": completion_rate,
-                "total_documents_analyzed": len(documents)
+                "total_documents_analyzed": len(documents),
             }
 
         except Exception as e:
@@ -181,45 +183,53 @@ class AnalyticsService:
         recent_topics = defaultdict(int)
 
         for doc in older_docs:
-            if doc.metadata and 'entities' in doc.metadata:
-                for entity in doc.metadata['entities']:
-                    older_topics[entity.get('text', '')] += 1
+            if doc.metadata and "entities" in doc.metadata:
+                for entity in doc.metadata["entities"]:
+                    older_topics[entity.get("text", "")] += 1
 
         for doc in recent_docs:
-            if doc.metadata and 'entities' in doc.metadata:
-                for entity in doc.metadata['entities']:
-                    recent_topics[entity.get('text', '')] += 1
+            if doc.metadata and "entities" in doc.metadata:
+                for entity in doc.metadata["entities"]:
+                    recent_topics[entity.get("text", "")] += 1
 
         # Find topics that increased
         trending = []
         for topic, recent_count in recent_topics.items():
             older_count = older_topics.get(topic, 0)
             if recent_count > older_count:
-                trending.append({
-                    "topic": topic,
-                    "growth": recent_count - older_count,
-                    "recent_mentions": recent_count
-                })
+                trending.append(
+                    {
+                        "topic": topic,
+                        "growth": recent_count - older_count,
+                        "recent_mentions": recent_count,
+                    }
+                )
 
-        return sorted(trending, key=lambda x: x['growth'], reverse=True)[:5]
+        return sorted(trending, key=lambda x: x["growth"], reverse=True)[:5]
 
     async def _analyze_sentiment_trends(self, documents: List[Document]) -> Dict:
         """Analyze sentiment trends across documents"""
         sentiment_counts = {"positive": 0, "neutral": 0, "negative": 0}
 
         for doc in documents:
-            if doc.metadata and 'sentiment' in doc.metadata:
-                sentiment = doc.metadata['sentiment'].get('sentiment', 'neutral')
+            if doc.metadata and "sentiment" in doc.metadata:
+                sentiment = doc.metadata["sentiment"].get("sentiment", "neutral")
                 if sentiment in sentiment_counts:
                     sentiment_counts[sentiment] += 1
 
         total = sum(sentiment_counts.values())
         if total > 0:
             return {
-                "positive_percentage": round(sentiment_counts["positive"] / total * 100, 2),
-                "neutral_percentage": round(sentiment_counts["neutral"] / total * 100, 2),
-                "negative_percentage": round(sentiment_counts["negative"] / total * 100, 2),
-                "overall_sentiment": max(sentiment_counts, key=sentiment_counts.get)
+                "positive_percentage": round(
+                    sentiment_counts["positive"] / total * 100, 2
+                ),
+                "neutral_percentage": round(
+                    sentiment_counts["neutral"] / total * 100, 2
+                ),
+                "negative_percentage": round(
+                    sentiment_counts["negative"] / total * 100, 2
+                ),
+                "overall_sentiment": max(sentiment_counts, key=sentiment_counts.get),
             }
 
         return {}
@@ -229,7 +239,7 @@ class AnalyticsService:
         risk_keywords = {
             "high": ["critical", "urgent", "emergency", "risk", "danger", "failure"],
             "medium": ["concern", "issue", "problem", "delay", "warning"],
-            "low": ["note", "attention", "review", "check"]
+            "low": ["note", "attention", "review", "check"],
         }
 
         risks = []
@@ -241,26 +251,30 @@ class AnalyticsService:
                 for severity, keywords in risk_keywords.items():
                     for keyword in keywords:
                         if keyword in text_lower:
-                            risks.append({
-                                "document_id": str(doc.id),
-                                "document_name": doc.filename,
-                                "keyword": keyword,
-                                "severity": severity,
-                                "timestamp": doc.created_at.isoformat()
-                            })
+                            risks.append(
+                                {
+                                    "document_id": str(doc.id),
+                                    "document_name": doc.filename,
+                                    "keyword": keyword,
+                                    "severity": severity,
+                                    "timestamp": doc.created_at.isoformat(),
+                                }
+                            )
 
         # Group by severity and count
         risk_summary = defaultdict(int)
         for risk in risks:
-            risk_summary[risk['severity']] += 1
+            risk_summary[risk["severity"]] += 1
 
         return {
             "summary": dict(risk_summary),
             "total_risks": len(risks),
-            "recent_high_risks": [r for r in risks if r['severity'] == 'high'][:5]
+            "recent_high_risks": [r for r in risks if r["severity"] == "high"][:5],
         }
 
-    async def _calculate_action_item_completion(self, documents: List[Document]) -> float:
+    async def _calculate_action_item_completion(
+        self, documents: List[Document]
+    ) -> float:
         """Calculate action item completion rate"""
         # This would query the action_items table
         # For now, return mock data
@@ -281,8 +295,8 @@ class AnalyticsService:
             "top_queries": [
                 {"query": "project requirements", "count": 45},
                 {"query": "budget analysis", "count": 38},
-                {"query": "meeting notes", "count": 32}
-            ]
+                {"query": "meeting notes", "count": 32},
+            ],
         }
 
     def get_feature_usage(self, start_date: datetime, end_date: datetime) -> Dict:
@@ -294,146 +308,182 @@ class AnalyticsService:
             "ai_summary": 432,
             "action_extraction": 387,
             "q_and_a": 654,
-            "export": 123
+            "export": 123,
         }
 
-    def get_peak_usage_times(self, start_date: datetime, end_date: datetime) -> List[Dict]:
+    def get_peak_usage_times(
+        self, start_date: datetime, end_date: datetime
+    ) -> List[Dict]:
         """Identify peak usage times by hour"""
         try:
             # Query documents by hour of day
-            hourly_counts = self.db.query(
-                extract('hour', Document.created_at).label('hour'),
-                func.count(Document.id).label('count')
-            ).filter(
-                Document.created_at.between(start_date, end_date)
-            ).group_by('hour').order_by('hour').all()
+            hourly_counts = (
+                self.db.query(
+                    extract("hour", Document.created_at).label("hour"),
+                    func.count(Document.id).label("count"),
+                )
+                .filter(Document.created_at.between(start_date, end_date))
+                .group_by("hour")
+                .order_by("hour")
+                .all()
+            )
 
             return [
-                {"hour": int(hour), "count": count}
-                for hour, count in hourly_counts
+                {"hour": int(hour), "count": count} for hour, count in hourly_counts
             ]
 
         except Exception as e:
             app_logger.error(f"Error getting peak usage times: {str(e)}")
             return []
 
-    def get_common_workflows(self, start_date: datetime, end_date: datetime) -> List[Dict]:
+    def get_common_workflows(
+        self, start_date: datetime, end_date: datetime
+    ) -> List[Dict]:
         """Identify common user workflows"""
         # This would analyze audit log sequences
         return [
             {
                 "workflow": "Upload → Summary → Export",
                 "frequency": 234,
-                "avg_duration_minutes": 15
+                "avg_duration_minutes": 15,
             },
             {
                 "workflow": "Search → View → Q&A",
                 "frequency": 198,
-                "avg_duration_minutes": 8
+                "avg_duration_minutes": 8,
             },
             {
                 "workflow": "Upload → Action Extraction → Assign",
                 "frequency": 156,
-                "avg_duration_minutes": 12
-            }
+                "avg_duration_minutes": 12,
+            },
         ]
 
-    def get_feature_adoption_rates(self, start_date: datetime, end_date: datetime) -> Dict:
+    def get_feature_adoption_rates(
+        self, start_date: datetime, end_date: datetime
+    ) -> Dict:
         """Calculate feature adoption rates"""
         total_users = self.db.query(func.count(User.id)).scalar()
 
         # Users who uploaded documents
-        uploaders = self.db.query(func.count(func.distinct(Document.user_id))).filter(
-            Document.created_at.between(start_date, end_date)
-        ).scalar()
+        uploaders = (
+            self.db.query(func.count(func.distinct(Document.user_id)))
+            .filter(Document.created_at.between(start_date, end_date))
+            .scalar()
+        )
 
         return {
             "document_upload": {
                 "users": uploaders,
-                "adoption_rate": round((uploaders / total_users * 100) if total_users > 0 else 0, 2)
+                "adoption_rate": round(
+                    (uploaders / total_users * 100) if total_users > 0 else 0, 2
+                ),
             },
             "semantic_search": {
                 "users": int(total_users * 0.65),  # Mock data
-                "adoption_rate": 65.0
+                "adoption_rate": 65.0,
             },
             "ai_agents": {
                 "users": int(total_users * 0.48),  # Mock data
-                "adoption_rate": 48.0
-            }
+                "adoption_rate": 48.0,
+            },
         }
 
     # ==========================================
     # Performance Analytics
     # ==========================================
 
-    def get_processing_performance(self, start_date: datetime, end_date: datetime) -> Dict:
+    def get_processing_performance(
+        self, start_date: datetime, end_date: datetime
+    ) -> Dict:
         """Get document processing performance metrics"""
         try:
             # Processing times by document type
-            processing_times = self.db.query(
-                Document.document_type,
-                func.avg(
-                    func.extract('epoch', Document.processed_at) -
-                    func.extract('epoch', Document.created_at)
-                ).label('avg_time'),
-                func.count(Document.id).label('count')
-            ).filter(
-                Document.status == 'completed',
-                Document.processed_at.isnot(None),
-                Document.created_at.between(start_date, end_date)
-            ).group_by(Document.document_type).all()
+            processing_times = (
+                self.db.query(
+                    Document.document_type,
+                    func.avg(
+                        func.extract("epoch", Document.processed_at)
+                        - func.extract("epoch", Document.created_at)
+                    ).label("avg_time"),
+                    func.count(Document.id).label("count"),
+                )
+                .filter(
+                    Document.status == "completed",
+                    Document.processed_at.isnot(None),
+                    Document.created_at.between(start_date, end_date),
+                )
+                .group_by(Document.document_type)
+                .all()
+            )
 
             by_type = [
                 {
                     "document_type": doc_type,
                     "avg_processing_time_seconds": round(float(avg_time), 2),
-                    "document_count": count
+                    "document_count": count,
                 }
                 for doc_type, avg_time, count in processing_times
             ]
 
             # Success/failure rates
-            total_docs = self.db.query(func.count(Document.id)).filter(
-                Document.created_at.between(start_date, end_date)
-            ).scalar()
+            total_docs = (
+                self.db.query(func.count(Document.id))
+                .filter(Document.created_at.between(start_date, end_date))
+                .scalar()
+            )
 
-            completed_docs = self.db.query(func.count(Document.id)).filter(
-                Document.created_at.between(start_date, end_date),
-                Document.status == 'completed'
-            ).scalar()
+            completed_docs = (
+                self.db.query(func.count(Document.id))
+                .filter(
+                    Document.created_at.between(start_date, end_date),
+                    Document.status == "completed",
+                )
+                .scalar()
+            )
 
-            failed_docs = self.db.query(func.count(Document.id)).filter(
-                Document.created_at.between(start_date, end_date),
-                Document.status == 'failed'
-            ).scalar()
+            failed_docs = (
+                self.db.query(func.count(Document.id))
+                .filter(
+                    Document.created_at.between(start_date, end_date),
+                    Document.status == "failed",
+                )
+                .scalar()
+            )
 
             # Bottleneck identification
             bottlenecks = []
             for doc_type, avg_time, count in processing_times:
                 if avg_time and avg_time > 60:  # More than 60 seconds
-                    bottlenecks.append({
-                        "stage": f"{doc_type} processing",
-                        "avg_time_seconds": round(float(avg_time), 2),
-                        "severity": "high" if avg_time > 120 else "medium"
-                    })
+                    bottlenecks.append(
+                        {
+                            "stage": f"{doc_type} processing",
+                            "avg_time_seconds": round(float(avg_time), 2),
+                            "severity": "high" if avg_time > 120 else "medium",
+                        }
+                    )
 
             return {
                 "overall_metrics": {
                     "total_processed": total_docs,
                     "completed": completed_docs,
                     "failed": failed_docs,
-                    "success_rate": round((completed_docs / total_docs * 100) if total_docs > 0 else 0, 2)
+                    "success_rate": round(
+                        (completed_docs / total_docs * 100) if total_docs > 0 else 0, 2
+                    ),
                 },
                 "by_document_type": by_type,
                 "bottlenecks": bottlenecks,
-                "agent_performance": self._get_agent_performance(start_date, end_date)
+                "agent_performance": self._get_agent_performance(start_date, end_date),
             }
 
         except Exception as e:
             app_logger.error(f"Error getting processing performance: {str(e)}")
             return {}
 
-    def _get_agent_performance(self, start_date: datetime, end_date: datetime) -> List[Dict]:
+    def _get_agent_performance(
+        self, start_date: datetime, end_date: datetime
+    ) -> List[Dict]:
         """Compare performance of different AI agents"""
         # This would query agent_executions table
         return [
@@ -441,20 +491,20 @@ class AnalyticsService:
                 "agent": "summary",
                 "avg_execution_time_seconds": 3.45,
                 "success_rate": 98.2,
-                "total_executions": 543
+                "total_executions": 543,
             },
             {
                 "agent": "action_extractor",
                 "avg_execution_time_seconds": 4.12,
                 "success_rate": 95.7,
-                "total_executions": 432
+                "total_executions": 432,
             },
             {
                 "agent": "qa",
                 "avg_execution_time_seconds": 2.87,
                 "success_rate": 97.5,
-                "total_executions": 876
-            }
+                "total_executions": 876,
+            },
         ]
 
     # ==========================================
@@ -462,10 +512,7 @@ class AnalyticsService:
     # ==========================================
 
     def get_documents_for_export(
-        self,
-        start_date: datetime,
-        end_date: datetime,
-        current_user: User
+        self, start_date: datetime, end_date: datetime, current_user: User
     ) -> List[Dict]:
         """Get document data for CSV export"""
         try:
@@ -485,8 +532,10 @@ class AnalyticsService:
                     "document_type": doc.document_type,
                     "status": doc.status,
                     "created_at": doc.created_at.isoformat(),
-                    "processed_at": doc.processed_at.isoformat() if doc.processed_at else None,
-                    "file_size": doc.file_size
+                    "processed_at": (
+                        doc.processed_at.isoformat() if doc.processed_at else None
+                    ),
+                    "file_size": doc.file_size,
                 }
                 for doc in documents
             ]
@@ -495,18 +544,24 @@ class AnalyticsService:
             app_logger.error(f"Error getting documents for export: {str(e)}")
             return []
 
-    def get_users_for_export(self, start_date: datetime, end_date: datetime) -> List[Dict]:
+    def get_users_for_export(
+        self, start_date: datetime, end_date: datetime
+    ) -> List[Dict]:
         """Get user data for CSV export"""
         try:
-            users = self.db.query(
-                User.id,
-                User.username,
-                User.email,
-                User.created_at,
-                func.count(Document.id).label('document_count')
-            ).outerjoin(Document, Document.user_id == User.id).filter(
-                User.created_at.between(start_date, end_date)
-            ).group_by(User.id, User.username, User.email, User.created_at).all()
+            users = (
+                self.db.query(
+                    User.id,
+                    User.username,
+                    User.email,
+                    User.created_at,
+                    func.count(Document.id).label("document_count"),
+                )
+                .outerjoin(Document, Document.user_id == User.id)
+                .filter(User.created_at.between(start_date, end_date))
+                .group_by(User.id, User.username, User.email, User.created_at)
+                .all()
+            )
 
             return [
                 {
@@ -514,7 +569,7 @@ class AnalyticsService:
                     "username": username,
                     "email": email,
                     "joined_at": created_at.isoformat(),
-                    "document_count": doc_count
+                    "document_count": doc_count,
                 }
                 for user_id, username, email, created_at, doc_count in users
             ]
@@ -523,7 +578,9 @@ class AnalyticsService:
             app_logger.error(f"Error getting users for export: {str(e)}")
             return []
 
-    def get_costs_for_export(self, start_date: datetime, end_date: datetime) -> List[Dict]:
+    def get_costs_for_export(
+        self, start_date: datetime, end_date: datetime
+    ) -> List[Dict]:
         """Get cost data for CSV export"""
         try:
             from app.monitoring.cost_tracking import cost_tracker
@@ -535,7 +592,7 @@ class AnalyticsService:
                     "operation": entry.operation,
                     "units": entry.units,
                     "unit_cost": entry.unit_cost,
-                    "total_cost": entry.total_cost
+                    "total_cost": entry.total_cost,
                 }
                 for entry in cost_tracker.cost_history
                 if start_date <= entry.timestamp <= end_date

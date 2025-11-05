@@ -16,12 +16,15 @@ class AuditLog(Base):
     Comprehensive audit log for compliance and security
     Tracks all significant actions in the system
     """
+
     __tablename__ = "audit_logs"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
     # Actor information
-    user_id = Column(UUID(as_uuid=True), index=True, nullable=True)  # Null for system actions
+    user_id = Column(
+        UUID(as_uuid=True), index=True, nullable=True
+    )  # Null for system actions
     username = Column(String(255))  # Denormalized for historical record
     user_email = Column(String(255))  # Denormalized for historical record
 
@@ -29,11 +32,17 @@ class AuditLog(Base):
     organization_id = Column(UUID(as_uuid=True), index=True, nullable=True)
 
     # Action details
-    action = Column(String(100), nullable=False, index=True)  # e.g., "document_created", "user_role_updated"
-    category = Column(String(50), nullable=False, index=True)  # e.g., "document", "user", "org", "auth"
+    action = Column(
+        String(100), nullable=False, index=True
+    )  # e.g., "document_created", "user_role_updated"
+    category = Column(
+        String(50), nullable=False, index=True
+    )  # e.g., "document", "user", "org", "auth"
 
     # Resource information
-    resource_type = Column(String(50), nullable=True, index=True)  # e.g., "document", "user", "team"
+    resource_type = Column(
+        String(50), nullable=True, index=True
+    )  # e.g., "document", "user", "team"
     resource_id = Column(UUID(as_uuid=True), nullable=True, index=True)
 
     # Request metadata
@@ -57,15 +66,17 @@ class AuditLog(Base):
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 
     # Data classification
-    sensitivity_level = Column(String(20), default="normal")  # normal, sensitive, confidential
+    sensitivity_level = Column(
+        String(20), default="normal"
+    )  # normal, sensitive, confidential
 
     # Composite indexes for common queries
     __table_args__ = (
-        Index('idx_audit_user_timestamp', 'user_id', 'timestamp'),
-        Index('idx_audit_org_timestamp', 'organization_id', 'timestamp'),
-        Index('idx_audit_resource', 'resource_type', 'resource_id'),
-        Index('idx_audit_action_timestamp', 'action', 'timestamp'),
-        Index('idx_audit_category_timestamp', 'category', 'timestamp'),
+        Index("idx_audit_user_timestamp", "user_id", "timestamp"),
+        Index("idx_audit_org_timestamp", "organization_id", "timestamp"),
+        Index("idx_audit_resource", "resource_type", "resource_id"),
+        Index("idx_audit_action_timestamp", "action", "timestamp"),
+        Index("idx_audit_category_timestamp", "category", "timestamp"),
     )
 
     def __repr__(self):
@@ -77,6 +88,7 @@ class DataAccessLog(Base):
     Specialized log for data access tracking
     Helps with compliance (GDPR, HIPAA, etc.)
     """
+
     __tablename__ = "data_access_logs"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -86,9 +98,13 @@ class DataAccessLog(Base):
     organization_id = Column(UUID(as_uuid=True), nullable=False, index=True)
 
     # Data accessed
-    data_type = Column(String(50), nullable=False, index=True)  # document, user_profile, etc.
+    data_type = Column(
+        String(50), nullable=False, index=True
+    )  # document, user_profile, etc.
     data_id = Column(UUID(as_uuid=True), nullable=False, index=True)
-    data_classification = Column(String(20))  # public, internal, confidential, restricted
+    data_classification = Column(
+        String(20)
+    )  # public, internal, confidential, restricted
 
     # Access details
     access_type = Column(String(20), nullable=False)  # read, download, export, print
@@ -111,8 +127,8 @@ class DataAccessLog(Base):
     session_id = Column(String(255), index=True)
 
     __table_args__ = (
-        Index('idx_data_access_user_time', 'user_id', 'timestamp'),
-        Index('idx_data_access_data', 'data_type', 'data_id'),
+        Index("idx_data_access_user_time", "user_id", "timestamp"),
+        Index("idx_data_access_data", "data_type", "data_id"),
     )
 
     def __repr__(self):
@@ -124,6 +140,7 @@ class ComplianceEvent(Base):
     Special events for compliance reporting
     Tracks events that may need to be reported to authorities
     """
+
     __tablename__ = "compliance_events"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -148,7 +165,9 @@ class ComplianceEvent(Base):
     affected_data = Column(JSONB, default=dict)  # Description of affected data
 
     # Status
-    status = Column(String(20), default="open")  # open, investigating, resolved, reported
+    status = Column(
+        String(20), default="open"
+    )  # open, investigating, resolved, reported
     resolution = Column(Text, nullable=True)
 
     # Reporting
@@ -166,8 +185,8 @@ class ComplianceEvent(Base):
     investigation_notes = Column(JSONB, default=list)
 
     __table_args__ = (
-        Index('idx_compliance_org_severity', 'organization_id', 'severity'),
-        Index('idx_compliance_status', 'status'),
+        Index("idx_compliance_org_severity", "organization_id", "severity"),
+        Index("idx_compliance_status", "status"),
     )
 
     def __repr__(self):
@@ -178,12 +197,17 @@ class AuditLogRetention(Base):
     """
     Tracks audit log retention policies and cleanup jobs
     """
+
     __tablename__ = "audit_log_retention"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
-    organization_id = Column(UUID(as_uuid=True), nullable=True, index=True)  # Null = system-wide
-    log_type = Column(String(50), nullable=False)  # audit_logs, data_access_logs, compliance_events
+    organization_id = Column(
+        UUID(as_uuid=True), nullable=True, index=True
+    )  # Null = system-wide
+    log_type = Column(
+        String(50), nullable=False
+    )  # audit_logs, data_access_logs, compliance_events
 
     # Retention policy
     retention_days = Column(String, default=2555)  # 7 years default (2555 days)
@@ -196,7 +220,9 @@ class AuditLogRetention(Base):
 
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at = Column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
 
     def __repr__(self):
         return f"<AuditLogRetention(log_type={self.log_type}, retention_days={self.retention_days})>"

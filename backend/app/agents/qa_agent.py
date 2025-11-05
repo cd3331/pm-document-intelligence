@@ -20,7 +20,7 @@ class QAAgent(BaseAgent):
         super().__init__(
             name="QAAgent",
             description="Answer questions using RAG with document context",
-            config={"max_requests_per_minute": 30}
+            config={"max_requests_per_minute": 30},
         )
         self.bedrock = BedrockService()
         self.vector_search = VectorSearch()
@@ -30,8 +30,7 @@ class QAAgent(BaseAgent):
         super().validate_input(input_data)
         if "question" not in input_data or not input_data["question"].strip():
             raise ValidationError(
-                message="Question is required",
-                details={"agent": self.name}
+                message="Question is required", details={"agent": self.name}
             )
 
     async def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -63,12 +62,14 @@ class QAAgent(BaseAgent):
                     continue
 
                 context_chunks.append(result["matched_chunk"]["text"])
-                citations.append({
-                    "document_id": result["document_id"],
-                    "filename": result["filename"],
-                    "chunk_index": result["matched_chunk"]["chunk_index"],
-                    "similarity_score": result["similarity_score"],
-                })
+                citations.append(
+                    {
+                        "document_id": result["document_id"],
+                        "filename": result["filename"],
+                        "chunk_index": result["matched_chunk"]["chunk_index"],
+                        "similarity_score": result["similarity_score"],
+                    }
+                )
 
         # Build prompt with context
         system_prompt = """You are a helpful AI assistant answering questions about project documents.
@@ -83,19 +84,23 @@ Rules:
         # Build context string
         context_str = ""
         if context_chunks:
-            context_str = "\n\n".join([
-                f"[Document: {citations[i]['filename']}, Chunk: {citations[i]['chunk_index']}]\n{chunk}"
-                for i, chunk in enumerate(context_chunks)
-            ])
+            context_str = "\n\n".join(
+                [
+                    f"[Document: {citations[i]['filename']}, Chunk: {citations[i]['chunk_index']}]\n{chunk}"
+                    for i, chunk in enumerate(context_chunks)
+                ]
+            )
 
         # Build conversation context
         conv_context = ""
         if conversation_history:
             recent_history = conversation_history[-3:]  # Last 3 exchanges
-            conv_context = "Previous conversation:\n" + "\n".join([
-                f"Q: {exchange['question']}\nA: {exchange['answer']}"
-                for exchange in recent_history
-            ])
+            conv_context = "Previous conversation:\n" + "\n".join(
+                [
+                    f"Q: {exchange['question']}\nA: {exchange['answer']}"
+                    for exchange in recent_history
+                ]
+            )
 
         user_message = f"""
 

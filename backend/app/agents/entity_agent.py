@@ -20,7 +20,7 @@ class EntityAgent(BaseAgent):
         super().__init__(
             name="EntityAgent",
             description="Extract entities with relationships and disambiguation",
-            config={"max_requests_per_minute": 40}
+            config={"max_requests_per_minute": 40},
         )
         self.bedrock = BedrockService()
         self.comprehend = ComprehendService()
@@ -54,14 +54,22 @@ Return JSON:
         return {
             "comprehend_entities": comprehend_result["entities"],
             "project_entities": project_entities,
-            "total_entities": len(comprehend_result["entities"]) + sum(len(v) for v in project_entities.values() if isinstance(v, list)),
+            "total_entities": len(comprehend_result["entities"])
+            + sum(len(v) for v in project_entities.values() if isinstance(v, list)),
             "cost": comprehend_result["cost"] + response["cost"],
         }
 
     def _parse_entities(self, response_text: str) -> Dict[str, Any]:
         """Parse entities JSON."""
         try:
-            response_text = re.sub(r'```json?\n?', '', response_text).strip()
+            response_text = re.sub(r"```json?\n?", "", response_text).strip()
             return json.loads(response_text)
         except json.JSONDecodeError:
-            return {"projects": [], "stakeholders": [], "milestones": [], "budget_items": [], "dependencies": [], "teams": []}
+            return {
+                "projects": [],
+                "stakeholders": [],
+                "milestones": [],
+                "budget_items": [],
+                "dependencies": [],
+                "teams": [],
+            }

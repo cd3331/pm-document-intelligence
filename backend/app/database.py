@@ -73,7 +73,9 @@ def get_supabase_client() -> Client:
                 supabase_key=settings.supabase.supabase_key,
             )
 
-            logger.info(f"Supabase client initialized: {settings.supabase.supabase_url}")
+            logger.info(
+                f"Supabase client initialized: {settings.supabase.supabase_url}"
+            )
 
         except Exception as e:
             logger.error(f"Failed to create Supabase client: {e}", exc_info=True)
@@ -118,6 +120,7 @@ def get_supabase_admin_client() -> Client:
 # Connection Health Check
 # ============================================================================
 
+
 @retry(
     retry=retry_if_exception_type((DatabaseError, APIError)),
     stop=stop_after_attempt(3),
@@ -137,6 +140,7 @@ async def check_database_connection() -> bool:
         # Use SQLAlchemy session to test connection
         async with get_db() as session:
             from sqlalchemy import text
+
             result = await session.execute(text("SELECT 1"))
             result.scalar_one()
 
@@ -176,6 +180,7 @@ async def test_supabase_connection() -> bool:
 # ============================================================================
 # Query Helper Functions
 # ============================================================================
+
 
 async def execute_query(
     query: str,
@@ -271,7 +276,9 @@ async def execute_insert(
 
         if response.data:
             logger.debug(f"Insert into {table} successful")
-            return response.data[0] if isinstance(response.data, list) else response.data
+            return (
+                response.data[0] if isinstance(response.data, list) else response.data
+            )
 
         raise DatabaseError(
             message="Insert returned no data",
@@ -327,7 +334,9 @@ async def execute_update(
 
         if response.data:
             logger.debug(f"Update in {table} successful")
-            return response.data[0] if isinstance(response.data, list) else response.data
+            return (
+                response.data[0] if isinstance(response.data, list) else response.data
+            )
 
         raise RecordNotFoundError(
             message=f"No record found in {table}",
@@ -500,6 +509,7 @@ async def execute_count(
 # Transaction Management
 # ============================================================================
 
+
 @asynccontextmanager
 async def transaction():
     """
@@ -523,6 +533,7 @@ async def transaction():
 # ============================================================================
 # Batch Operations
 # ============================================================================
+
 
 async def batch_insert(
     table: str,
@@ -549,7 +560,7 @@ async def batch_insert(
 
         # Process in chunks
         for i in range(0, len(data_list), chunk_size):
-            chunk = data_list[i:i + chunk_size]
+            chunk = data_list[i : i + chunk_size]
 
             response = supabase.table(table).insert(chunk).execute()
 
@@ -558,7 +569,9 @@ async def batch_insert(
 
             logger.debug(f"Batch insert into {table}: {len(chunk)} rows")
 
-        logger.info(f"Batch insert into {table} completed: {len(all_results)} total rows")
+        logger.info(
+            f"Batch insert into {table} completed: {len(all_results)} total rows"
+        )
         return all_results
 
     except APIError as e:
@@ -572,6 +585,7 @@ async def batch_insert(
 # ============================================================================
 # Advanced Query Helpers
 # ============================================================================
+
 
 async def search_full_text(
     table: str,
@@ -607,7 +621,9 @@ async def search_full_text(
             .execute()
         )
 
-        logger.debug(f"Full-text search in {table}.{column}: {len(response.data)} results")
+        logger.debug(
+            f"Full-text search in {table}.{column}: {len(response.data)} results"
+        )
         return response.data if response.data else []
 
     except APIError as e:
@@ -640,11 +656,7 @@ async def upsert_data(
     try:
         supabase = get_supabase_client()
 
-        response = (
-            supabase.table(table)
-            .upsert(data, on_conflict=on_conflict)
-            .execute()
-        )
+        response = supabase.table(table).upsert(data, on_conflict=on_conflict).execute()
 
         logger.debug(f"Upsert into {table} successful")
         return response.data
@@ -660,6 +672,7 @@ async def upsert_data(
 # ============================================================================
 # Utility Functions
 # ============================================================================
+
 
 def sanitize_table_name(table_name: str) -> str:
     """

@@ -83,98 +83,118 @@ class AnalyticsJobs:
             self.close_db()
 
     async def _aggregate_document_stats(
-        self,
-        db: Session,
-        start_date: datetime,
-        end_date: datetime
+        self, db: Session, start_date: datetime, end_date: datetime
     ):
         """Aggregate document statistics for a day"""
         try:
-            total_docs = db.query(func.count(Document.id)).filter(
-                Document.created_at.between(start_date, end_date)
-            ).scalar()
+            total_docs = (
+                db.query(func.count(Document.id))
+                .filter(Document.created_at.between(start_date, end_date))
+                .scalar()
+            )
 
-            completed_docs = db.query(func.count(Document.id)).filter(
-                Document.created_at.between(start_date, end_date),
-                Document.status == 'completed'
-            ).scalar()
+            completed_docs = (
+                db.query(func.count(Document.id))
+                .filter(
+                    Document.created_at.between(start_date, end_date),
+                    Document.status == "completed",
+                )
+                .scalar()
+            )
 
-            failed_docs = db.query(func.count(Document.id)).filter(
-                Document.created_at.between(start_date, end_date),
-                Document.status == 'failed'
-            ).scalar()
+            failed_docs = (
+                db.query(func.count(Document.id))
+                .filter(
+                    Document.created_at.between(start_date, end_date),
+                    Document.status == "failed",
+                )
+                .scalar()
+            )
 
             # Average processing time
-            avg_processing_time = db.query(
-                func.avg(
-                    func.extract('epoch', Document.processed_at) -
-                    func.extract('epoch', Document.created_at)
+            avg_processing_time = (
+                db.query(
+                    func.avg(
+                        func.extract("epoch", Document.processed_at)
+                        - func.extract("epoch", Document.created_at)
+                    )
                 )
-            ).filter(
-                Document.created_at.between(start_date, end_date),
-                Document.status == 'completed',
-                Document.processed_at.isnot(None)
-            ).scalar()
+                .filter(
+                    Document.created_at.between(start_date, end_date),
+                    Document.status == "completed",
+                    Document.processed_at.isnot(None),
+                )
+                .scalar()
+            )
 
             # Documents by type
-            docs_by_type = db.query(
-                Document.document_type,
-                func.count(Document.id)
-            ).filter(
-                Document.created_at.between(start_date, end_date)
-            ).group_by(Document.document_type).all()
+            docs_by_type = (
+                db.query(Document.document_type, func.count(Document.id))
+                .filter(Document.created_at.between(start_date, end_date))
+                .group_by(Document.document_type)
+                .all()
+            )
 
             # Create snapshot
             snapshot = AnalyticsSnapshot(
                 date=start_date.date(),
-                metric_type='documents',
+                metric_type="documents",
                 data={
-                    'total_documents': total_docs,
-                    'completed': completed_docs,
-                    'failed': failed_docs,
-                    'success_rate': round((completed_docs / total_docs * 100) if total_docs > 0 else 0, 2),
-                    'avg_processing_time': float(avg_processing_time) if avg_processing_time else 0,
-                    'by_type': {doc_type: count for doc_type, count in docs_by_type}
-                }
+                    "total_documents": total_docs,
+                    "completed": completed_docs,
+                    "failed": failed_docs,
+                    "success_rate": round(
+                        (completed_docs / total_docs * 100) if total_docs > 0 else 0, 2
+                    ),
+                    "avg_processing_time": (
+                        float(avg_processing_time) if avg_processing_time else 0
+                    ),
+                    "by_type": {doc_type: count for doc_type, count in docs_by_type},
+                },
             )
 
             db.add(snapshot)
 
-            app_logger.info(f"Aggregated document stats for {start_date.date()}: {total_docs} docs")
+            app_logger.info(
+                f"Aggregated document stats for {start_date.date()}: {total_docs} docs"
+            )
 
         except Exception as e:
             app_logger.error(f"Error aggregating document stats: {str(e)}")
             raise
 
     async def _aggregate_user_activity(
-        self,
-        db: Session,
-        start_date: datetime,
-        end_date: datetime
+        self, db: Session, start_date: datetime, end_date: datetime
     ):
         """Aggregate user activity for a day"""
         try:
             total_users = db.query(func.count(User.id)).scalar()
 
-            active_users = db.query(func.count(func.distinct(Document.user_id))).filter(
-                Document.created_at.between(start_date, end_date)
-            ).scalar()
+            active_users = (
+                db.query(func.count(func.distinct(Document.user_id)))
+                .filter(Document.created_at.between(start_date, end_date))
+                .scalar()
+            )
 
             # New registrations
-            new_users = db.query(func.count(User.id)).filter(
-                User.created_at.between(start_date, end_date)
-            ).scalar()
+            new_users = (
+                db.query(func.count(User.id))
+                .filter(User.created_at.between(start_date, end_date))
+                .scalar()
+            )
 
             # Create snapshot
             snapshot = AnalyticsSnapshot(
                 date=start_date.date(),
-                metric_type='users',
+                metric_type="users",
                 data={
-                    'total_users': total_users,
-                    'active_users': active_users,
-                    'new_users': new_users,
-                    'engagement_rate': round((active_users / total_users * 100) if total_users > 0 else 0, 2)
-                }
+                    "total_users": total_users,
+                    "active_users": active_users,
+                    "new_users": new_users,
+                    "engagement_rate": round(
+                        (active_users / total_users * 100) if total_users > 0 else 0, 2
+                    ),
+                },
             )
 
             db.add(snapshot)
@@ -186,17 +206,15 @@ class AnalyticsJobs:
             raise
 
     async def _aggregate_costs(
-        self,
-        db: Session,
-        start_date: datetime,
-        end_date: datetime
+        self, db: Session, start_date: datetime, end_date: datetime
     ):
         """Aggregate costs for a day"""
         try:
             from app.monitoring.cost_tracking import cost_tracker
 
             cost_entries = [
-                entry for entry in cost_tracker.cost_history
+                entry
+                for entry in cost_tracker.cost_history
                 if start_date <= entry.timestamp <= end_date
             ]
 
@@ -205,43 +223,44 @@ class AnalyticsJobs:
             # Costs by service
             costs_by_service = {}
             for entry in cost_entries:
-                costs_by_service[entry.service] = costs_by_service.get(entry.service, 0) + entry.total_cost
+                costs_by_service[entry.service] = (
+                    costs_by_service.get(entry.service, 0) + entry.total_cost
+                )
 
             # Create snapshot
             snapshot = AnalyticsSnapshot(
                 date=start_date.date(),
-                metric_type='costs',
+                metric_type="costs",
                 data={
-                    'total_cost': round(total_cost, 2),
-                    'by_service': {k: round(v, 2) for k, v in costs_by_service.items()},
-                    'currency': 'USD'
-                }
+                    "total_cost": round(total_cost, 2),
+                    "by_service": {k: round(v, 2) for k, v in costs_by_service.items()},
+                    "currency": "USD",
+                },
             )
 
             db.add(snapshot)
 
-            app_logger.info(f"Aggregated costs for {start_date.date()}: ${total_cost:.2f}")
+            app_logger.info(
+                f"Aggregated costs for {start_date.date()}: ${total_cost:.2f}"
+            )
 
         except Exception as e:
             app_logger.error(f"Error aggregating costs: {str(e)}")
             raise
 
     async def _aggregate_performance(
-        self,
-        db: Session,
-        start_date: datetime,
-        end_date: datetime
+        self, db: Session, start_date: datetime, end_date: datetime
     ):
         """Aggregate performance metrics for a day"""
         try:
             analytics_service = AnalyticsService(db)
-            performance = analytics_service.get_processing_performance(start_date, end_date)
+            performance = analytics_service.get_processing_performance(
+                start_date, end_date
+            )
 
             # Create snapshot
             snapshot = AnalyticsSnapshot(
-                date=start_date.date(),
-                metric_type='performance',
-                data=performance
+                date=start_date.date(), metric_type="performance", data=performance
             )
 
             db.add(snapshot)
@@ -257,9 +276,11 @@ class AnalyticsJobs:
         try:
             cutoff_date = datetime.utcnow().date() - timedelta(days=retention_days)
 
-            deleted = db.query(AnalyticsSnapshot).filter(
-                AnalyticsSnapshot.date < cutoff_date
-            ).delete()
+            deleted = (
+                db.query(AnalyticsSnapshot)
+                .filter(AnalyticsSnapshot.date < cutoff_date)
+                .delete()
+            )
 
             app_logger.info(f"Cleaned up {deleted} old analytics snapshots")
 
@@ -304,10 +325,7 @@ class AnalyticsJobs:
             self.close_db()
 
     async def _cache_document_stats(
-        self,
-        db: Session,
-        analytics_service: AnalyticsService,
-        days: int
+        self, db: Session, analytics_service: AnalyticsService, days: int
     ):
         """Cache document statistics"""
         try:
@@ -326,18 +344,20 @@ class AnalyticsJobs:
             )
 
             # Store in cache
-            cache_entry = db.query(CachedMetric).filter(
-                CachedMetric.metric_key == 'document_stats_30d'
-            ).first()
+            cache_entry = (
+                db.query(CachedMetric)
+                .filter(CachedMetric.metric_key == "document_stats_30d")
+                .first()
+            )
 
             if cache_entry:
-                cache_entry.metric_value = {'time_series': time_series}
+                cache_entry.metric_value = {"time_series": time_series}
                 cache_entry.updated_at = datetime.utcnow()
             else:
                 cache_entry = CachedMetric(
-                    metric_key='document_stats_30d',
-                    metric_value={'time_series': time_series},
-                    expires_at=datetime.utcnow() + timedelta(hours=1)
+                    metric_key="document_stats_30d",
+                    metric_value={"time_series": time_series},
+                    expires_at=datetime.utcnow() + timedelta(hours=1),
                 )
                 db.add(cache_entry)
 
@@ -347,10 +367,7 @@ class AnalyticsJobs:
             app_logger.error(f"Error caching document stats: {str(e)}")
 
     async def _cache_user_activity(
-        self,
-        db: Session,
-        analytics_service: AnalyticsService,
-        days: int
+        self, db: Session, analytics_service: AnalyticsService, days: int
     ):
         """Cache user activity metrics"""
         try:
@@ -360,18 +377,20 @@ class AnalyticsJobs:
             peak_times = analytics_service.get_peak_usage_times(start_date, end_date)
 
             # Store in cache
-            cache_entry = db.query(CachedMetric).filter(
-                CachedMetric.metric_key == 'user_activity_30d'
-            ).first()
+            cache_entry = (
+                db.query(CachedMetric)
+                .filter(CachedMetric.metric_key == "user_activity_30d")
+                .first()
+            )
 
             if cache_entry:
-                cache_entry.metric_value = {'peak_times': peak_times}
+                cache_entry.metric_value = {"peak_times": peak_times}
                 cache_entry.updated_at = datetime.utcnow()
             else:
                 cache_entry = CachedMetric(
-                    metric_key='user_activity_30d',
-                    metric_value={'peak_times': peak_times},
-                    expires_at=datetime.utcnow() + timedelta(hours=1)
+                    metric_key="user_activity_30d",
+                    metric_value={"peak_times": peak_times},
+                    expires_at=datetime.utcnow() + timedelta(hours=1),
                 )
                 db.add(cache_entry)
 
@@ -381,31 +400,32 @@ class AnalyticsJobs:
             app_logger.error(f"Error caching user activity: {str(e)}")
 
     async def _cache_performance_metrics(
-        self,
-        db: Session,
-        analytics_service: AnalyticsService,
-        days: int
+        self, db: Session, analytics_service: AnalyticsService, days: int
     ):
         """Cache performance metrics"""
         try:
             end_date = datetime.utcnow()
             start_date = end_date - timedelta(days=days)
 
-            performance = analytics_service.get_processing_performance(start_date, end_date)
+            performance = analytics_service.get_processing_performance(
+                start_date, end_date
+            )
 
             # Store in cache
-            cache_entry = db.query(CachedMetric).filter(
-                CachedMetric.metric_key == 'performance_7d'
-            ).first()
+            cache_entry = (
+                db.query(CachedMetric)
+                .filter(CachedMetric.metric_key == "performance_7d")
+                .first()
+            )
 
             if cache_entry:
                 cache_entry.metric_value = performance
                 cache_entry.updated_at = datetime.utcnow()
             else:
                 cache_entry = CachedMetric(
-                    metric_key='performance_7d',
+                    metric_key="performance_7d",
                     metric_value=performance,
-                    expires_at=datetime.utcnow() + timedelta(hours=1)
+                    expires_at=datetime.utcnow() + timedelta(hours=1),
                 )
                 db.add(cache_entry)
 
@@ -445,11 +465,15 @@ class AnalyticsJobs:
             app_logger.info("Scheduled report generation completed")
 
         except Exception as e:
-            app_logger.error(f"Error generating scheduled reports: {str(e)}", exc_info=True)
+            app_logger.error(
+                f"Error generating scheduled reports: {str(e)}", exc_info=True
+            )
         finally:
             self.close_db()
 
-    async def _generate_daily_report(self, db: Session, report_generator: ReportGenerator):
+    async def _generate_daily_report(
+        self, db: Session, report_generator: ReportGenerator
+    ):
         """Generate daily report"""
         try:
             # Get admin users who should receive reports
@@ -465,7 +489,7 @@ class AnalyticsJobs:
                     end_date=end_date,
                     format="pdf",
                     email_to=user.email,
-                    user_id=str(user.id)
+                    user_id=str(user.id),
                 )
 
             app_logger.info(f"Generated daily reports for {len(admin_users)} admins")
@@ -473,7 +497,9 @@ class AnalyticsJobs:
         except Exception as e:
             app_logger.error(f"Error generating daily report: {str(e)}")
 
-    async def _generate_weekly_report(self, db: Session, report_generator: ReportGenerator):
+    async def _generate_weekly_report(
+        self, db: Session, report_generator: ReportGenerator
+    ):
         """Generate weekly report"""
         try:
             admin_users = db.query(User).filter(User.is_superuser == True).all()
@@ -488,7 +514,7 @@ class AnalyticsJobs:
                     end_date=end_date,
                     format="pdf",
                     email_to=user.email,
-                    user_id=str(user.id)
+                    user_id=str(user.id),
                 )
 
             app_logger.info(f"Generated weekly reports for {len(admin_users)} admins")
@@ -496,7 +522,9 @@ class AnalyticsJobs:
         except Exception as e:
             app_logger.error(f"Error generating weekly report: {str(e)}")
 
-    async def _generate_monthly_report(self, db: Session, report_generator: ReportGenerator):
+    async def _generate_monthly_report(
+        self, db: Session, report_generator: ReportGenerator
+    ):
         """Generate monthly report"""
         try:
             admin_users = db.query(User).filter(User.is_superuser == True).all()
@@ -511,7 +539,7 @@ class AnalyticsJobs:
                     end_date=end_date,
                     format="pdf",
                     email_to=user.email,
-                    user_id=str(user.id)
+                    user_id=str(user.id),
                 )
 
             app_logger.info(f"Generated monthly reports for {len(admin_users)} admins")
@@ -537,24 +565,24 @@ scheduler = AsyncIOScheduler()
 scheduler.add_job(
     analytics_jobs.run_daily_aggregation,
     CronTrigger(hour=0, minute=0),
-    id='daily_aggregation',
-    name='Daily Analytics Aggregation'
+    id="daily_aggregation",
+    name="Daily Analytics Aggregation",
 )
 
 # Schedule cache warming every hour
 scheduler.add_job(
     analytics_jobs.warm_analytics_cache,
     CronTrigger(minute=0),
-    id='cache_warming',
-    name='Analytics Cache Warming'
+    id="cache_warming",
+    name="Analytics Cache Warming",
 )
 
 # Schedule daily report at 6 AM UTC
 scheduler.add_job(
     analytics_jobs.generate_scheduled_reports,
     CronTrigger(hour=6, minute=0),
-    id='scheduled_reports',
-    name='Scheduled Report Generation'
+    id="scheduled_reports",
+    name="Scheduled Report Generation",
 )
 
 

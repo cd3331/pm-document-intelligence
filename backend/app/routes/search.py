@@ -48,39 +48,22 @@ vector_search = VectorSearch()
 # Request/Response Models
 # ============================================================================
 
+
 class SemanticSearchRequest(BaseModel):
     """Semantic search request."""
 
     query: str = Field(
-        ...,
-        min_length=1,
-        max_length=500,
-        description="Natural language search query"
+        ..., min_length=1, max_length=500, description="Natural language search query"
     )
-    document_type: Optional[str] = Field(
-        None,
-        description="Filter by document type"
-    )
+    document_type: Optional[str] = Field(None, description="Filter by document type")
     date_from: Optional[datetime] = Field(
-        None,
-        description="Filter by date range start"
+        None, description="Filter by date range start"
     )
-    date_to: Optional[datetime] = Field(
-        None,
-        description="Filter by date range end"
-    )
+    date_to: Optional[datetime] = Field(None, description="Filter by date range end")
     similarity_threshold: Optional[float] = Field(
-        0.7,
-        ge=0.0,
-        le=1.0,
-        description="Minimum similarity score (0-1)"
+        0.7, ge=0.0, le=1.0, description="Minimum similarity score (0-1)"
     )
-    limit: int = Field(
-        10,
-        ge=1,
-        le=50,
-        description="Maximum number of results"
-    )
+    limit: int = Field(10, ge=1, le=50, description="Maximum number of results")
 
     @validator("query")
     def validate_query(cls, v):
@@ -116,26 +99,15 @@ class SemanticSearchResponse(BaseModel):
 class HybridSearchRequest(BaseModel):
     """Hybrid search request."""
 
-    query: str = Field(
-        ...,
-        min_length=1,
-        max_length=500,
-        description="Search query"
-    )
+    query: str = Field(..., min_length=1, max_length=500, description="Search query")
     document_type: Optional[str] = None
     date_from: Optional[datetime] = None
     date_to: Optional[datetime] = None
     vector_weight: float = Field(
-        0.7,
-        ge=0.0,
-        le=1.0,
-        description="Weight for vector similarity"
+        0.7, ge=0.0, le=1.0, description="Weight for vector similarity"
     )
     keyword_weight: float = Field(
-        0.3,
-        ge=0.0,
-        le=1.0,
-        description="Weight for keyword matching"
+        0.3, ge=0.0, le=1.0, description="Weight for keyword matching"
     )
     limit: int = Field(10, ge=1, le=50)
 
@@ -205,20 +177,25 @@ class SearchStatsResponse(BaseModel):
 # Search Endpoints
 # ============================================================================
 
+
 @router.get(
     "/semantic",
     response_model=SemanticSearchResponse,
     summary="Semantic search",
-    description="Perform semantic search using natural language queries"
+    description="Perform semantic search using natural language queries",
 )
 @limiter.limit("30/minute")
 async def semantic_search(
     request: Request,
     query: str = Query(..., description="Search query", min_length=1, max_length=500),
     document_type: Optional[str] = Query(None, description="Filter by document type"),
-    date_from: Optional[datetime] = Query(None, description="Filter by date range start"),
+    date_from: Optional[datetime] = Query(
+        None, description="Filter by date range start"
+    ),
     date_to: Optional[datetime] = Query(None, description="Filter by date range end"),
-    similarity_threshold: float = Query(0.7, ge=0.0, le=1.0, description="Minimum similarity"),
+    similarity_threshold: float = Query(
+        0.7, ge=0.0, le=1.0, description="Minimum similarity"
+    ),
     limit: int = Query(10, ge=1, le=50, description="Maximum results"),
     current_user: UserInDB = Depends(get_current_active_user),
 ):
@@ -257,17 +234,14 @@ async def semantic_search(
 
     except Exception as e:
         logger.error(f"Unexpected search error: {e}", exc_info=True)
-        raise AIServiceError(
-            message="Search failed",
-            details={"error": str(e)}
-        )
+        raise AIServiceError(message="Search failed", details={"error": str(e)})
 
 
 @router.post(
     "/semantic",
     response_model=SemanticSearchResponse,
     summary="Semantic search (POST)",
-    description="Perform semantic search with advanced options"
+    description="Perform semantic search with advanced options",
 )
 @limiter.limit("30/minute")
 async def semantic_search_post(
@@ -292,7 +266,9 @@ async def semantic_search_post(
     ```
     """
     try:
-        logger.info(f"Semantic search (POST): '{search_request.query}' by user {current_user.id}")
+        logger.info(
+            f"Semantic search (POST): '{search_request.query}' by user {current_user.id}"
+        )
 
         result = await vector_search.semantic_search(
             query=search_request.query,
@@ -316,7 +292,7 @@ async def semantic_search_post(
     "/hybrid",
     response_model=HybridSearchResponse,
     summary="Hybrid search",
-    description="Combine vector similarity with keyword search"
+    description="Combine vector similarity with keyword search",
 )
 @limiter.limit("30/minute")
 async def hybrid_search(
@@ -344,7 +320,9 @@ async def hybrid_search(
     ```
     """
     try:
-        logger.info(f"Hybrid search: '{search_request.query}' by user {current_user.id}")
+        logger.info(
+            f"Hybrid search: '{search_request.query}' by user {current_user.id}"
+        )
 
         result = await vector_search.hybrid_search(
             query=search_request.query,
@@ -368,7 +346,7 @@ async def hybrid_search(
     "/similar/{document_id}",
     response_model=SimilarDocumentsResponse,
     summary="Find similar documents",
-    description="Find documents similar to a given document"
+    description="Find documents similar to a given document",
 )
 @limiter.limit("60/minute")
 async def find_similar_documents(
@@ -391,7 +369,9 @@ async def find_similar_documents(
     ```
     """
     try:
-        logger.info(f"Finding similar documents to {document_id} by user {current_user.id}")
+        logger.info(
+            f"Finding similar documents to {document_id} by user {current_user.id}"
+        )
 
         result = await vector_search.find_similar_documents(
             document_id=document_id,
@@ -411,7 +391,7 @@ async def find_similar_documents(
     "/suggestions",
     response_model=SearchSuggestionsResponse,
     summary="Search suggestions",
-    description="Get search query suggestions"
+    description="Get search query suggestions",
 )
 @limiter.limit("60/minute")
 async def get_search_suggestions(
@@ -459,7 +439,7 @@ async def get_search_suggestions(
     "/stats",
     response_model=SearchStatsResponse,
     summary="Search statistics",
-    description="Get search and embedding statistics"
+    description="Get search and embedding statistics",
 )
 async def get_search_stats(
     current_user: UserInDB = Depends(get_current_active_user),
@@ -495,10 +475,11 @@ async def get_search_stats(
 # Health Check
 # ============================================================================
 
+
 @router.get(
     "/health",
     summary="Search service health check",
-    description="Check if search service is operational"
+    description="Check if search service is operational",
 )
 async def search_health():
     """
@@ -511,8 +492,7 @@ async def search_health():
         embedding_service_ok = True
         try:
             await vector_search.embedding_service.generate_embedding(
-                "test",
-                use_cache=False
+                "test", use_cache=False
             )
         except Exception as e:
             logger.error(f"Embedding service health check failed: {e}")

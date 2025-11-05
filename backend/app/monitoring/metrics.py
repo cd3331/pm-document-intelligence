@@ -10,7 +10,7 @@ from prometheus_client import (
     Info,
     generate_latest,
     REGISTRY,
-    CollectorRegistry
+    CollectorRegistry,
 )
 from typing import Optional, Dict, Any
 import time
@@ -22,11 +22,8 @@ from contextlib import contextmanager
 # Application Info
 # ============================================================================
 
-app_info = Info('pm_document_intelligence', 'Application information')
-app_info.info({
-    'version': '1.0.0',
-    'environment': 'production'
-})
+app_info = Info("pm_document_intelligence", "Application information")
+app_info.info({"version": "1.0.0", "environment": "production"})
 
 
 # ============================================================================
@@ -34,22 +31,20 @@ app_info.info({
 # ============================================================================
 
 http_requests_total = Counter(
-    'http_requests_total',
-    'Total HTTP requests',
-    ['method', 'endpoint', 'status_code']
+    "http_requests_total", "Total HTTP requests", ["method", "endpoint", "status_code"]
 )
 
 http_request_duration_seconds = Histogram(
-    'http_request_duration_seconds',
-    'HTTP request duration in seconds',
-    ['method', 'endpoint'],
-    buckets=[0.01, 0.05, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
+    "http_request_duration_seconds",
+    "HTTP request duration in seconds",
+    ["method", "endpoint"],
+    buckets=[0.01, 0.05, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0],
 )
 
 http_requests_in_progress = Gauge(
-    'http_requests_in_progress',
-    'Number of HTTP requests currently being processed',
-    ['method', 'endpoint']
+    "http_requests_in_progress",
+    "Number of HTTP requests currently being processed",
+    ["method", "endpoint"],
 )
 
 
@@ -58,35 +53,35 @@ http_requests_in_progress = Gauge(
 # ============================================================================
 
 documents_uploaded_total = Counter(
-    'documents_uploaded_total',
-    'Total number of documents uploaded',
-    ['document_type', 'status']
+    "documents_uploaded_total",
+    "Total number of documents uploaded",
+    ["document_type", "status"],
 )
 
 document_processing_duration_seconds = Histogram(
-    'document_processing_duration_seconds',
-    'Document processing duration in seconds',
-    ['document_type', 'processing_stage'],
-    buckets=[1, 5, 10, 30, 60, 120, 300, 600]
+    "document_processing_duration_seconds",
+    "Document processing duration in seconds",
+    ["document_type", "processing_stage"],
+    buckets=[1, 5, 10, 30, 60, 120, 300, 600],
 )
 
 documents_processing_current = Gauge(
-    'documents_processing_current',
-    'Number of documents currently being processed',
-    ['processing_stage']
+    "documents_processing_current",
+    "Number of documents currently being processed",
+    ["processing_stage"],
 )
 
 document_size_bytes = Histogram(
-    'document_size_bytes',
-    'Size of uploaded documents in bytes',
-    ['document_type'],
-    buckets=[1024, 10240, 102400, 1024000, 10240000, 104857600]  # 1KB to 100MB
+    "document_size_bytes",
+    "Size of uploaded documents in bytes",
+    ["document_type"],
+    buckets=[1024, 10240, 102400, 1024000, 10240000, 104857600],  # 1KB to 100MB
 )
 
 documents_failed_total = Counter(
-    'documents_failed_total',
-    'Total number of failed document processing',
-    ['document_type', 'error_type']
+    "documents_failed_total",
+    "Total number of failed document processing",
+    ["document_type", "error_type"],
 )
 
 
@@ -95,28 +90,26 @@ documents_failed_total = Counter(
 # ============================================================================
 
 aws_api_calls_total = Counter(
-    'aws_api_calls_total',
-    'Total AWS API calls',
-    ['service', 'operation', 'status']
+    "aws_api_calls_total", "Total AWS API calls", ["service", "operation", "status"]
 )
 
 aws_api_latency_seconds = Histogram(
-    'aws_api_latency_seconds',
-    'AWS API call latency in seconds',
-    ['service', 'operation'],
-    buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0]
+    "aws_api_latency_seconds",
+    "AWS API call latency in seconds",
+    ["service", "operation"],
+    buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0],
 )
 
 aws_textract_pages_processed = Counter(
-    'aws_textract_pages_processed_total',
-    'Total pages processed by Textract',
-    ['status']
+    "aws_textract_pages_processed_total",
+    "Total pages processed by Textract",
+    ["status"],
 )
 
 aws_bedrock_tokens_used = Counter(
-    'aws_bedrock_tokens_used_total',
-    'Total tokens used by Bedrock',
-    ['model', 'token_type']  # token_type: input, output
+    "aws_bedrock_tokens_used_total",
+    "Total tokens used by Bedrock",
+    ["model", "token_type"],  # token_type: input, output
 )
 
 
@@ -125,28 +118,24 @@ aws_bedrock_tokens_used = Counter(
 # ============================================================================
 
 openai_api_calls_total = Counter(
-    'openai_api_calls_total',
-    'Total OpenAI API calls',
-    ['operation', 'model', 'status']
+    "openai_api_calls_total", "Total OpenAI API calls", ["operation", "model", "status"]
 )
 
 openai_api_latency_seconds = Histogram(
-    'openai_api_latency_seconds',
-    'OpenAI API call latency in seconds',
-    ['operation', 'model'],
-    buckets=[0.5, 1.0, 2.0, 5.0, 10.0, 20.0]
+    "openai_api_latency_seconds",
+    "OpenAI API call latency in seconds",
+    ["operation", "model"],
+    buckets=[0.5, 1.0, 2.0, 5.0, 10.0, 20.0],
 )
 
 openai_tokens_used = Counter(
-    'openai_tokens_used_total',
-    'Total tokens used by OpenAI',
-    ['model', 'token_type']  # token_type: prompt, completion
+    "openai_tokens_used_total",
+    "Total tokens used by OpenAI",
+    ["model", "token_type"],  # token_type: prompt, completion
 )
 
 openai_embedding_dimensions = Gauge(
-    'openai_embedding_dimensions',
-    'Dimensions of OpenAI embeddings',
-    ['model']
+    "openai_embedding_dimensions", "Dimensions of OpenAI embeddings", ["model"]
 )
 
 
@@ -155,26 +144,22 @@ openai_embedding_dimensions = Gauge(
 # ============================================================================
 
 db_connections_active = Gauge(
-    'db_connections_active',
-    'Number of active database connections'
+    "db_connections_active", "Number of active database connections"
 )
 
 db_connections_idle = Gauge(
-    'db_connections_idle',
-    'Number of idle database connections'
+    "db_connections_idle", "Number of idle database connections"
 )
 
 db_query_duration_seconds = Histogram(
-    'db_query_duration_seconds',
-    'Database query duration in seconds',
-    ['operation'],  # SELECT, INSERT, UPDATE, DELETE
-    buckets=[0.001, 0.01, 0.05, 0.1, 0.5, 1.0, 2.0]
+    "db_query_duration_seconds",
+    "Database query duration in seconds",
+    ["operation"],  # SELECT, INSERT, UPDATE, DELETE
+    buckets=[0.001, 0.01, 0.05, 0.1, 0.5, 1.0, 2.0],
 )
 
 db_queries_total = Counter(
-    'db_queries_total',
-    'Total database queries',
-    ['operation', 'status']
+    "db_queries_total", "Total database queries", ["operation", "status"]
 )
 
 
@@ -183,25 +168,19 @@ db_queries_total = Counter(
 # ============================================================================
 
 cache_operations_total = Counter(
-    'cache_operations_total',
-    'Total cache operations',
-    ['operation', 'result']  # operation: get/set/delete, result: hit/miss/success
+    "cache_operations_total",
+    "Total cache operations",
+    ["operation", "result"],  # operation: get/set/delete, result: hit/miss/success
 )
 
-cache_hit_ratio = Gauge(
-    'cache_hit_ratio',
-    'Cache hit ratio (0-1)'
-)
+cache_hit_ratio = Gauge("cache_hit_ratio", "Cache hit ratio (0-1)")
 
-cache_size_bytes = Gauge(
-    'cache_size_bytes',
-    'Current cache size in bytes'
-)
+cache_size_bytes = Gauge("cache_size_bytes", "Current cache size in bytes")
 
 cache_evictions_total = Counter(
-    'cache_evictions_total',
-    'Total cache evictions',
-    ['reason']  # reason: size, ttl, manual
+    "cache_evictions_total",
+    "Total cache evictions",
+    ["reason"],  # reason: size, ttl, manual
 )
 
 
@@ -209,21 +188,16 @@ cache_evictions_total = Counter(
 # User Activity Metrics
 # ============================================================================
 
-active_users_current = Gauge(
-    'active_users_current',
-    'Number of currently active users'
-)
+active_users_current = Gauge("active_users_current", "Number of currently active users")
 
 user_sessions_total = Counter(
-    'user_sessions_total',
-    'Total user sessions',
-    ['status']  # status: started, ended
+    "user_sessions_total", "Total user sessions", ["status"]  # status: started, ended
 )
 
 user_actions_total = Counter(
-    'user_actions_total',
-    'Total user actions',
-    ['action_type']  # upload, search, qa, download
+    "user_actions_total",
+    "Total user actions",
+    ["action_type"],  # upload, search, qa, download
 )
 
 
@@ -232,15 +206,13 @@ user_actions_total = Counter(
 # ============================================================================
 
 errors_total = Counter(
-    'errors_total',
-    'Total errors',
-    ['error_type', 'severity']  # severity: warning, error, critical
+    "errors_total",
+    "Total errors",
+    ["error_type", "severity"],  # severity: warning, error, critical
 )
 
 exceptions_total = Counter(
-    'exceptions_total',
-    'Total exceptions raised',
-    ['exception_type', 'endpoint']
+    "exceptions_total", "Total exceptions raised", ["exception_type", "endpoint"]
 )
 
 
@@ -248,22 +220,13 @@ exceptions_total = Counter(
 # Cost Metrics
 # ============================================================================
 
-aws_cost_usd = Counter(
-    'aws_cost_usd_total',
-    'Total AWS costs in USD',
-    ['service']
-)
+aws_cost_usd = Counter("aws_cost_usd_total", "Total AWS costs in USD", ["service"])
 
 openai_cost_usd = Counter(
-    'openai_cost_usd_total',
-    'Total OpenAI costs in USD',
-    ['model', 'operation']
+    "openai_cost_usd_total", "Total OpenAI costs in USD", ["model", "operation"]
 )
 
-total_cost_usd = Gauge(
-    'total_cost_usd_daily',
-    'Total daily costs in USD'
-)
+total_cost_usd = Gauge("total_cost_usd_daily", "Total daily costs in USD")
 
 
 # ============================================================================
@@ -271,29 +234,23 @@ total_cost_usd = Gauge(
 # ============================================================================
 
 system_cpu_usage_percent = Gauge(
-    'system_cpu_usage_percent',
-    'System CPU usage percentage'
+    "system_cpu_usage_percent", "System CPU usage percentage"
 )
 
 system_memory_usage_bytes = Gauge(
-    'system_memory_usage_bytes',
-    'System memory usage in bytes'
+    "system_memory_usage_bytes", "System memory usage in bytes"
 )
 
 system_disk_usage_bytes = Gauge(
-    'system_disk_usage_bytes',
-    'System disk usage in bytes',
-    ['mount_point']
+    "system_disk_usage_bytes", "System disk usage in bytes", ["mount_point"]
 )
 
 system_network_bytes_sent = Counter(
-    'system_network_bytes_sent_total',
-    'Total network bytes sent'
+    "system_network_bytes_sent_total", "Total network bytes sent"
 )
 
 system_network_bytes_received = Counter(
-    'system_network_bytes_received_total',
-    'Total network bytes received'
+    "system_network_bytes_received_total", "Total network bytes received"
 )
 
 
@@ -302,22 +259,18 @@ system_network_bytes_received = Counter(
 # ============================================================================
 
 agent_executions_total = Counter(
-    'agent_executions_total',
-    'Total AI agent executions',
-    ['agent_type', 'status']
+    "agent_executions_total", "Total AI agent executions", ["agent_type", "status"]
 )
 
 agent_execution_duration_seconds = Histogram(
-    'agent_execution_duration_seconds',
-    'AI agent execution duration in seconds',
-    ['agent_type'],
-    buckets=[1, 5, 10, 30, 60, 120]
+    "agent_execution_duration_seconds",
+    "AI agent execution duration in seconds",
+    ["agent_type"],
+    buckets=[1, 5, 10, 30, 60, 120],
 )
 
 agent_retries_total = Counter(
-    'agent_retries_total',
-    'Total agent retry attempts',
-    ['agent_type', 'reason']
+    "agent_retries_total", "Total agent retry attempts", ["agent_type", "reason"]
 )
 
 
@@ -326,34 +279,33 @@ agent_retries_total = Counter(
 # ============================================================================
 
 vector_search_queries_total = Counter(
-    'vector_search_queries_total',
-    'Total vector search queries',
-    ['search_type']  # semantic, keyword, hybrid
+    "vector_search_queries_total",
+    "Total vector search queries",
+    ["search_type"],  # semantic, keyword, hybrid
 )
 
 vector_search_latency_seconds = Histogram(
-    'vector_search_latency_seconds',
-    'Vector search latency in seconds',
-    ['search_type'],
-    buckets=[0.1, 0.5, 1.0, 2.0, 5.0]
+    "vector_search_latency_seconds",
+    "Vector search latency in seconds",
+    ["search_type"],
+    buckets=[0.1, 0.5, 1.0, 2.0, 5.0],
 )
 
 vector_search_results_count = Histogram(
-    'vector_search_results_count',
-    'Number of search results returned',
-    buckets=[0, 1, 5, 10, 20, 50, 100]
+    "vector_search_results_count",
+    "Number of search results returned",
+    buckets=[0, 1, 5, 10, 20, 50, 100],
 )
 
 embeddings_generated_total = Counter(
-    'embeddings_generated_total',
-    'Total embeddings generated',
-    ['model']
+    "embeddings_generated_total", "Total embeddings generated", ["model"]
 )
 
 
 # ============================================================================
 # Helper Functions
 # ============================================================================
+
 
 @contextmanager
 def track_request_duration(method: str, endpoint: str):
@@ -365,28 +317,22 @@ def track_request_duration(method: str, endpoint: str):
         yield
     finally:
         duration = time.time() - start_time
-        http_request_duration_seconds.labels(
-            method=method,
-            endpoint=endpoint
-        ).observe(duration)
+        http_request_duration_seconds.labels(method=method, endpoint=endpoint).observe(
+            duration
+        )
         http_requests_in_progress.labels(method=method, endpoint=endpoint).dec()
 
 
 def track_http_request(method: str, endpoint: str, status_code: int):
     """Track HTTP request completion"""
     http_requests_total.labels(
-        method=method,
-        endpoint=endpoint,
-        status_code=status_code
+        method=method, endpoint=endpoint, status_code=status_code
     ).inc()
 
 
 def track_document_upload(document_type: str, status: str, size_bytes: int):
     """Track document upload"""
-    documents_uploaded_total.labels(
-        document_type=document_type,
-        status=status
-    ).inc()
+    documents_uploaded_total.labels(document_type=document_type, status=status).inc()
 
     document_size_bytes.labels(document_type=document_type).observe(size_bytes)
 
@@ -402,8 +348,7 @@ def track_document_processing(document_type: str, stage: str):
     finally:
         duration = time.time() - start_time
         document_processing_duration_seconds.labels(
-            document_type=document_type,
-            processing_stage=stage
+            document_type=document_type, processing_stage=stage
         ).observe(duration)
         documents_processing_current.labels(processing_stage=stage).dec()
 
@@ -411,8 +356,7 @@ def track_document_processing(document_type: str, stage: str):
 def track_document_failure(document_type: str, error_type: str):
     """Track document processing failure"""
     documents_failed_total.labels(
-        document_type=document_type,
-        error_type=error_type
+        document_type=document_type, error_type=error_type
     ).inc()
 
 
@@ -420,79 +364,75 @@ def track_document_failure(document_type: str, error_type: str):
 def track_aws_api_call(service: str, operation: str):
     """Context manager to track AWS API call"""
     start_time = time.time()
-    status = 'success'
+    status = "success"
 
     try:
         yield
     except Exception as e:
-        status = 'error'
+        status = "error"
         raise
     finally:
         duration = time.time() - start_time
-        aws_api_latency_seconds.labels(
-            service=service,
-            operation=operation
-        ).observe(duration)
+        aws_api_latency_seconds.labels(service=service, operation=operation).observe(
+            duration
+        )
 
         aws_api_calls_total.labels(
-            service=service,
-            operation=operation,
-            status=status
+            service=service, operation=operation, status=status
         ).inc()
 
 
-def track_aws_textract(pages: int, status: str = 'success'):
+def track_aws_textract(pages: int, status: str = "success"):
     """Track Textract page processing"""
     aws_textract_pages_processed.labels(status=status).inc(pages)
 
 
 def track_aws_bedrock_tokens(model: str, input_tokens: int, output_tokens: int):
     """Track Bedrock token usage"""
-    aws_bedrock_tokens_used.labels(model=model, token_type='input').inc(input_tokens)
-    aws_bedrock_tokens_used.labels(model=model, token_type='output').inc(output_tokens)
+    aws_bedrock_tokens_used.labels(model=model, token_type="input").inc(input_tokens)
+    aws_bedrock_tokens_used.labels(model=model, token_type="output").inc(output_tokens)
 
 
 @contextmanager
 def track_openai_call(operation: str, model: str):
     """Context manager to track OpenAI API call"""
     start_time = time.time()
-    status = 'success'
+    status = "success"
 
     try:
         yield
     except Exception:
-        status = 'error'
+        status = "error"
         raise
     finally:
         duration = time.time() - start_time
-        openai_api_latency_seconds.labels(
-            operation=operation,
-            model=model
-        ).observe(duration)
+        openai_api_latency_seconds.labels(operation=operation, model=model).observe(
+            duration
+        )
 
         openai_api_calls_total.labels(
-            operation=operation,
-            model=model,
-            status=status
+            operation=operation, model=model, status=status
         ).inc()
 
 
 def track_openai_tokens(model: str, prompt_tokens: int, completion_tokens: int):
     """Track OpenAI token usage"""
-    openai_tokens_used.labels(model=model, token_type='prompt').inc(prompt_tokens)
-    openai_tokens_used.labels(model=model, token_type='completion').inc(completion_tokens)
+    openai_tokens_used.labels(model=model, token_type="prompt").inc(prompt_tokens)
+    openai_tokens_used.labels(model=model, token_type="completion").inc(
+        completion_tokens
+    )
 
 
 @contextmanager
 def track_db_query(operation: str):
     """Context manager to track database query"""
     start_time = time.time()
-    status = 'success'
+    status = "success"
 
     try:
         yield
     except Exception:
-        status = 'error'
+        status = "error"
         raise
     finally:
         duration = time.time() - start_time
@@ -512,27 +452,24 @@ def update_cache_hit_ratio(hits: int, total: int):
         cache_hit_ratio.set(ratio)
 
 
-def track_error(error_type: str, severity: str = 'error'):
+def track_error(error_type: str, severity: str = "error"):
     """Track application error"""
     errors_total.labels(error_type=error_type, severity=severity).inc()
 
 
-def track_exception(exception_type: str, endpoint: str = 'unknown'):
+def track_exception(exception_type: str, endpoint: str = "unknown"):
     """Track exception"""
-    exceptions_total.labels(
-        exception_type=exception_type,
-        endpoint=endpoint
-    ).inc()
+    exceptions_total.labels(exception_type=exception_type, endpoint=endpoint).inc()
 
 
 def track_cost(service: str, cost_usd: float):
     """Track service cost"""
-    if service.startswith('aws_'):
+    if service.startswith("aws_"):
         aws_cost_usd.labels(service=service).inc(cost_usd)
-    elif service.startswith('openai_'):
-        parts = service.split('_', 2)
-        model = parts[1] if len(parts) > 1 else 'unknown'
-        operation = parts[2] if len(parts) > 2 else 'unknown'
+    elif service.startswith("openai_"):
+        parts = service.split("_", 2)
+        model = parts[1] if len(parts) > 1 else "unknown"
+        operation = parts[2] if len(parts) > 2 else "unknown"
         openai_cost_usd.labels(model=model, operation=operation).inc(cost_usd)
 
 
@@ -540,12 +477,12 @@ def track_cost(service: str, cost_usd: float):
 def track_agent_execution(agent_type: str):
     """Context manager to track agent execution"""
     start_time = time.time()
-    status = 'success'
+    status = "success"
 
     try:
         yield
     except Exception:
-        status = 'error'
+        status = "error"
         raise
     finally:
         duration = time.time() - start_time
@@ -585,18 +522,20 @@ def track_embedding_generation(model: str, count: int = 1):
 # Decorator for automatic metric tracking
 # ============================================================================
 
+
 def track_endpoint_metrics(endpoint: str):
     """Decorator to automatically track endpoint metrics"""
+
     def decorator(func):
         @wraps(func)
         async def async_wrapper(*args, **kwargs):
-            method = kwargs.get('request', args[0] if args else None)
-            method_name = getattr(method, 'method', 'GET') if method else 'GET'
+            method = kwargs.get("request", args[0] if args else None)
+            method_name = getattr(method, "method", "GET") if method else "GET"
 
             with track_request_duration(method_name, endpoint):
                 try:
                     response = await func(*args, **kwargs)
-                    status_code = getattr(response, 'status_code', 200)
+                    status_code = getattr(response, "status_code", 200)
                     track_http_request(method_name, endpoint, status_code)
                     return response
                 except Exception as e:
@@ -606,13 +545,13 @@ def track_endpoint_metrics(endpoint: str):
 
         @wraps(func)
         def sync_wrapper(*args, **kwargs):
-            method = kwargs.get('request', args[0] if args else None)
-            method_name = getattr(method, 'method', 'GET') if method else 'GET'
+            method = kwargs.get("request", args[0] if args else None)
+            method_name = getattr(method, "method", "GET") if method else "GET"
 
             with track_request_duration(method_name, endpoint):
                 try:
                     response = func(*args, **kwargs)
-                    status_code = getattr(response, 'status_code', 200)
+                    status_code = getattr(response, "status_code", 200)
                     track_http_request(method_name, endpoint, status_code)
                     return response
                 except Exception as e:
@@ -622,6 +561,7 @@ def track_endpoint_metrics(endpoint: str):
 
         # Return appropriate wrapper based on function type
         import asyncio
+
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
         return sync_wrapper
@@ -632,6 +572,7 @@ def track_endpoint_metrics(endpoint: str):
 # ============================================================================
 # System metrics collector
 # ============================================================================
+
 
 def collect_system_metrics():
     """Collect system-level metrics"""
@@ -649,9 +590,9 @@ def collect_system_metrics():
     for partition in psutil.disk_partitions():
         try:
             usage = psutil.disk_usage(partition.mountpoint)
-            system_disk_usage_bytes.labels(
-                mount_point=partition.mountpoint
-            ).set(usage.used)
+            system_disk_usage_bytes.labels(mount_point=partition.mountpoint).set(
+                usage.used
+            )
         except (PermissionError, OSError):
             pass
 

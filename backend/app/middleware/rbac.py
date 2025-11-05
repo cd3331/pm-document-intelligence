@@ -13,8 +13,12 @@ from app.core.database import get_db
 from app.models.user import User
 from app.models.organization import Organization, OrganizationMember, Team, TeamMember
 from app.models.roles import (
-    Role, Permission, RBACService,
-    get_user_role_in_org, check_permission, check_resource_permission
+    Role,
+    Permission,
+    RBACService,
+    get_user_role_in_org,
+    check_permission,
+    check_resource_permission,
 )
 
 
@@ -23,6 +27,7 @@ class OrganizationContext:
     Container for organization context in request
     Automatically injected by middleware
     """
+
     def __init__(
         self,
         organization_id: Optional[uuid.UUID] = None,
@@ -30,7 +35,7 @@ class OrganizationContext:
         member: Optional[OrganizationMember] = None,
         role: Optional[Role] = None,
         team_id: Optional[uuid.UUID] = None,
-        team: Optional[Team] = None
+        team: Optional[Team] = None,
     ):
         self.organization_id = organization_id
         self.organization = organization
@@ -82,7 +87,7 @@ async def get_organization_context(
     request: Request,
     current_user: User,
     db: Session = Depends(get_db),
-    organization_id: Optional[str] = None
+    organization_id: Optional[str] = None,
 ) -> OrganizationContext:
     """
     Dependency to get organization context for current user
@@ -106,69 +111,74 @@ async def get_organization_context(
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid organization ID format"
+                detail="Invalid organization ID format",
             )
 
     # 2. From request state (set by middleware)
-    elif hasattr(request.state, 'organization_id'):
+    elif hasattr(request.state, "organization_id"):
         org_id = request.state.organization_id
 
     # 3. From query parameter
-    elif 'organization_id' in request.query_params:
+    elif "organization_id" in request.query_params:
         try:
-            org_id = uuid.UUID(request.query_params['organization_id'])
+            org_id = uuid.UUID(request.query_params["organization_id"])
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid organization ID in query parameter"
+                detail="Invalid organization ID in query parameter",
             )
 
     # 4. From header
-    elif 'X-Organization-ID' in request.headers:
+    elif "X-Organization-ID" in request.headers:
         try:
-            org_id = uuid.UUID(request.headers['X-Organization-ID'])
+            org_id = uuid.UUID(request.headers["X-Organization-ID"])
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid organization ID in header"
+                detail="Invalid organization ID in header",
             )
 
     if not org_id:
         # Get user's first organization as default
-        user_orgs = db.query(OrganizationMember).filter(
-            OrganizationMember.user_id == current_user.id,
-            OrganizationMember.is_active == True
-        ).first()
+        user_orgs = (
+            db.query(OrganizationMember)
+            .filter(
+                OrganizationMember.user_id == current_user.id,
+                OrganizationMember.is_active == True,
+            )
+            .first()
+        )
 
         if not user_orgs:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="User is not a member of any organization"
+                detail="User is not a member of any organization",
             )
 
         org_id = user_orgs.organization_id
 
     # Get organization and membership
-    organization = db.query(Organization).filter(
-        Organization.id == org_id
-    ).first()
+    organization = db.query(Organization).filter(Organization.id == org_id).first()
 
     if not organization:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Organization not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found"
         )
 
-    member = db.query(OrganizationMember).filter(
-        OrganizationMember.user_id == current_user.id,
-        OrganizationMember.organization_id == org_id,
-        OrganizationMember.is_active == True
-    ).first()
+    member = (
+        db.query(OrganizationMember)
+        .filter(
+            OrganizationMember.user_id == current_user.id,
+            OrganizationMember.organization_id == org_id,
+            OrganizationMember.is_active == True,
+        )
+        .first()
+    )
 
     if not member:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="User is not a member of this organization"
+            detail="User is not a member of this organization",
         )
 
     # Get role
@@ -181,19 +191,20 @@ async def get_organization_context(
     team_id = None
     team = None
 
-    if hasattr(request.state, 'team_id'):
+    if hasattr(request.state, "team_id"):
         team_id = request.state.team_id
-    elif 'team_id' in request.query_params:
+    elif "team_id" in request.query_params:
         try:
-            team_id = uuid.UUID(request.query_params['team_id'])
+            team_id = uuid.UUID(request.query_params["team_id"])
         except ValueError:
             pass
 
     if team_id:
-        team = db.query(Team).filter(
-            Team.id == team_id,
-            Team.organization_id == org_id
-        ).first()
+        team = (
+            db.query(Team)
+            .filter(Team.id == team_id, Team.organization_id == org_id)
+            .first()
+        )
 
     return OrganizationContext(
         organization_id=org_id,
@@ -201,7 +212,7 @@ async def get_organization_context(
         member=member,
         role=role,
         team_id=team_id,
-        team=team
+        team=team,
     )
 
 
@@ -219,26 +230,29 @@ def require_permission(permission: Permission):
         ):
             return {"documents": []}
     """
+
     def decorator(func: Callable):
         @wraps(func)
         async def wrapper(*args, **kwargs):
             # Extract organization context from kwargs
-            org_ctx = kwargs.get('org_ctx')
+            org_ctx = kwargs.get("org_ctx")
             if not org_ctx or not isinstance(org_ctx, OrganizationContext):
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Organization context not found. Ensure get_organization_context dependency is used."
+                    detail="Organization context not found. Ensure get_organization_context dependency is used.",
                 )
 
             # Check permission
             if not org_ctx.has_permission(permission):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"Permission denied: {permission.value} required"
+                    detail=f"Permission denied: {permission.value} required",
                 )
 
             return await func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -252,25 +266,28 @@ def require_any_permission(permissions: List[Permission]):
         async def manage_documents(...):
             pass
     """
+
     def decorator(func: Callable):
         @wraps(func)
         async def wrapper(*args, **kwargs):
-            org_ctx = kwargs.get('org_ctx')
+            org_ctx = kwargs.get("org_ctx")
             if not org_ctx or not isinstance(org_ctx, OrganizationContext):
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Organization context not found"
+                    detail="Organization context not found",
                 )
 
             if not org_ctx.has_any_permission(permissions):
                 perm_str = " or ".join([p.value for p in permissions])
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"Permission denied: One of [{perm_str}] required"
+                    detail=f"Permission denied: One of [{perm_str}] required",
                 )
 
             return await func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -287,25 +304,28 @@ def require_all_permissions(permissions: List[Permission]):
         async def publish_document(...):
             pass
     """
+
     def decorator(func: Callable):
         @wraps(func)
         async def wrapper(*args, **kwargs):
-            org_ctx = kwargs.get('org_ctx')
+            org_ctx = kwargs.get("org_ctx")
             if not org_ctx or not isinstance(org_ctx, OrganizationContext):
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Organization context not found"
+                    detail="Organization context not found",
                 )
 
             if not org_ctx.has_all_permissions(permissions):
                 perm_str = ", ".join([p.value for p in permissions])
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"Permission denied: All of [{perm_str}] required"
+                    detail=f"Permission denied: All of [{perm_str}] required",
                 )
 
             return await func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -319,24 +339,30 @@ def require_role(min_role: Role):
         async def invite_user(...):
             pass
     """
+
     def decorator(func: Callable):
         @wraps(func)
         async def wrapper(*args, **kwargs):
-            org_ctx = kwargs.get('org_ctx')
+            org_ctx = kwargs.get("org_ctx")
             if not org_ctx or not isinstance(org_ctx, OrganizationContext):
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Organization context not found"
+                    detail="Organization context not found",
                 )
 
-            if not org_ctx.role or org_ctx.role.hierarchy_level < min_role.hierarchy_level:
+            if (
+                not org_ctx.role
+                or org_ctx.role.hierarchy_level < min_role.hierarchy_level
+            ):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"Permission denied: {min_role.value} role or higher required"
+                    detail=f"Permission denied: {min_role.value} role or higher required",
                 )
 
             return await func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -350,22 +376,24 @@ def require_org_admin(func: Callable):
         async def update_org_settings(...):
             pass
     """
+
     @wraps(func)
     async def wrapper(*args, **kwargs):
-        org_ctx = kwargs.get('org_ctx')
+        org_ctx = kwargs.get("org_ctx")
         if not org_ctx or not isinstance(org_ctx, OrganizationContext):
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Organization context not found"
+                detail="Organization context not found",
             )
 
         if not org_ctx.is_admin:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Permission denied: Organization admin role required"
+                detail="Permission denied: Organization admin role required",
             )
 
         return await func(*args, **kwargs)
+
     return wrapper
 
 
@@ -379,24 +407,27 @@ def require_org_feature(feature_name: str):
         async def semantic_search(...):
             pass
     """
+
     def decorator(func: Callable):
         @wraps(func)
         async def wrapper(*args, **kwargs):
-            org_ctx = kwargs.get('org_ctx')
+            org_ctx = kwargs.get("org_ctx")
             if not org_ctx or not isinstance(org_ctx, OrganizationContext):
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Organization context not found"
+                    detail="Organization context not found",
                 )
 
             if not org_ctx.organization.has_feature(feature_name):
                 raise HTTPException(
                     status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                    detail=f"Feature '{feature_name}' not available in your plan. Please upgrade."
+                    detail=f"Feature '{feature_name}' not available in your plan. Please upgrade.",
                 )
 
             return await func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -406,7 +437,7 @@ async def check_resource_access(
     resource_id: uuid.UUID,
     permission: Permission,
     org_ctx: OrganizationContext,
-    db: Session
+    db: Session,
 ) -> bool:
     """
     Check if user has access to a specific resource
@@ -447,12 +478,17 @@ async def check_resource_access(
     # Check general permission
     if org_ctx.has_permission(permission):
         # Check if resource belongs to organization
-        if resource_type == 'document':
+        if resource_type == "document":
             from app.models.document import Document
-            resource = db.query(Document).filter(
-                Document.id == resource_id,
-                Document.organization_id == org_ctx.organization_id
-            ).first()
+
+            resource = (
+                db.query(Document)
+                .filter(
+                    Document.id == resource_id,
+                    Document.organization_id == org_ctx.organization_id,
+                )
+                .first()
+            )
 
             if not resource:
                 return False
@@ -471,7 +507,7 @@ async def check_resource_access(
                     resource_type=resource_type,
                     resource_id=resource_id,
                     permission=permission,
-                    db=db
+                    db=db,
                 )
 
             return True
@@ -486,7 +522,7 @@ async def check_resource_access(
         resource_type=resource_type,
         resource_id=resource_id,
         permission=permission,
-        db=db
+        db=db,
     )
 
 
@@ -507,6 +543,7 @@ def require_resource_access(resource_type: str, permission: Permission):
         ):
             pass
     """
+
     def decorator(func: Callable):
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -517,7 +554,7 @@ def require_resource_access(resource_type: str, permission: Permission):
             if not resource_id_str:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Resource ID '{resource_id_key}' not found in request"
+                    detail=f"Resource ID '{resource_id_key}' not found in request",
                 )
 
             try:
@@ -525,18 +562,18 @@ def require_resource_access(resource_type: str, permission: Permission):
             except ValueError:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Invalid {resource_type} ID format"
+                    detail=f"Invalid {resource_type} ID format",
                 )
 
             # Get required dependencies
-            current_user = kwargs.get('current_user')
-            org_ctx = kwargs.get('org_ctx')
-            db = kwargs.get('db')
+            current_user = kwargs.get("current_user")
+            org_ctx = kwargs.get("org_ctx")
+            db = kwargs.get("db")
 
             if not all([current_user, org_ctx, db]):
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Required dependencies not found"
+                    detail="Required dependencies not found",
                 )
 
             # Check access
@@ -546,17 +583,19 @@ def require_resource_access(resource_type: str, permission: Permission):
                 resource_id=resource_id,
                 permission=permission,
                 org_ctx=org_ctx,
-                db=db
+                db=db,
             )
 
             if not has_access:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"Access denied to {resource_type}"
+                    detail=f"Access denied to {resource_type}",
                 )
 
             return await func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -574,49 +613,54 @@ def require_team_membership(func: Callable):
         ):
             pass
     """
+
     @wraps(func)
     async def wrapper(*args, **kwargs):
-        org_ctx = kwargs.get('org_ctx')
-        current_user = kwargs.get('current_user')
-        db = kwargs.get('db')
+        org_ctx = kwargs.get("org_ctx")
+        current_user = kwargs.get("current_user")
+        db = kwargs.get("db")
 
         if not all([org_ctx, current_user, db]):
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Required dependencies not found"
+                detail="Required dependencies not found",
             )
 
         # Get team_id from kwargs or context
-        team_id = kwargs.get('team_id')
+        team_id = kwargs.get("team_id")
         if team_id:
             try:
                 team_id = uuid.UUID(team_id)
             except ValueError:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid team ID format"
+                    detail="Invalid team ID format",
                 )
         elif org_ctx.team_id:
             team_id = org_ctx.team_id
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Team ID not found in request"
+                detail="Team ID not found in request",
             )
 
         # Check team membership
-        membership = db.query(TeamMember).filter(
-            TeamMember.team_id == team_id,
-            TeamMember.user_id == current_user.id
-        ).first()
+        membership = (
+            db.query(TeamMember)
+            .filter(
+                TeamMember.team_id == team_id, TeamMember.user_id == current_user.id
+            )
+            .first()
+        )
 
         if not membership and not org_ctx.is_admin:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="User is not a member of this team"
+                detail="User is not a member of this team",
             )
 
         return await func(*args, **kwargs)
+
     return wrapper
 
 
@@ -633,16 +677,17 @@ def check_quota(quota_name: str):
         ):
             pass
     """
+
     def decorator(func: Callable):
         @wraps(func)
         async def wrapper(*args, **kwargs):
-            org_ctx = kwargs.get('org_ctx')
-            db = kwargs.get('db')
+            org_ctx = kwargs.get("org_ctx")
+            db = kwargs.get("db")
 
             if not all([org_ctx, db]):
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Required dependencies not found"
+                    detail="Required dependencies not found",
                 )
 
             # Get plan limits
@@ -659,21 +704,23 @@ def check_quota(quota_name: str):
 
             # Check current usage (this would need to be implemented in quota_manager)
             from app.services.quota_manager import QuotaManager
+
             quota_manager = QuotaManager(db)
 
             current_usage = await quota_manager.get_current_usage(
-                org_ctx.organization_id,
-                quota_name
+                org_ctx.organization_id, quota_name
             )
 
             if current_usage >= quota_limit:
                 raise HTTPException(
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                    detail=f"Quota exceeded: {quota_name}. Current: {current_usage}, Limit: {quota_limit}. Please upgrade your plan."
+                    detail=f"Quota exceeded: {quota_name}. Current: {current_usage}, Limit: {quota_limit}. Please upgrade your plan.",
                 )
 
             return await func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -683,6 +730,7 @@ class OrganizationContextMiddleware:
     Middleware to automatically inject organization context into request state
     This makes organization context available throughout the request lifecycle
     """
+
     def __init__(self, app):
         self.app = app
 

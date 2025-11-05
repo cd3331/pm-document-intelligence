@@ -48,12 +48,13 @@ logger = get_logger(__name__)
 # Pydantic Models for Tool Parameters
 # ============================================================================
 
+
 class SearchDocumentsParams(BaseModel):
     """Parameters for search_documents tool."""
+
     query: str = Field(..., description="Natural language search query", min_length=3)
     filters: Optional[Dict[str, Any]] = Field(
-        default=None,
-        description="Optional filters (document_type, date_range, etc.)"
+        default=None, description="Optional filters (document_type, date_range, etc.)"
     )
     limit: int = Field(default=10, ge=1, le=50, description="Maximum results to return")
     user_id: str = Field(..., description="User ID for access control")
@@ -61,24 +62,25 @@ class SearchDocumentsParams(BaseModel):
 
 class AnalyzeMetricsParams(BaseModel):
     """Parameters for analyze_metrics tool."""
+
     document_id: str = Field(..., description="Document to analyze")
     metric_types: List[str] = Field(
         default=["numerical", "dates", "percentages"],
-        description="Types of metrics to extract"
+        description="Types of metrics to extract",
     )
     user_id: str = Field(..., description="User ID for access control")
 
 
 class QueryDatabaseParams(BaseModel):
     """Parameters for query_database tool."""
+
     query_type: str = Field(
         ...,
         description="Type of query: documents, action_items, analyses",
-        pattern="^(documents|action_items|analyses|users)$"
+        pattern="^(documents|action_items|analyses|users)$",
     )
     filters: Dict[str, Any] = Field(
-        default_factory=dict,
-        description="Filter conditions"
+        default_factory=dict, description="Filter conditions"
     )
     limit: int = Field(default=20, ge=1, le=100)
     user_id: str = Field(..., description="User ID for access control")
@@ -86,14 +88,12 @@ class QueryDatabaseParams(BaseModel):
 
 class CreateActionItemParams(BaseModel):
     """Parameters for create_action_item tool."""
+
     title: str = Field(..., min_length=3, max_length=200)
     description: str = Field(..., min_length=10, max_length=2000)
     assignee: Optional[str] = Field(None, max_length=100)
     due_date: Optional[str] = Field(None, description="ISO format date")
-    priority: str = Field(
-        default="MEDIUM",
-        pattern="^(LOW|MEDIUM|HIGH|CRITICAL)$"
-    )
+    priority: str = Field(default="MEDIUM", pattern="^(LOW|MEDIUM|HIGH|CRITICAL)$")
     document_id: Optional[str] = None
     user_id: str = Field(..., description="User ID creating the action")
 
@@ -112,6 +112,7 @@ class CreateActionItemParams(BaseModel):
 
 class GetUserContextParams(BaseModel):
     """Parameters for get_user_context tool."""
+
     user_id: str = Field(..., description="User ID to fetch context for")
     include_preferences: bool = Field(default=True)
     include_recent_activity: bool = Field(default=True)
@@ -121,6 +122,7 @@ class GetUserContextParams(BaseModel):
 # ============================================================================
 # Context Management
 # ============================================================================
+
 
 class MCPContext:
     """Manages conversation history and agent state."""
@@ -144,7 +146,7 @@ class MCPContext:
         conversation_id: str,
         role: str,
         content: str,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> None:
         """
         Add message to conversation history.
@@ -162,7 +164,7 @@ class MCPContext:
             "role": role,
             "content": content,
             "timestamp": datetime.utcnow().isoformat(),
-            "metadata": metadata or {}
+            "metadata": metadata or {},
         }
 
         self.conversations[conversation_id].append(message)
@@ -172,7 +174,7 @@ class MCPContext:
             # Keep first message (usually contains important context)
             # and most recent messages
             first_msg = self.conversations[conversation_id][0]
-            recent_msgs = self.conversations[conversation_id][-(self.max_history - 1):]
+            recent_msgs = self.conversations[conversation_id][-(self.max_history - 1) :]
             self.conversations[conversation_id] = [first_msg] + recent_msgs
 
         logger.debug(f"Added message to conversation {conversation_id}")
@@ -187,15 +189,11 @@ class MCPContext:
             del self.conversations[conversation_id]
         logger.info(f"Cleared conversation {conversation_id}")
 
-    def set_agent_state(
-        self,
-        agent_id: str,
-        state: Dict[str, Any]
-    ) -> None:
+    def set_agent_state(self, agent_id: str, state: Dict[str, Any]) -> None:
         """Set agent state."""
         self.agent_state[agent_id] = {
             **state,
-            "updated_at": datetime.utcnow().isoformat()
+            "updated_at": datetime.utcnow().isoformat(),
         }
 
     def get_agent_state(self, agent_id: str) -> Dict[str, Any]:
@@ -223,6 +221,7 @@ class MCPContext:
 # MCP Server Implementation
 # ============================================================================
 
+
 class PMIntelligenceMCP:
     """MCP Server for PM Document Intelligence."""
 
@@ -249,7 +248,7 @@ class PMIntelligenceMCP:
         query: str,
         filters: Optional[Dict[str, Any]] = None,
         limit: int = 10,
-        user_id: str = None
+        user_id: str = None,
     ) -> Dict[str, Any]:
         """
         Search documents using semantic search.
@@ -277,10 +276,7 @@ class PMIntelligenceMCP:
         try:
             # Validate parameters
             params = SearchDocumentsParams(
-                query=query,
-                filters=filters,
-                limit=limit,
-                user_id=user_id
+                query=query, filters=filters, limit=limit, user_id=user_id
             )
 
             logger.info(f"MCP Tool: search_documents - query='{query[:50]}...'")
@@ -291,31 +287,30 @@ class PMIntelligenceMCP:
                 user_id=params.user_id,
                 limit=params.limit,
                 similarity_threshold=0.7,
-                use_cache=True
+                use_cache=True,
             )
 
             # Apply additional filters if provided
             filtered_results = search_results["results"]
             if params.filters:
-                filtered_results = self._apply_filters(
-                    filtered_results,
-                    params.filters
-                )
+                filtered_results = self._apply_filters(filtered_results, params.filters)
 
             # Format for Claude
             formatted_results = []
-            for result in filtered_results[:params.limit]:
-                formatted_results.append({
-                    "document_id": result["document_id"],
-                    "filename": result["filename"],
-                    "snippet": result["matched_chunk"]["text"][:500],
-                    "relevance_score": result["similarity_score"],
-                    "metadata": {
-                        "document_type": result.get("document_type"),
-                        "created_at": result.get("created_at"),
-                        "chunk_index": result["matched_chunk"]["chunk_index"]
+            for result in filtered_results[: params.limit]:
+                formatted_results.append(
+                    {
+                        "document_id": result["document_id"],
+                        "filename": result["filename"],
+                        "snippet": result["matched_chunk"]["text"][:500],
+                        "relevance_score": result["similarity_score"],
+                        "metadata": {
+                            "document_type": result.get("document_type"),
+                            "created_at": result.get("created_at"),
+                            "chunk_index": result["matched_chunk"]["chunk_index"],
+                        },
                     }
-                })
+                )
 
             self.context.record_tool_usage("search_documents")
 
@@ -327,22 +322,15 @@ class PMIntelligenceMCP:
                 "search_metadata": {
                     "timestamp": datetime.utcnow().isoformat(),
                     "filters_applied": params.filters or {},
-                }
+                },
             }
 
         except Exception as e:
             logger.error(f"search_documents failed: {e}", exc_info=True)
-            return {
-                "success": False,
-                "error": str(e),
-                "tool": "search_documents"
-            }
+            return {"success": False, "error": str(e), "tool": "search_documents"}
 
     async def analyze_metrics(
-        self,
-        document_id: str,
-        metric_types: List[str] = None,
-        user_id: str = None
+        self, document_id: str, metric_types: List[str] = None, user_id: str = None
     ) -> Dict[str, Any]:
         """
         Extract and analyze quantitative metrics from documents.
@@ -369,7 +357,7 @@ class PMIntelligenceMCP:
             params = AnalyzeMetricsParams(
                 document_id=document_id,
                 metric_types=metric_types or ["numerical", "dates", "percentages"],
-                user_id=user_id
+                user_id=user_id,
             )
 
             logger.info(f"MCP Tool: analyze_metrics - doc={document_id}")
@@ -378,7 +366,7 @@ class PMIntelligenceMCP:
             documents = await execute_select(
                 "documents",
                 columns="extracted_text, filename, document_type",
-                match={"id": params.document_id, "user_id": params.user_id}
+                match={"id": params.document_id, "user_id": params.user_id},
             )
 
             if not documents:
@@ -414,24 +402,20 @@ class PMIntelligenceMCP:
                 "metrics": metrics,
                 "summary": {
                     "total_metrics_found": sum(len(v) for v in metrics.values()),
-                    "metric_types": list(metrics.keys())
-                }
+                    "metric_types": list(metrics.keys()),
+                },
             }
 
         except Exception as e:
             logger.error(f"analyze_metrics failed: {e}", exc_info=True)
-            return {
-                "success": False,
-                "error": str(e),
-                "tool": "analyze_metrics"
-            }
+            return {"success": False, "error": str(e), "tool": "analyze_metrics"}
 
     async def query_database(
         self,
         query_type: str,
         filters: Dict[str, Any] = None,
         limit: int = 20,
-        user_id: str = None
+        user_id: str = None,
     ) -> Dict[str, Any]:
         """
         Safe database queries for data retrieval.
@@ -461,7 +445,7 @@ class PMIntelligenceMCP:
                 query_type=query_type,
                 filters=filters or {},
                 limit=limit,
-                user_id=user_id
+                user_id=user_id,
             )
 
             logger.info(f"MCP Tool: query_database - type={query_type}")
@@ -481,14 +465,12 @@ class PMIntelligenceMCP:
             # Build safe filter (user_id always enforced)
             safe_filters = {
                 "user_id": params.user_id,
-                **self._sanitize_filters(params.filters)
+                **self._sanitize_filters(params.filters),
             }
 
             # Execute query
             results = await execute_select(
-                table,
-                match=safe_filters,
-                limit=params.limit
+                table, match=safe_filters, limit=params.limit
             )
 
             self.context.record_tool_usage("query_database")
@@ -498,16 +480,12 @@ class PMIntelligenceMCP:
                 "query_type": params.query_type,
                 "total_results": len(results),
                 "results": results,
-                "filters_applied": safe_filters
+                "filters_applied": safe_filters,
             }
 
         except Exception as e:
             logger.error(f"query_database failed: {e}", exc_info=True)
-            return {
-                "success": False,
-                "error": str(e),
-                "tool": "query_database"
-            }
+            return {"success": False, "error": str(e), "tool": "query_database"}
 
     async def create_action_item(
         self,
@@ -517,7 +495,7 @@ class PMIntelligenceMCP:
         due_date: Optional[str] = None,
         priority: str = "MEDIUM",
         document_id: Optional[str] = None,
-        user_id: str = None
+        user_id: str = None,
     ) -> Dict[str, Any]:
         """
         Create new action items in the system.
@@ -555,7 +533,7 @@ class PMIntelligenceMCP:
                 due_date=due_date,
                 priority=priority,
                 document_id=document_id,
-                user_id=user_id
+                user_id=user_id,
             )
 
             logger.info(f"MCP Tool: create_action_item - title='{title}'")
@@ -571,14 +549,11 @@ class PMIntelligenceMCP:
                 "document_id": params.document_id,
                 "user_id": params.user_id,
                 "created_at": datetime.utcnow().isoformat(),
-                "created_via": "mcp_tool"
+                "created_via": "mcp_tool",
             }
 
             # Insert into database
-            result = await execute_insert(
-                "action_items",
-                action_item
-            )
+            result = await execute_insert("action_items", action_item)
 
             self.context.record_tool_usage("create_action_item")
 
@@ -586,23 +561,19 @@ class PMIntelligenceMCP:
                 "success": True,
                 "action_item_id": result.get("id"),
                 "action_item": action_item,
-                "message": f"Action item '{title}' created successfully"
+                "message": f"Action item '{title}' created successfully",
             }
 
         except Exception as e:
             logger.error(f"create_action_item failed: {e}", exc_info=True)
-            return {
-                "success": False,
-                "error": str(e),
-                "tool": "create_action_item"
-            }
+            return {"success": False, "error": str(e), "tool": "create_action_item"}
 
     async def get_user_context(
         self,
         user_id: str,
         include_preferences: bool = True,
         include_recent_activity: bool = True,
-        activity_days: int = 30
+        activity_days: int = 30,
     ) -> Dict[str, Any]:
         """
         Retrieve user preferences and history for personalization.
@@ -632,7 +603,7 @@ class PMIntelligenceMCP:
                 user_id=user_id,
                 include_preferences=include_preferences,
                 include_recent_activity=include_recent_activity,
-                activity_days=activity_days
+                activity_days=activity_days,
             )
 
             logger.info(f"MCP Tool: get_user_context - user={user_id}")
@@ -643,7 +614,7 @@ class PMIntelligenceMCP:
             users = await execute_select(
                 "users",
                 columns="id, email, username, role, created_at",
-                match={"id": params.user_id}
+                match={"id": params.user_id},
             )
 
             if not users:
@@ -654,8 +625,7 @@ class PMIntelligenceMCP:
             # Get preferences
             if params.include_preferences:
                 preferences = await execute_select(
-                    "user_preferences",
-                    match={"user_id": params.user_id}
+                    "user_preferences", match={"user_id": params.user_id}
                 )
                 context["preferences"] = preferences[0] if preferences else {}
 
@@ -668,7 +638,7 @@ class PMIntelligenceMCP:
                     "documents",
                     columns="id, filename, document_type, created_at",
                     match={"user_id": params.user_id},
-                    limit=10
+                    limit=10,
                 )
 
                 # Recent searches (from audit log if available)
@@ -676,7 +646,7 @@ class PMIntelligenceMCP:
 
                 context["recent_activity"] = {
                     "recent_documents": recent_docs,
-                    "activity_period_days": params.activity_days
+                    "activity_period_days": params.activity_days,
                 }
 
             self.context.record_tool_usage("get_user_context")
@@ -684,26 +654,18 @@ class PMIntelligenceMCP:
             return {
                 "success": True,
                 "context": context,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.utcnow().isoformat(),
             }
 
         except Exception as e:
             logger.error(f"get_user_context failed: {e}", exc_info=True)
-            return {
-                "success": False,
-                "error": str(e),
-                "tool": "get_user_context"
-            }
+            return {"success": False, "error": str(e), "tool": "get_user_context"}
 
     # ========================================================================
     # Resource Handlers
     # ========================================================================
 
-    async def get_document_resource(
-        self,
-        uri: str,
-        user_id: str
-    ) -> Dict[str, Any]:
+    async def get_document_resource(self, uri: str, user_id: str) -> Dict[str, Any]:
         """
         Get document resource by URI.
 
@@ -728,8 +690,7 @@ class PMIntelligenceMCP:
 
             # Get document with access control
             documents = await execute_select(
-                "documents",
-                match={"id": document_id, "user_id": user_id}
+                "documents", match={"id": document_id, "user_id": user_id}
             )
 
             if not documents:
@@ -745,26 +706,20 @@ class PMIntelligenceMCP:
                     "document_type": document.get("document_type"),
                     "status": document.get("processing_status"),
                     "created_at": document.get("created_at"),
-                    "file_size": document.get("file_size")
+                    "file_size": document.get("file_size"),
                 },
                 "access_control": {
                     "owner": user_id,
-                    "permissions": ["read", "write", "delete"]
-                }
+                    "permissions": ["read", "write", "delete"],
+                },
             }
 
         except Exception as e:
             logger.error(f"get_document_resource failed: {e}", exc_info=True)
-            return {
-                "success": False,
-                "error": str(e),
-                "uri": uri
-            }
+            return {"success": False, "error": str(e), "uri": uri}
 
     async def get_user_resource(
-        self,
-        uri: str,
-        requesting_user_id: str
+        self, uri: str, requesting_user_id: str
     ) -> Dict[str, Any]:
         """
         Get user resource by URI.
@@ -795,7 +750,7 @@ class PMIntelligenceMCP:
             users = await execute_select(
                 "users",
                 columns="id, email, username, role, created_at",
-                match={"id": user_id}
+                match={"id": user_id},
             )
 
             if not users:
@@ -805,8 +760,7 @@ class PMIntelligenceMCP:
 
             # Get preferences
             preferences = await execute_select(
-                "user_preferences",
-                match={"user_id": user_id}
+                "user_preferences", match={"user_id": user_id}
             )
 
             return {
@@ -814,25 +768,21 @@ class PMIntelligenceMCP:
                 "type": "user",
                 "data": {
                     "profile": user,
-                    "preferences": preferences[0] if preferences else {}
+                    "preferences": preferences[0] if preferences else {},
                 },
                 "metadata": {
                     "role": user.get("role"),
-                    "member_since": user.get("created_at")
+                    "member_since": user.get("created_at"),
                 },
                 "privacy": {
                     "email_visible": False,  # Controlled by privacy settings
-                    "activity_visible": True
-                }
+                    "activity_visible": True,
+                },
             }
 
         except Exception as e:
             logger.error(f"get_user_resource failed: {e}", exc_info=True)
-            return {
-                "success": False,
-                "error": str(e),
-                "uri": uri
-            }
+            return {"success": False, "error": str(e), "uri": uri}
 
     # ========================================================================
     # Prompt Templates
@@ -867,7 +817,6 @@ Please provide:
 6. Opportunities
 
 Be specific and reference exact details from the document. Focus on actionable insights for project managers.""",
-
             "action_item_extraction_prompt": """Extract action items from this document:
 
 Document: {document_name}
@@ -884,7 +833,6 @@ For each action item, identify:
 - Dependencies: Other items that must be completed first
 
 Return a structured list of all action items found.""",
-
             "executive_summary_prompt": """Create an executive summary for this document:
 
 Document: {document_name}
@@ -901,7 +849,6 @@ Create a {length} summary suitable for {audience}. Focus on:
 - Budget or timeline implications
 
 Use clear, concise language appropriate for busy executives.""",
-
             "qa_with_context_prompt": """Answer the following question using the provided document context.
 
 Question: {question}
@@ -914,7 +861,7 @@ Previous Conversation:
 
 Please answer the question based on the context provided. If the information isn't available in the context, clearly state that. Cite specific parts of the documents when possible using [Document: filename] format.
 
-Be concise but thorough. If the question relates to previous conversation, maintain context continuity."""
+Be concise but thorough. If the question relates to previous conversation, maintain context continuity.""",
         }
 
         template = templates.get(template_name)
@@ -931,16 +878,15 @@ Be concise but thorough. If the question relates to previous conversation, maint
     # ========================================================================
 
     def _apply_filters(
-        self,
-        results: List[Dict[str, Any]],
-        filters: Dict[str, Any]
+        self, results: List[Dict[str, Any]], filters: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
         """Apply additional filters to search results."""
         filtered = results
 
         if "document_type" in filters:
             filtered = [
-                r for r in filtered
+                r
+                for r in filtered
                 if r.get("document_type") == filters["document_type"]
             ]
 
@@ -949,17 +895,15 @@ Be concise but thorough. If the question relates to previous conversation, maint
             end = filters["date_range"].get("end")
             # Filter by date range
             filtered = [
-                r for r in filtered
+                r
+                for r in filtered
                 if self._in_date_range(r.get("created_at"), start, end)
             ]
 
         return filtered
 
     def _in_date_range(
-        self,
-        date_str: Optional[str],
-        start: Optional[str],
-        end: Optional[str]
+        self, date_str: Optional[str], start: Optional[str], end: Optional[str]
     ) -> bool:
         """Check if date is in range."""
         if not date_str:
@@ -984,8 +928,12 @@ Be concise but thorough. If the question relates to previous conversation, maint
         safe_filters = {}
 
         allowed_fields = {
-            "document_type", "status", "priority", "processing_status",
-            "created_at", "updated_at"
+            "document_type",
+            "status",
+            "priority",
+            "processing_status",
+            "created_at",
+            "updated_at",
         }
 
         for key, value in filters.items():
@@ -1002,7 +950,7 @@ Be concise but thorough. If the question relates to previous conversation, maint
 
     def _extract_numerical_metrics(self, text: str) -> List[Dict[str, Any]]:
         """Extract numerical metrics with context."""
-        pattern = r'(\d+(?:,\d{3})*(?:\.\d+)?)\s*([A-Za-z%]*)'
+        pattern = r"(\d+(?:,\d{3})*(?:\.\d+)?)\s*([A-Za-z%]*)"
         matches = re.finditer(pattern, text)
 
         metrics = []
@@ -1017,12 +965,14 @@ Be concise but thorough. If the question relates to previous conversation, maint
 
             try:
                 value = float(number)
-                metrics.append({
-                    "value": value,
-                    "unit": unit or "count",
-                    "context": context.strip(),
-                    "position": match.start()
-                })
+                metrics.append(
+                    {
+                        "value": value,
+                        "unit": unit or "count",
+                        "context": context.strip(),
+                        "position": match.start(),
+                    }
+                )
             except ValueError:
                 continue
 
@@ -1030,7 +980,7 @@ Be concise but thorough. If the question relates to previous conversation, maint
 
     def _extract_percentages(self, text: str) -> List[Dict[str, Any]]:
         """Extract percentage values."""
-        pattern = r'(\d+(?:\.\d+)?)\s*%'
+        pattern = r"(\d+(?:\.\d+)?)\s*%"
         matches = re.finditer(pattern, text)
 
         percentages = []
@@ -1040,11 +990,9 @@ Be concise but thorough. If the question relates to previous conversation, maint
             end = min(len(text), match.end() + 50)
             context = text[start:end]
 
-            percentages.append({
-                "value": value,
-                "context": context.strip(),
-                "position": match.start()
-            })
+            percentages.append(
+                {"value": value, "context": context.strip(), "position": match.start()}
+            )
 
         return percentages
 
@@ -1052,9 +1000,9 @@ Be concise but thorough. If the question relates to previous conversation, maint
         """Extract dates and deadlines."""
         # Match various date formats
         patterns = [
-            r'\d{4}-\d{2}-\d{2}',  # ISO format
-            r'\d{1,2}/\d{1,2}/\d{4}',  # MM/DD/YYYY
-            r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{1,2},? \d{4}',  # Month DD, YYYY
+            r"\d{4}-\d{2}-\d{2}",  # ISO format
+            r"\d{1,2}/\d{1,2}/\d{4}",  # MM/DD/YYYY
+            r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{1,2},? \d{4}",  # Month DD, YYYY
         ]
 
         dates = []
@@ -1065,17 +1013,19 @@ Be concise but thorough. If the question relates to previous conversation, maint
                 end = min(len(text), match.end() + 50)
                 context = text[start:end]
 
-                dates.append({
-                    "date": match.group(0),
-                    "context": context.strip(),
-                    "position": match.start()
-                })
+                dates.append(
+                    {
+                        "date": match.group(0),
+                        "context": context.strip(),
+                        "position": match.start(),
+                    }
+                )
 
         return dates
 
     def _extract_currency(self, text: str) -> List[Dict[str, Any]]:
         """Extract monetary values."""
-        pattern = r'[$€£¥]\s*(\d+(?:,\d{3})*(?:\.\d{2})?)'
+        pattern = r"[$€£¥]\s*(\d+(?:,\d{3})*(?:\.\d{2})?)"
         matches = re.finditer(pattern, text)
 
         currency = []
@@ -1087,12 +1037,14 @@ Be concise but thorough. If the question relates to previous conversation, maint
 
             try:
                 value = float(amount)
-                currency.append({
-                    "amount": value,
-                    "currency_symbol": match.group(0)[0],
-                    "context": context.strip(),
-                    "position": match.start()
-                })
+                currency.append(
+                    {
+                        "amount": value,
+                        "currency_symbol": match.group(0)[0],
+                        "context": context.strip(),
+                        "position": match.start(),
+                    }
+                )
             except ValueError:
                 continue
 
@@ -1109,32 +1061,32 @@ Be concise but thorough. If the question relates to previous conversation, maint
                 "name": "search_documents",
                 "description": "Search documents using natural language queries. Returns relevant documents with snippets.",
                 "parameters": SearchDocumentsParams.schema(),
-                "handler": self.search_documents
+                "handler": self.search_documents,
             },
             {
                 "name": "analyze_metrics",
                 "description": "Extract and analyze quantitative metrics (numbers, percentages, dates) from documents.",
                 "parameters": AnalyzeMetricsParams.schema(),
-                "handler": self.analyze_metrics
+                "handler": self.analyze_metrics,
             },
             {
                 "name": "query_database",
                 "description": "Query database for documents, action items, or analyses with filters.",
                 "parameters": QueryDatabaseParams.schema(),
-                "handler": self.query_database
+                "handler": self.query_database,
             },
             {
                 "name": "create_action_item",
                 "description": "Create a new action item with title, description, assignee, and due date.",
                 "parameters": CreateActionItemParams.schema(),
-                "handler": self.create_action_item
+                "handler": self.create_action_item,
             },
             {
                 "name": "get_user_context",
                 "description": "Retrieve user preferences and recent activity for personalized responses.",
                 "parameters": GetUserContextParams.schema(),
-                "handler": self.get_user_context
-            }
+                "handler": self.get_user_context,
+            },
         ]
 
         for tool in tools:
@@ -1146,7 +1098,7 @@ Be concise but thorough. If the question relates to previous conversation, maint
         """Register resource handlers."""
         self.resource_handlers = {
             "doc": self.get_document_resource,
-            "user": self.get_user_resource
+            "user": self.get_user_resource,
         }
 
         logger.info("Registered MCP resource handlers: doc://, user://")
@@ -1157,7 +1109,7 @@ Be concise but thorough. If the question relates to previous conversation, maint
             "document_analysis_prompt",
             "action_item_extraction_prompt",
             "executive_summary_prompt",
-            "qa_with_context_prompt"
+            "qa_with_context_prompt",
         ]
 
         self.prompts = {name: name for name in prompt_names}
@@ -1168,9 +1120,7 @@ Be concise but thorough. If the question relates to previous conversation, maint
     # ========================================================================
 
     async def call_tool(
-        self,
-        tool_name: str,
-        parameters: Dict[str, Any]
+        self, tool_name: str, parameters: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Call an MCP tool.
@@ -1197,7 +1147,7 @@ Be concise but thorough. If the question relates to previous conversation, maint
 
             logger.info(
                 f"MCP tool '{tool_name}' completed",
-                extra={"duration": duration, "success": result.get("success", True)}
+                extra={"duration": duration, "success": result.get("success", True)},
             )
 
             return result
@@ -1206,11 +1156,7 @@ Be concise but thorough. If the question relates to previous conversation, maint
             logger.error(f"MCP tool '{tool_name}' failed: {e}", exc_info=True)
             raise
 
-    async def get_resource(
-        self,
-        uri: str,
-        user_id: str
-    ) -> Dict[str, Any]:
+    async def get_resource(self, uri: str, user_id: str) -> Dict[str, Any]:
         """
         Get resource by URI.
 
@@ -1236,7 +1182,7 @@ Be concise but thorough. If the question relates to previous conversation, maint
             {
                 "name": name,
                 "description": tool["description"],
-                "parameters": tool["parameters"]
+                "parameters": tool["parameters"],
             }
             for name, tool in self.tools.items()
         ]
@@ -1247,7 +1193,7 @@ Be concise but thorough. If the question relates to previous conversation, maint
             {
                 "scheme": scheme,
                 "description": f"Access {scheme} resources",
-                "uri_format": f"{scheme}://{{id}}"
+                "uri_format": f"{scheme}://{{id}}",
             }
             for scheme in self.resource_handlers.keys()
         ]

@@ -17,6 +17,7 @@ from app.services.audit_logger import AuditLogger
 
 class QuotaExceededException(Exception):
     """Raised when quota limit is exceeded"""
+
     def __init__(self, quota_name: str, current: int, limit: int, message: str = None):
         self.quota_name = quota_name
         self.current = current
@@ -27,6 +28,7 @@ class QuotaExceededException(Exception):
 
 class QuotaWarning:
     """Container for quota warning information"""
+
     def __init__(self, quota_name: str, current: int, limit: int, percentage: float):
         self.quota_name = quota_name
         self.current = current
@@ -95,10 +97,14 @@ class QuotaManager:
         """
         period_start, period_end = self.get_current_period()
 
-        usage = self.db.query(OrganizationUsage).filter(
-            OrganizationUsage.organization_id == organization_id,
-            OrganizationUsage.period_start == period_start
-        ).first()
+        usage = (
+            self.db.query(OrganizationUsage)
+            .filter(
+                OrganizationUsage.organization_id == organization_id,
+                OrganizationUsage.period_start == period_start,
+            )
+            .first()
+        )
 
         if not usage:
             usage = OrganizationUsage(
@@ -110,7 +116,7 @@ class QuotaManager:
                 ai_queries=0,
                 storage_used_bytes=0,
                 total_cost=0,
-                usage_details={}
+                usage_details={},
             )
             self.db.add(usage)
             self.db.commit()
@@ -140,10 +146,15 @@ class QuotaManager:
 
         # Count active users
         from app.models.organization import OrganizationMember
-        user_count = self.db.query(func.count(OrganizationMember.id)).filter(
-            OrganizationMember.organization_id == organization_id,
-            OrganizationMember.is_active == True
-        ).scalar()
+
+        user_count = (
+            self.db.query(func.count(OrganizationMember.id))
+            .filter(
+                OrganizationMember.organization_id == organization_id,
+                OrganizationMember.is_active == True,
+            )
+            .scalar()
+        )
 
         return {
             "documents_created": usage.documents_created,
@@ -153,7 +164,7 @@ class QuotaManager:
             "storage_used_gb": round(usage.storage_used_gb, 2),
             "storage_used_bytes": usage.storage_used_bytes,
             "users": user_count,
-            "total_cost_cents": usage.total_cost
+            "total_cost_cents": usage.total_cost,
         }
 
     async def _get_api_calls_today(self, organization_id: uuid.UUID) -> int:
@@ -196,16 +207,24 @@ class QuotaManager:
 
         elif quota_name == "users":
             from app.models.organization import OrganizationMember
-            return self.db.query(func.count(OrganizationMember.id)).filter(
-                OrganizationMember.organization_id == organization_id,
-                OrganizationMember.is_active == True
-            ).scalar()
+
+            return (
+                self.db.query(func.count(OrganizationMember.id))
+                .filter(
+                    OrganizationMember.organization_id == organization_id,
+                    OrganizationMember.is_active == True,
+                )
+                .scalar()
+            )
 
         elif quota_name == "teams":
             from app.models.organization import Team
-            return self.db.query(func.count(Team.id)).filter(
-                Team.organization_id == organization_id
-            ).scalar()
+
+            return (
+                self.db.query(func.count(Team.id))
+                .filter(Team.organization_id == organization_id)
+                .scalar()
+            )
 
         return 0
 
@@ -229,9 +248,11 @@ class QuotaManager:
             - (True, None) if quota available
             - (False, error_message) if quota exceeded
         """
-        organization = self.db.query(Organization).filter(
-            Organization.id == organization_id
-        ).first()
+        organization = (
+            self.db.query(Organization)
+            .filter(Organization.id == organization_id)
+            .first()
+        )
 
         if not organization:
             return False, "Organization not found"
@@ -283,16 +304,15 @@ class QuotaManager:
 
         if not has_quota:
             current = await self.get_current_usage(organization_id, quota_name)
-            organization = self.db.query(Organization).filter(
-                Organization.id == organization_id
-            ).first()
+            organization = (
+                self.db.query(Organization)
+                .filter(Organization.id == organization_id)
+                .first()
+            )
             limit = organization.get_plan_limits().get(quota_name, 0)
 
             raise QuotaExceededException(
-                quota_name=quota_name,
-                current=current,
-                limit=limit,
-                message=error_msg
+                quota_name=quota_name, current=current, limit=limit, message=error_msg
             )
 
     # ============================================================================
@@ -318,9 +338,7 @@ class QuotaManager:
         # Check for warnings
         await self._check_and_notify_warnings(organization_id, "documents_per_month")
 
-    async def increment_api_calls(
-        self, organization_id: uuid.UUID, count: int = 1
-    ):
+    async def increment_api_calls(self, organization_id: uuid.UUID, count: int = 1):
         """
         Increment API call count for today
         Checks daily quota
@@ -340,7 +358,9 @@ class QuotaManager:
         if "daily_api_calls" not in details:
             details["daily_api_calls"] = {}
 
-        details["daily_api_calls"][today_key] = details["daily_api_calls"].get(today_key, 0) + count
+        details["daily_api_calls"][today_key] = (
+            details["daily_api_calls"].get(today_key, 0) + count
+        )
         usage.usage_details = details
 
         self.db.commit()
@@ -348,9 +368,7 @@ class QuotaManager:
         # Check for warnings
         await self._check_and_notify_warnings(organization_id, "api_calls_per_day")
 
-    async def increment_ai_queries(
-        self, organization_id: uuid.UUID, count: int = 1
-    ):
+    async def increment_ai_queries(self, organization_id: uuid.UUID, count: int = 1):
         """
         Increment AI query count
 
@@ -365,9 +383,7 @@ class QuotaManager:
 
         await self._check_and_notify_warnings(organization_id, "ai_queries_per_month")
 
-    async def update_storage_usage(
-        self, organization_id: uuid.UUID, bytes_delta: int
-    ):
+    async def update_storage_usage(self, organization_id: uuid.UUID, bytes_delta: int):
         """
         Update storage usage (can be positive or negative)
 
@@ -383,10 +399,12 @@ class QuotaManager:
 
         # Check quota if increasing
         if bytes_delta > 0:
-            new_gb = new_storage / (1024 ** 3)
-            organization = self.db.query(Organization).filter(
-                Organization.id == organization_id
-            ).first()
+            new_gb = new_storage / (1024**3)
+            organization = (
+                self.db.query(Organization)
+                .filter(Organization.id == organization_id)
+                .first()
+            )
             limits = organization.get_plan_limits()
             storage_limit_gb = limits.get("storage_gb", 0)
 
@@ -395,7 +413,7 @@ class QuotaManager:
                     quota_name="storage_gb",
                     current=int(usage.storage_used_gb),
                     limit=storage_limit_gb,
-                    message=f"Storage quota exceeded. Current: {usage.storage_used_gb:.2f} GB, Limit: {storage_limit_gb} GB"
+                    message=f"Storage quota exceeded. Current: {usage.storage_used_gb:.2f} GB, Limit: {storage_limit_gb} GB",
                 )
 
         usage.storage_used_bytes = new_storage
@@ -404,7 +422,10 @@ class QuotaManager:
         await self._check_and_notify_warnings(organization_id, "storage_gb")
 
     async def add_cost(
-        self, organization_id: uuid.UUID, cost_cents: int, details: Optional[dict] = None
+        self,
+        organization_id: uuid.UUID,
+        cost_cents: int,
+        details: Optional[dict] = None,
     ):
         """
         Add cost to organization usage tracking
@@ -421,11 +442,13 @@ class QuotaManager:
             usage_details = usage.usage_details or {}
             if "cost_breakdown" not in usage_details:
                 usage_details["cost_breakdown"] = []
-            usage_details["cost_breakdown"].append({
-                "timestamp": datetime.utcnow().isoformat(),
-                "amount_cents": cost_cents,
-                **details
-            })
+            usage_details["cost_breakdown"].append(
+                {
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "amount_cents": cost_cents,
+                    **details,
+                }
+            )
             usage.usage_details = usage_details
 
         self.db.commit()
@@ -442,9 +465,11 @@ class QuotaManager:
 
         Sends notifications at 70%, 80%, 95% thresholds
         """
-        organization = self.db.query(Organization).filter(
-            Organization.id == organization_id
-        ).first()
+        organization = (
+            self.db.query(Organization)
+            .filter(Organization.id == organization_id)
+            .first()
+        )
 
         limits = organization.get_plan_limits()
         quota_limit = limits.get(quota_name)
@@ -473,11 +498,17 @@ class QuotaManager:
         from app.models.organization import OrganizationMember
         from app.models.roles import Role
 
-        admins = self.db.query(OrganizationMember).filter(
-            OrganizationMember.organization_id == organization.id,
-            OrganizationMember.role.in_([Role.ORG_ADMIN.value, Role.SUPER_ADMIN.value]),
-            OrganizationMember.is_active == True
-        ).all()
+        admins = (
+            self.db.query(OrganizationMember)
+            .filter(
+                OrganizationMember.organization_id == organization.id,
+                OrganizationMember.role.in_(
+                    [Role.ORG_ADMIN.value, Role.SUPER_ADMIN.value]
+                ),
+                OrganizationMember.is_active == True,
+            )
+            .all()
+        )
 
         # Log audit event
         audit_logger = AuditLogger(self.db)
@@ -493,8 +524,8 @@ class QuotaManager:
                     "current": warning.current,
                     "limit": warning.limit,
                     "percentage": warning.percentage,
-                    "warning_level": warning.warning_level
-                }
+                    "warning_level": warning.warning_level,
+                },
             )
 
         # TODO: Send email notification
@@ -513,9 +544,11 @@ class QuotaManager:
         Returns:
             List of QuotaWarning objects for quotas above threshold
         """
-        organization = self.db.query(Organization).filter(
-            Organization.id == organization_id
-        ).first()
+        organization = (
+            self.db.query(Organization)
+            .filter(Organization.id == organization_id)
+            .first()
+        )
 
         if not organization:
             return []
@@ -526,7 +559,9 @@ class QuotaManager:
         # Check each quota
         for quota_name, quota_limit in limits.items():
             if isinstance(quota_limit, int) and quota_limit > 0:
-                current_usage = await self.get_current_usage(organization_id, quota_name)
+                current_usage = await self.get_current_usage(
+                    organization_id, quota_name
+                )
                 percentage = (current_usage / quota_limit) * 100
 
                 if percentage >= 70:  # Threshold for warnings
@@ -561,9 +596,11 @@ class QuotaManager:
                 "exceeded": [...]
             }
         """
-        organization = self.db.query(Organization).filter(
-            Organization.id == organization_id
-        ).first()
+        organization = (
+            self.db.query(Organization)
+            .filter(Organization.id == organization_id)
+            .first()
+        )
 
         if not organization:
             return {}
@@ -577,7 +614,7 @@ class QuotaManager:
             "api_calls_per_day": "api_calls_today",
             "ai_queries_per_month": "ai_queries",
             "storage_gb": "storage_used_gb",
-            "users": "users"
+            "users": "users",
         }
 
         quotas = {}
@@ -596,7 +633,7 @@ class QuotaManager:
             quota_info = {
                 "current": current,
                 "limit": limit if limit != -1 else "unlimited",
-                "available": limit - current if limit != -1 else "unlimited"
+                "available": limit - current if limit != -1 else "unlimited",
             }
 
             if limit > 0:
@@ -620,12 +657,12 @@ class QuotaManager:
                     "level": w.warning_level,
                     "percentage": round(w.percentage, 1),
                     "current": w.current,
-                    "limit": w.limit
+                    "limit": w.limit,
                 }
                 for w in warnings
             ],
             "exceeded": exceeded,
-            "features": limits.get("features", {})
+            "features": limits.get("features", {}),
         }
 
     async def can_upgrade(self, organization_id: uuid.UUID) -> Dict[str, Any]:
@@ -641,9 +678,11 @@ class QuotaManager:
                 "benefits": {...}
             }
         """
-        organization = self.db.query(Organization).filter(
-            Organization.id == organization_id
-        ).first()
+        organization = (
+            self.db.query(Organization)
+            .filter(Organization.id == organization_id)
+            .first()
+        )
 
         if not organization:
             return {"can_upgrade": False}
@@ -661,7 +700,7 @@ class QuotaManager:
             return {
                 "can_upgrade": False,
                 "current_plan": current_plan.value,
-                "message": "You are already on the highest plan"
+                "message": "You are already on the highest plan",
             }
 
         # Get benefits of upgrading
@@ -678,7 +717,7 @@ class QuotaManager:
                 "improvements": {
                     key: {
                         "current": current_limits.get(key),
-                        "upgraded": target_limits.get(key)
+                        "upgraded": target_limits.get(key),
                     }
                     for key in target_limits.keys()
                     if key != "features"
@@ -687,14 +726,14 @@ class QuotaManager:
                     feature
                     for feature, enabled in target_limits.get("features", {}).items()
                     if enabled and not current_limits.get("features", {}).get(feature)
-                ]
+                ],
             }
 
         return {
             "can_upgrade": True,
             "current_plan": current_plan.value,
             "available_plans": [p.value for p in available_plans],
-            "benefits": benefits
+            "benefits": benefits,
         }
 
     # ============================================================================
@@ -721,7 +760,7 @@ class QuotaManager:
             ai_queries=0,
             storage_used_bytes=current_usage.storage_used_bytes,  # Carry over storage
             total_cost=0,
-            usage_details={}
+            usage_details={},
         )
 
         self.db.add(new_usage)
@@ -735,5 +774,5 @@ class QuotaManager:
             action="usage_period_reset",
             resource_type="organization",
             resource_id=organization_id,
-            details={"period_start": period_start.isoformat()}
+            details={"period_start": period_start.isoformat()},
         )

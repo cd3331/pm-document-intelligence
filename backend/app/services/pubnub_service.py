@@ -57,8 +57,10 @@ logger = get_logger(__name__)
 # Enums and Models
 # ============================================================================
 
+
 class EventType(str, Enum):
     """Event types for PubNub messages."""
+
     # Document processing events
     PROCESSING_STARTED = "processing_started"
     PROCESSING_PROGRESS = "processing_progress"
@@ -83,6 +85,7 @@ class EventType(str, Enum):
 
 class NotificationPriority(str, Enum):
     """Priority levels for notifications."""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -91,6 +94,7 @@ class NotificationPriority(str, Enum):
 
 class PubNubMessage(BaseModel):
     """Standard PubNub message format."""
+
     event_type: EventType
     timestamp: str
     message_id: str = Field(default_factory=lambda: str(uuid4()))
@@ -101,6 +105,7 @@ class PubNubMessage(BaseModel):
 
 class ProcessingProgress(BaseModel):
     """Progress update for document processing."""
+
     document_id: str
     percentage: int = Field(ge=0, le=100)
     current_step: str
@@ -112,6 +117,7 @@ class ProcessingProgress(BaseModel):
 
 class NotificationMessage(BaseModel):
     """User notification message."""
+
     title: str
     message: str
     priority: NotificationPriority = NotificationPriority.MEDIUM
@@ -123,6 +129,7 @@ class NotificationMessage(BaseModel):
 # ============================================================================
 # Message Queue for Offline Users
 # ============================================================================
+
 
 class OfflineMessageQueue:
     """Queue messages for offline users."""
@@ -190,6 +197,7 @@ class OfflineMessageQueue:
 # Rate Limiter
 # ============================================================================
 
+
 class RateLimiter:
     """Rate limit message publishing to prevent spam."""
 
@@ -219,10 +227,7 @@ class RateLimiter:
         cutoff = now - self.window_seconds
 
         # Remove old timestamps
-        self.message_times[key] = [
-            t for t in self.message_times[key]
-            if t > cutoff
-        ]
+        self.message_times[key] = [t for t in self.message_times[key] if t > cutoff]
 
         # Check if under limit
         if len(self.message_times[key]) >= self.max_messages:
@@ -238,10 +243,11 @@ class RateLimiter:
 # PubNub Callback Handler
 # ============================================================================
 
+
 class PubNubCallbackHandler(SubscribeCallback):
     """Handle PubNub callbacks for presence and messages."""
 
-    def __init__(self, service: 'PubNubService'):
+    def __init__(self, service: "PubNubService"):
         """Initialize callback handler."""
         self.service = service
         super().__init__()
@@ -282,6 +288,7 @@ class PubNubCallbackHandler(SubscribeCallback):
 # PubNub Service
 # ============================================================================
 
+
 class PubNubService:
     """Service for real-time updates via PubNub."""
 
@@ -290,7 +297,7 @@ class PubNubService:
         publish_key: str,
         subscribe_key: str,
         secret_key: Optional[str] = None,
-        user_id: Optional[str] = None
+        user_id: Optional[str] = None,
     ):
         """
         Initialize PubNub service.
@@ -369,7 +376,7 @@ class PubNubService:
         event_type: EventType,
         data: Dict[str, Any],
         priority: NotificationPriority = NotificationPriority.MEDIUM,
-        dedupe_key: Optional[str] = None
+        dedupe_key: Optional[str] = None,
     ) -> bool:
         """
         Publish an update to a channel.
@@ -396,7 +403,7 @@ class PubNubService:
                 timestamp=datetime.utcnow().isoformat(),
                 data=data,
                 priority=priority,
-                dedupe_key=dedupe_key
+                dedupe_key=dedupe_key,
             )
 
             # Check for duplicate
@@ -406,8 +413,7 @@ class PubNubService:
 
             # Publish message
             result = await self._publish_with_retry(
-                channel=channel,
-                message=message.dict()
+                channel=channel, message=message.dict()
             )
 
             # Cache dedupe key
@@ -419,7 +425,7 @@ class PubNubService:
 
             logger.info(
                 f"Published {event_type.value} to {channel}",
-                extra={"timetoken": result.timetoken if result else None}
+                extra={"timetoken": result.timetoken if result else None},
             )
 
             return True
@@ -437,7 +443,7 @@ class PubNubService:
         total_steps: int,
         step_number: int,
         estimated_time_remaining: Optional[int] = None,
-        cancellable: bool = True
+        cancellable: bool = True,
     ) -> bool:
         """
         Publish processing progress update.
@@ -462,7 +468,7 @@ class PubNubService:
             total_steps=total_steps,
             step_number=step_number,
             estimated_time_remaining=estimated_time_remaining,
-            cancellable=cancellable
+            cancellable=cancellable,
         )
 
         # Publish to both user channel and document channel
@@ -477,7 +483,7 @@ class PubNubService:
             event_type=EventType.PROCESSING_PROGRESS,
             data=progress.dict(),
             priority=NotificationPriority.MEDIUM,
-            dedupe_key=dedupe_key
+            dedupe_key=dedupe_key,
         )
 
         # Also publish to document channel (for shared access)
@@ -486,7 +492,7 @@ class PubNubService:
             event_type=EventType.PROCESSING_PROGRESS,
             data=progress.dict(),
             priority=NotificationPriority.MEDIUM,
-            dedupe_key=dedupe_key
+            dedupe_key=dedupe_key,
         )
 
         return success
@@ -499,7 +505,7 @@ class PubNubService:
         priority: NotificationPriority = NotificationPriority.MEDIUM,
         action_url: Optional[str] = None,
         action_label: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> bool:
         """
         Publish user notification.
@@ -522,7 +528,7 @@ class PubNubService:
             priority=priority,
             action_url=action_url,
             action_label=action_label,
-            metadata=metadata
+            metadata=metadata,
         )
 
         channel = self.get_user_channel(user_id)
@@ -531,15 +537,11 @@ class PubNubService:
             channel=channel,
             event_type=EventType.NOTIFICATION,
             data=notification.dict(),
-            priority=priority
+            priority=priority,
         )
 
     async def publish_processing_started(
-        self,
-        document_id: str,
-        user_id: str,
-        filename: str,
-        total_steps: int
+        self, document_id: str, user_id: str, filename: str, total_steps: int
     ) -> bool:
         """
         Publish processing started event.
@@ -560,9 +562,9 @@ class PubNubService:
                 "document_id": document_id,
                 "filename": filename,
                 "total_steps": total_steps,
-                "started_at": datetime.utcnow().isoformat()
+                "started_at": datetime.utcnow().isoformat(),
             },
-            priority=NotificationPriority.MEDIUM
+            priority=NotificationPriority.MEDIUM,
         )
 
     async def publish_processing_completed(
@@ -570,7 +572,7 @@ class PubNubService:
         document_id: str,
         user_id: str,
         filename: str,
-        results_summary: Dict[str, Any]
+        results_summary: Dict[str, Any],
     ) -> bool:
         """
         Publish processing completed event.
@@ -591,9 +593,9 @@ class PubNubService:
                 "document_id": document_id,
                 "filename": filename,
                 "results_summary": results_summary,
-                "completed_at": datetime.utcnow().isoformat()
+                "completed_at": datetime.utcnow().isoformat(),
             },
-            priority=NotificationPriority.HIGH
+            priority=NotificationPriority.HIGH,
         )
 
     async def publish_processing_failed(
@@ -602,7 +604,7 @@ class PubNubService:
         user_id: str,
         filename: str,
         error: str,
-        step_failed: str
+        step_failed: str,
     ) -> bool:
         """
         Publish processing failed event.
@@ -625,9 +627,9 @@ class PubNubService:
                 "filename": filename,
                 "error": error,
                 "step_failed": step_failed,
-                "failed_at": datetime.utcnow().isoformat()
+                "failed_at": datetime.utcnow().isoformat(),
             },
-            priority=NotificationPriority.HIGH
+            priority=NotificationPriority.HIGH,
         )
 
     async def publish_action_assigned(
@@ -636,7 +638,7 @@ class PubNubService:
         action_item_id: str,
         title: str,
         due_date: Optional[str],
-        priority: str
+        priority: str,
     ) -> bool:
         """
         Publish action item assignment notification.
@@ -655,22 +657,22 @@ class PubNubService:
             user_id=user_id,
             title="New Action Item Assigned",
             message=f"You have been assigned: {title}",
-            priority=NotificationPriority.HIGH if priority == "HIGH" else NotificationPriority.MEDIUM,
+            priority=(
+                NotificationPriority.HIGH
+                if priority == "HIGH"
+                else NotificationPriority.MEDIUM
+            ),
             action_url=f"/action-items/{action_item_id}",
             action_label="View Action Item",
             metadata={
                 "action_item_id": action_item_id,
                 "due_date": due_date,
-                "priority": priority
-            }
+                "priority": priority,
+            },
         )
 
     async def publish_document_shared(
-        self,
-        user_id: str,
-        document_id: str,
-        filename: str,
-        shared_by: str
+        self, user_id: str, document_id: str, filename: str, shared_by: str
     ) -> bool:
         """
         Publish document shared notification.
@@ -691,17 +693,14 @@ class PubNubService:
             priority=NotificationPriority.MEDIUM,
             action_url=f"/documents/{document_id}",
             action_label="View Document",
-            metadata={
-                "document_id": document_id,
-                "shared_by": shared_by
-            }
+            metadata={"document_id": document_id, "shared_by": shared_by},
         )
 
     async def publish_system_announcement(
         self,
         title: str,
         message: str,
-        priority: NotificationPriority = NotificationPriority.MEDIUM
+        priority: NotificationPriority = NotificationPriority.MEDIUM,
     ) -> bool:
         """
         Publish system-wide announcement.
@@ -720,9 +719,9 @@ class PubNubService:
             data={
                 "title": title,
                 "message": message,
-                "announced_at": datetime.utcnow().isoformat()
+                "announced_at": datetime.utcnow().isoformat(),
             },
-            priority=priority
+            priority=priority,
         )
 
     # ========================================================================
@@ -730,10 +729,7 @@ class PubNubService:
     # ========================================================================
 
     async def _publish_with_retry(
-        self,
-        channel: str,
-        message: Dict[str, Any],
-        max_retries: int = 3
+        self, channel: str, message: Dict[str, Any], max_retries: int = 3
     ) -> Any:
         """
         Publish message with retry logic.
@@ -754,17 +750,19 @@ class PubNubService:
         for attempt in range(max_retries):
             try:
                 # Publish message
-                envelope = self.pubnub.publish() \
-                    .channel(channel) \
-                    .message(message) \
-                    .should_store(True) \
-                    .use_post(True) \
+                envelope = (
+                    self.pubnub.publish()
+                    .channel(channel)
+                    .message(message)
+                    .should_store(True)
+                    .use_post(True)
                     .sync()
+                )
 
                 if envelope.status.is_error():
                     raise ServiceError(
                         message="PubNub publish failed",
-                        details={"error": envelope.status.error_data}
+                        details={"error": envelope.status.error_data},
                     )
 
                 return envelope.result
@@ -772,7 +770,7 @@ class PubNubService:
             except Exception as e:
                 last_error = e
                 if attempt < max_retries - 1:
-                    wait_time = 2 ** attempt  # Exponential backoff
+                    wait_time = 2**attempt  # Exponential backoff
                     logger.warning(
                         f"Publish failed (attempt {attempt + 1}/{max_retries}), "
                         f"retrying in {wait_time}s: {e}"
@@ -783,7 +781,7 @@ class PubNubService:
 
         raise ServiceError(
             message="Failed to publish message after retries",
-            details={"error": str(last_error)}
+            details={"error": str(last_error)},
         )
 
     # ========================================================================
@@ -871,9 +869,7 @@ class PubNubService:
     # ========================================================================
 
     def get_message_history(
-        self,
-        channel: str,
-        count: int = 100
+        self, channel: str, count: int = 100
     ) -> List[Dict[str, Any]]:
         """
         Get message history for channel.
@@ -886,10 +882,7 @@ class PubNubService:
             List of messages
         """
         try:
-            envelope = self.pubnub.history() \
-                .channel(channel) \
-                .count(count) \
-                .sync()
+            envelope = self.pubnub.history().channel(channel).count(count).sync()
 
             if envelope.status.is_error():
                 logger.error(f"Failed to fetch history: {envelope.status.error_data}")
@@ -914,11 +907,8 @@ class PubNubService:
 # Webhook Signature Validation
 # ============================================================================
 
-def validate_webhook_signature(
-    body: bytes,
-    signature: str,
-    secret_key: str
-) -> bool:
+
+def validate_webhook_signature(body: bytes, signature: str, secret_key: str) -> bool:
     """
     Validate PubNub webhook signature.
 
@@ -932,9 +922,7 @@ def validate_webhook_signature(
     """
     try:
         # Compute expected signature
-        expected = hashlib.sha256(
-            secret_key.encode() + body
-        ).hexdigest()
+        expected = hashlib.sha256(secret_key.encode() + body).hexdigest()
 
         return expected == signature
 
@@ -965,7 +953,7 @@ def get_pubnub_service() -> PubNubService:
             publish_key=settings.pubnub.pubnub_publish_key,
             subscribe_key=settings.pubnub.pubnub_subscribe_key,
             secret_key=settings.pubnub.pubnub_secret_key,
-            user_id="server"
+            user_id="server",
         )
 
     return _pubnub_service

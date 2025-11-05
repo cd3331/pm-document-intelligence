@@ -31,8 +31,10 @@ limiter = Limiter(key_func=get_remote_address)
 # Request/Response Models
 # ============================================================================
 
+
 class AnalysisRequest(BaseModel):
     """Deep analysis request."""
+
     document_id: str
     document_type: Optional[str] = "general"
     include_risks: bool = True
@@ -41,12 +43,14 @@ class AnalysisRequest(BaseModel):
 
 class ActionExtractionRequest(BaseModel):
     """Action item extraction request."""
+
     document_id: str
     track_dependencies: bool = True
 
 
 class SummarizeRequest(BaseModel):
     """Summarization request."""
+
     document_id: str
     length: str = Field("medium", pattern="^(brief|medium|comprehensive)$")
     audience: str = Field("general", pattern="^(executive|technical|team|general)$")
@@ -54,6 +58,7 @@ class SummarizeRequest(BaseModel):
 
 class QuestionRequest(BaseModel):
     """Q&A request."""
+
     question: str = Field(..., min_length=3, max_length=500)
     document_id: Optional[str] = None
     conversation_id: Optional[str] = None
@@ -62,6 +67,7 @@ class QuestionRequest(BaseModel):
 
 class MultiAgentRequest(BaseModel):
     """Multi-agent analysis request."""
+
     document_id: str
     tasks: List[str] = Field(..., min_items=1, max_items=5)
     parallel: bool = True
@@ -70,6 +76,7 @@ class MultiAgentRequest(BaseModel):
 # ============================================================================
 # Agent Endpoints
 # ============================================================================
+
 
 @router.post("/analyze", summary="Deep document analysis")
 @limiter.limit("20/minute")
@@ -94,13 +101,13 @@ async def analyze_document(
         documents = await execute_select(
             "documents",
             columns="extracted_text, document_type",
-            match={"id": analysis_request.document_id, "user_id": current_user.id}
+            match={"id": analysis_request.document_id, "user_id": current_user.id},
         )
 
         if not documents:
             raise ValidationError(
                 message="Document not found",
-                details={"document_id": analysis_request.document_id}
+                details={"document_id": analysis_request.document_id},
             )
 
         document = documents[0]
@@ -113,10 +120,11 @@ async def analyze_document(
             user_id=current_user.id,
             task="deep_analysis",
             options={
-                "document_type": document["document_type"] or analysis_request.document_type,
+                "document_type": document["document_type"]
+                or analysis_request.document_type,
                 "include_risks": analysis_request.include_risks,
                 "include_opportunities": analysis_request.include_opportunities,
-            }
+            },
         )
 
         return result
@@ -125,10 +133,7 @@ async def analyze_document(
         raise
     except Exception as e:
         logger.error(f"Analysis failed: {e}", exc_info=True)
-        raise AIServiceError(
-            message="Analysis failed",
-            details={"error": str(e)}
-        )
+        raise AIServiceError(message="Analysis failed", details={"error": str(e)})
 
 
 @router.post("/extract-actions", summary="Extract action items")
@@ -154,13 +159,13 @@ async def extract_actions(
         documents = await execute_select(
             "documents",
             columns="extracted_text",
-            match={"id": action_request.document_id, "user_id": current_user.id}
+            match={"id": action_request.document_id, "user_id": current_user.id},
         )
 
         if not documents:
             raise ValidationError(
                 message="Document not found",
-                details={"document_id": action_request.document_id}
+                details={"document_id": action_request.document_id},
             )
 
         orchestrator = get_orchestrator()
@@ -169,7 +174,7 @@ async def extract_actions(
             document_text=documents[0]["extracted_text"],
             user_id=current_user.id,
             task="extract_actions",
-            options={"track_dependencies": action_request.track_dependencies}
+            options={"track_dependencies": action_request.track_dependencies},
         )
 
         return result
@@ -205,13 +210,13 @@ async def summarize_document(
         documents = await execute_select(
             "documents",
             columns="extracted_text",
-            match={"id": summarize_request.document_id, "user_id": current_user.id}
+            match={"id": summarize_request.document_id, "user_id": current_user.id},
         )
 
         if not documents:
             raise ValidationError(
                 message="Document not found",
-                details={"document_id": summarize_request.document_id}
+                details={"document_id": summarize_request.document_id},
             )
 
         orchestrator = get_orchestrator()
@@ -223,7 +228,7 @@ async def summarize_document(
             options={
                 "length": summarize_request.length,
                 "audience": summarize_request.audience,
-            }
+            },
         )
 
         return result
@@ -308,13 +313,13 @@ async def multi_agent_analysis(
         documents = await execute_select(
             "documents",
             columns="extracted_text",
-            match={"id": multi_request.document_id, "user_id": current_user.id}
+            match={"id": multi_request.document_id, "user_id": current_user.id},
         )
 
         if not documents:
             raise ValidationError(
                 message="Document not found",
-                details={"document_id": multi_request.document_id}
+                details={"document_id": multi_request.document_id},
             )
 
         orchestrator = get_orchestrator()
@@ -335,6 +340,7 @@ async def multi_agent_analysis(
 # ============================================================================
 # Agent Status & Management
 # ============================================================================
+
 
 @router.get("/status", summary="Get agent status")
 async def get_agent_status(

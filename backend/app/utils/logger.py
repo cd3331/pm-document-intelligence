@@ -40,6 +40,7 @@ from pythonjsonlogger import jsonlogger
 
 try:
     import colorlog
+
     COLORLOG_AVAILABLE = True
 except ImportError:
     COLORLOG_AVAILABLE = False
@@ -203,9 +204,7 @@ class LoggerAdapter(logging.LoggerAdapter):
     and ensures consistent structured logging across the application.
     """
 
-    def process(
-        self, msg: str, kwargs: Dict[str, Any]
-    ) -> tuple[str, Dict[str, Any]]:
+    def process(self, msg: str, kwargs: Dict[str, Any]) -> tuple[str, Dict[str, Any]]:
         """
         Process log message and add extra context.
 
@@ -261,9 +260,7 @@ def setup_logging(
 
     if log_format == "json":
         # JSON formatter for production
-        formatter = CustomJSONFormatter(
-            "%(timestamp)s %(level)s %(name)s %(message)s"
-        )
+        formatter = CustomJSONFormatter("%(timestamp)s %(level)s %(name)s %(message)s")
     else:
         # Colored text formatter for development
         if COLORLOG_AVAILABLE:
@@ -338,14 +335,14 @@ def _parse_size(size_str: str) -> int:
     multipliers = {
         "B": 1,
         "KB": 1024,
-        "MB": 1024 ** 2,
-        "GB": 1024 ** 3,
-        "TB": 1024 ** 4,
+        "MB": 1024**2,
+        "GB": 1024**3,
+        "TB": 1024**4,
     }
 
     for suffix, multiplier in multipliers.items():
         if size_str.endswith(suffix):
-            number = float(size_str[:-len(suffix)].strip())
+            number = float(size_str[: -len(suffix)].strip())
             return int(number * multiplier)
 
     # Default to bytes if no suffix

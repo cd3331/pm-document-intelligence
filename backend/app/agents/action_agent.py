@@ -23,7 +23,7 @@ class ActionItemAgent(BaseAgent):
         super().__init__(
             name="ActionItemAgent",
             description="Extract action items with assignees, due dates, and priorities",
-            config={"max_requests_per_minute": 40}
+            config={"max_requests_per_minute": 40},
         )
         self.bedrock = BedrockService()
 
@@ -32,8 +32,7 @@ class ActionItemAgent(BaseAgent):
         super().validate_input(input_data)
         if "text" not in input_data or not input_data["text"].strip():
             raise ValidationError(
-                message="Text is required",
-                details={"agent": self.name}
+                message="Text is required", details={"agent": self.name}
             )
 
     async def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -72,15 +71,17 @@ Return JSON array:
         return {
             "action_items": action_items,
             "total_actions": len(action_items),
-            "high_priority": sum(1 for a in action_items if a.get("priority") == "HIGH"),
+            "high_priority": sum(
+                1 for a in action_items if a.get("priority") == "HIGH"
+            ),
             "cost": response["cost"],
         }
 
     def _parse_actions(self, response_text: str) -> List[Dict[str, Any]]:
         """Parse action items from response."""
         try:
-            response_text = re.sub(r'```json?\n?', '', response_text)
-            response_text = re.sub(r'```\n?$', '', response_text).strip()
+            response_text = re.sub(r"```json?\n?", "", response_text)
+            response_text = re.sub(r"```\n?$", "", response_text).strip()
             actions = json.loads(response_text)
 
             # Validate each action
@@ -102,6 +103,8 @@ Return JSON array:
             return False
         if action["priority"] not in ["HIGH", "MEDIUM", "LOW"]:
             return False
-        if not isinstance(action["confidence"], (int, float)) or not (0 <= action["confidence"] <= 1):
+        if not isinstance(action["confidence"], (int, float)) or not (
+            0 <= action["confidence"] <= 1
+        ):
             return False
         return True

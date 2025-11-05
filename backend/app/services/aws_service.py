@@ -79,6 +79,7 @@ logger = get_logger(__name__)
 # Constants and Pricing
 # ============================================================================
 
+
 class AWSPricing:
     """AWS service pricing (as of 2024, adjust for your region)."""
 
@@ -116,6 +117,7 @@ class DocumentType(str, Enum):
 # Cost Tracking
 # ============================================================================
 
+
 class CostTracker:
     """Track AWS service costs."""
 
@@ -145,10 +147,9 @@ class CostTracker:
         Returns:
             Cost in USD
         """
-        cost = (
-            (input_tokens / 1000) * AWSPricing.BEDROCK_INPUT_TOKEN_PRICE +
-            (output_tokens / 1000) * AWSPricing.BEDROCK_OUTPUT_TOKEN_PRICE
-        )
+        cost = (input_tokens / 1000) * AWSPricing.BEDROCK_INPUT_TOKEN_PRICE + (
+            output_tokens / 1000
+        ) * AWSPricing.BEDROCK_OUTPUT_TOKEN_PRICE
 
         self.costs["bedrock"] += cost
         self.usage["bedrock"]["input_tokens"] += input_tokens
@@ -172,7 +173,8 @@ class CostTracker:
             Cost in USD
         """
         price_per_page = (
-            AWSPricing.TEXTRACT_ANALYZE_DOCUMENT_PRICE if analyze
+            AWSPricing.TEXTRACT_ANALYZE_DOCUMENT_PRICE
+            if analyze
             else AWSPricing.TEXTRACT_DETECT_TEXT_PRICE
         )
 
@@ -266,6 +268,7 @@ cost_tracker = CostTracker()
 # Circuit Breaker Pattern
 # ============================================================================
 
+
 class CircuitBreaker:
     """Circuit breaker for failing services."""
 
@@ -297,6 +300,7 @@ class CircuitBreaker:
         Returns:
             Wrapped function
         """
+
         async def wrapper(*args, **kwargs):
             """Wrapper function."""
             if self.state == "open":
@@ -330,9 +334,7 @@ class CircuitBreaker:
 
         if self.failure_count >= self.failure_threshold:
             self.state = "open"
-            logger.error(
-                f"Circuit breaker opened after {self.failure_count} failures"
-            )
+            logger.error(f"Circuit breaker opened after {self.failure_count} failures")
 
     def _should_attempt_reset(self) -> bool:
         """Check if should attempt to reset circuit."""
@@ -352,6 +354,7 @@ class CircuitBreaker:
 # ============================================================================
 # AWS Bedrock Service (Claude)
 # ============================================================================
+
 
 class BedrockService:
     """AWS Bedrock service for Claude AI."""
@@ -377,7 +380,6 @@ Focus on:
 - Dependencies
 
 Provide structured analysis with actionable insights.""",
-
             DocumentType.STATUS_REPORT: """You are an expert project management assistant analyzing status reports.
 Focus on:
 - Progress against plan
@@ -387,7 +389,6 @@ Focus on:
 - Action items
 
 Identify critical issues and recommendations.""",
-
             DocumentType.MEETING_NOTES: """You are an expert project management assistant analyzing meeting notes.
 Focus on:
 - Key decisions made
@@ -397,7 +398,6 @@ Focus on:
 - Deadlines
 
 Extract structured action items and decisions.""",
-
             DocumentType.REQUIREMENTS: """You are an expert business analyst reviewing requirements documents.
 Focus on:
 - Functional requirements
@@ -407,7 +407,6 @@ Focus on:
 - Potential gaps or ambiguities
 
 Provide clarity on requirements and identify issues.""",
-
             DocumentType.GENERAL: """You are an expert project management assistant.
 Analyze the document and provide:
 - Summary of key points
@@ -467,8 +466,7 @@ Be thorough and structured in your analysis.""",
             # Use template if no system prompt provided
             if system_prompt is None:
                 system_prompt = self.prompt_templates.get(
-                    document_type,
-                    self.prompt_templates[DocumentType.GENERAL]
+                    document_type, self.prompt_templates[DocumentType.GENERAL]
                 )
 
             # Prepare request
@@ -529,10 +527,7 @@ Be thorough and structured in your analysis.""",
                     output_tokens = usage.get("output_tokens", 0)
 
                     # Track cost
-                    cost = cost_tracker.track_bedrock_usage(
-                        input_tokens,
-                        output_tokens
-                    )
+                    cost = cost_tracker.track_bedrock_usage(input_tokens, output_tokens)
 
                     result = {
                         "text": text,
@@ -617,6 +612,7 @@ Be thorough and structured in your analysis.""",
 # ============================================================================
 # AWS Textract Service (Document Text Extraction)
 # ============================================================================
+
 
 class TextractService:
     """AWS Textract service for document OCR and text extraction."""
@@ -704,25 +700,37 @@ class TextractService:
                     block_type = block.get("BlockType")
 
                     if block_type == "LINE":
-                        lines.append({
-                            "text": block.get("Text", ""),
-                            "confidence": block.get("Confidence", 0),
-                            "geometry": block.get("Geometry", {}),
-                        })
+                        lines.append(
+                            {
+                                "text": block.get("Text", ""),
+                                "confidence": block.get("Confidence", 0),
+                                "geometry": block.get("Geometry", {}),
+                            }
+                        )
                     elif block_type == "WORD":
-                        words.append({
-                            "text": block.get("Text", ""),
-                            "confidence": block.get("Confidence", 0),
-                        })
+                        words.append(
+                            {
+                                "text": block.get("Text", ""),
+                                "confidence": block.get("Confidence", 0),
+                            }
+                        )
 
                 # Combine all text
                 full_text = "\n".join([line["text"] for line in lines])
 
                 # Extract tables if present
-                tables = self._extract_tables(blocks) if feature_types and "TABLES" in feature_types else []
+                tables = (
+                    self._extract_tables(blocks)
+                    if feature_types and "TABLES" in feature_types
+                    else []
+                )
 
                 # Extract forms if present
-                forms = self._extract_forms(blocks) if feature_types and "FORMS" in feature_types else []
+                forms = (
+                    self._extract_forms(blocks)
+                    if feature_types and "FORMS" in feature_types
+                    else []
+                )
 
                 result = {
                     "text": full_text,
@@ -733,7 +741,11 @@ class TextractService:
                     "pages": pages,
                     "cost": cost,
                     "duration_seconds": duration,
-                    "average_confidence": sum([w["confidence"] for w in words]) / len(words) if words else 0,
+                    "average_confidence": (
+                        sum([w["confidence"] for w in words]) / len(words)
+                        if words
+                        else 0
+                    ),
                 }
 
                 logger.info(
@@ -826,7 +838,9 @@ class TextractService:
                     job_id = response["JobId"]
                     get_results_func = client.get_document_analysis
                 else:
-                    response = await client.start_document_text_detection(**request_params)
+                    response = await client.start_document_text_detection(
+                        **request_params
+                    )
                     job_id = response["JobId"]
                     get_results_func = client.get_document_text_detection
 
@@ -882,8 +896,7 @@ class TextractService:
 
                 # Track cost
                 cost = cost_tracker.track_textract_usage(
-                    pages,
-                    analyze=bool(feature_types)
+                    pages, analyze=bool(feature_types)
                 )
 
                 # Parse results (same as synchronous)
@@ -894,21 +907,33 @@ class TextractService:
                     block_type = block.get("BlockType")
 
                     if block_type == "LINE":
-                        lines.append({
-                            "text": block.get("Text", ""),
-                            "confidence": block.get("Confidence", 0),
-                            "geometry": block.get("Geometry", {}),
-                        })
+                        lines.append(
+                            {
+                                "text": block.get("Text", ""),
+                                "confidence": block.get("Confidence", 0),
+                                "geometry": block.get("Geometry", {}),
+                            }
+                        )
                     elif block_type == "WORD":
-                        words.append({
-                            "text": block.get("Text", ""),
-                            "confidence": block.get("Confidence", 0),
-                        })
+                        words.append(
+                            {
+                                "text": block.get("Text", ""),
+                                "confidence": block.get("Confidence", 0),
+                            }
+                        )
 
                 full_text = "\n".join([line["text"] for line in lines])
 
-                tables = self._extract_tables(all_blocks) if feature_types and "TABLES" in feature_types else []
-                forms = self._extract_forms(all_blocks) if feature_types and "FORMS" in feature_types else []
+                tables = (
+                    self._extract_tables(all_blocks)
+                    if feature_types and "TABLES" in feature_types
+                    else []
+                )
+                forms = (
+                    self._extract_forms(all_blocks)
+                    if feature_types and "FORMS" in feature_types
+                    else []
+                )
 
                 result = {
                     "text": full_text,
@@ -920,7 +945,11 @@ class TextractService:
                     "cost": cost,
                     "duration_seconds": duration,
                     "job_id": job_id,
-                    "average_confidence": sum([w["confidence"] for w in words]) / len(words) if words else 0,
+                    "average_confidence": (
+                        sum([w["confidence"] for w in words]) / len(words)
+                        if words
+                        else 0
+                    ),
                 }
 
                 logger.info(
@@ -975,14 +1004,18 @@ class TextractService:
                                         for word_id in cell_rel["Ids"]:
                                             word_block = block_map.get(word_id)
                                             if word_block:
-                                                cell_text += word_block.get("Text", "") + " "
+                                                cell_text += (
+                                                    word_block.get("Text", "") + " "
+                                                )
 
-                                cells.append({
-                                    "row": cell_block.get("RowIndex", 0),
-                                    "column": cell_block.get("ColumnIndex", 0),
-                                    "text": cell_text.strip(),
-                                    "confidence": cell_block.get("Confidence", 0),
-                                })
+                                cells.append(
+                                    {
+                                        "row": cell_block.get("RowIndex", 0),
+                                        "column": cell_block.get("ColumnIndex", 0),
+                                        "text": cell_text.strip(),
+                                        "confidence": cell_block.get("Confidence", 0),
+                                    }
+                                )
 
                         # Organize cells into rows
                         rows_dict = {}
@@ -994,7 +1027,9 @@ class TextractService:
 
                         # Sort cells by column within each row
                         for row_idx in sorted(rows_dict.keys()):
-                            row_cells = sorted(rows_dict[row_idx], key=lambda x: x["column"])
+                            row_cells = sorted(
+                                rows_dict[row_idx], key=lambda x: x["column"]
+                            )
                             table["rows"].append(row_cells)
 
                 tables.append(table)
@@ -1034,20 +1069,26 @@ class TextractService:
                             for value_id in relationship["Ids"]:
                                 value_block = block_map.get(value_id)
                                 if value_block:
-                                    value_relationships = value_block.get("Relationships", [])
+                                    value_relationships = value_block.get(
+                                        "Relationships", []
+                                    )
                                     for value_rel in value_relationships:
                                         if value_rel["Type"] == "CHILD":
                                             for word_id in value_rel["Ids"]:
                                                 word_block = block_map.get(word_id)
                                                 if word_block:
-                                                    value_text += word_block.get("Text", "") + " "
+                                                    value_text += (
+                                                        word_block.get("Text", "") + " "
+                                                    )
 
                     if key_text:
-                        forms.append({
-                            "key": key_text.strip(),
-                            "value": value_text.strip(),
-                            "confidence": block.get("Confidence", 0),
-                        })
+                        forms.append(
+                            {
+                                "key": key_text.strip(),
+                                "value": value_text.strip(),
+                                "confidence": block.get("Confidence", 0),
+                            }
+                        )
 
         return forms
 
@@ -1055,6 +1096,7 @@ class TextractService:
 # ============================================================================
 # AWS Comprehend Service (NLP Analysis)
 # ============================================================================
+
 
 class ComprehendService:
     """AWS Comprehend service for NLP analysis."""
@@ -1132,13 +1174,15 @@ class ComprehendService:
                 # Parse entities
                 entities = []
                 for entity in response.get("Entities", []):
-                    entities.append({
-                        "text": entity.get("Text"),
-                        "type": entity.get("Type"),
-                        "score": entity.get("Score", 0),
-                        "begin_offset": entity.get("BeginOffset"),
-                        "end_offset": entity.get("EndOffset"),
-                    })
+                    entities.append(
+                        {
+                            "text": entity.get("Text"),
+                            "type": entity.get("Type"),
+                            "score": entity.get("Score", 0),
+                            "begin_offset": entity.get("BeginOffset"),
+                            "end_offset": entity.get("EndOffset"),
+                        }
+                    )
 
                 result = {
                     "entities": entities,
@@ -1241,8 +1285,12 @@ class ComprehendService:
                 result = {
                     "sentiment": response.get("Sentiment"),
                     "scores": {
-                        "positive": response.get("SentimentScore", {}).get("Positive", 0),
-                        "negative": response.get("SentimentScore", {}).get("Negative", 0),
+                        "positive": response.get("SentimentScore", {}).get(
+                            "Positive", 0
+                        ),
+                        "negative": response.get("SentimentScore", {}).get(
+                            "Negative", 0
+                        ),
                         "neutral": response.get("SentimentScore", {}).get("Neutral", 0),
                         "mixed": response.get("SentimentScore", {}).get("Mixed", 0),
                     },
@@ -1320,12 +1368,14 @@ class ComprehendService:
                 # Parse key phrases
                 key_phrases = []
                 for phrase in response.get("KeyPhrases", []):
-                    key_phrases.append({
-                        "text": phrase.get("Text"),
-                        "score": phrase.get("Score", 0),
-                        "begin_offset": phrase.get("BeginOffset"),
-                        "end_offset": phrase.get("EndOffset"),
-                    })
+                    key_phrases.append(
+                        {
+                            "text": phrase.get("Text"),
+                            "score": phrase.get("Score", 0),
+                            "begin_offset": phrase.get("BeginOffset"),
+                            "end_offset": phrase.get("EndOffset"),
+                        }
+                    )
 
                 result = {
                     "key_phrases": key_phrases,
@@ -1373,10 +1423,12 @@ class ComprehendService:
             sentiment_task = self.analyze_sentiment(text, language_code)
             key_phrases_task = self.detect_key_phrases(text, language_code)
 
-            entities_result, sentiment_result, key_phrases_result = await asyncio.gather(
-                entities_task,
-                sentiment_task,
-                key_phrases_task,
+            entities_result, sentiment_result, key_phrases_result = (
+                await asyncio.gather(
+                    entities_task,
+                    sentiment_task,
+                    key_phrases_task,
+                )
             )
 
             return {
@@ -1384,9 +1436,9 @@ class ComprehendService:
                 "sentiment": sentiment_result,
                 "key_phrases": key_phrases_result,
                 "total_cost": (
-                    entities_result["cost"] +
-                    sentiment_result["cost"] +
-                    key_phrases_result["cost"]
+                    entities_result["cost"]
+                    + sentiment_result["cost"]
+                    + key_phrases_result["cost"]
                 ),
             }
 
@@ -1403,6 +1455,7 @@ class ComprehendService:
 # ============================================================================
 # AWS S3 Service (Document Storage)
 # ============================================================================
+
 
 class S3Service:
     """AWS S3 service for document storage."""
@@ -1525,7 +1578,9 @@ class S3Service:
             ) as client:
                 if file_size > self.multipart_threshold:
                     # Use multipart upload for large files
-                    logger.info(f"Using multipart upload for {filename} ({file_size} bytes)")
+                    logger.info(
+                        f"Using multipart upload for {filename} ({file_size} bytes)"
+                    )
 
                     # Start multipart upload
                     multipart = await client.create_multipart_upload(
@@ -1545,7 +1600,7 @@ class S3Service:
                         part_number = 1
 
                         for i in range(0, file_size, chunk_size):
-                            chunk = file_content[i:i + chunk_size]
+                            chunk = file_content[i : i + chunk_size]
 
                             part = await client.upload_part(
                                 Bucket=self.bucket_name,
@@ -1555,10 +1610,12 @@ class S3Service:
                                 Body=chunk,
                             )
 
-                            parts.append({
-                                "PartNumber": part_number,
-                                "ETag": part["ETag"],
-                            })
+                            parts.append(
+                                {
+                                    "PartNumber": part_number,
+                                    "ETag": part["ETag"],
+                                }
+                            )
 
                             part_number += 1
 
@@ -1831,12 +1888,14 @@ class S3Service:
 
                 documents = []
                 for obj in response.get("Contents", []):
-                    documents.append({
-                        "s3_key": obj["Key"],
-                        "size_bytes": obj["Size"],
-                        "last_modified": obj["LastModified"].isoformat(),
-                        "etag": obj["ETag"],
-                    })
+                    documents.append(
+                        {
+                            "s3_key": obj["Key"],
+                            "size_bytes": obj["Size"],
+                            "last_modified": obj["LastModified"].isoformat(),
+                            "etag": obj["ETag"],
+                        }
+                    )
 
                 result = {
                     "documents": documents,
@@ -1912,6 +1971,7 @@ class S3Service:
 # Health Check Functions
 # ============================================================================
 
+
 async def check_aws_services_health() -> Dict[str, Any]:
     """
     Check health of all AWS services.
@@ -1982,7 +2042,10 @@ async def check_aws_services_health() -> Dict[str, Any]:
     except asyncio.TimeoutError:
         health_status["comprehend"] = {"healthy": False, "message": "Timeout"}
     except Exception as e:
-        health_status["comprehend"] = {"healthy": True, "message": "OK (connectivity verified)"}
+        health_status["comprehend"] = {
+            "healthy": True,
+            "message": "OK (connectivity verified)",
+        }
 
     # Check S3
     try:
@@ -2005,7 +2068,9 @@ async def check_aws_services_health() -> Dict[str, Any]:
 
     # Overall health
     all_healthy = all(
-        service["healthy"] for service in health_status.values() if service != health_status["overall"]
+        service["healthy"]
+        for service in health_status.values()
+        if service != health_status["overall"]
     )
 
     health_status["overall"] = {

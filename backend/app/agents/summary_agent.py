@@ -21,7 +21,7 @@ class SummaryAgent(BaseAgent):
         super().__init__(
             name="SummaryAgent",
             description="Generate summaries with configurable length and audience",
-            config={"max_requests_per_minute": 50}
+            config={"max_requests_per_minute": 50},
         )
         self.bedrock = BedrockService()
 
@@ -58,7 +58,12 @@ Return JSON:
 
         summary = self._parse_summary(response["text"])
 
-        return {"summary": summary, "length": length, "audience": audience, "cost": response["cost"]}
+        return {
+            "summary": summary,
+            "length": length,
+            "audience": audience,
+            "cost": response["cost"],
+        }
 
     def _get_prompt(self, audience: str) -> str:
         """Get prompt for audience."""
@@ -67,13 +72,22 @@ Return JSON:
             "technical": "You are summarizing for technical teams. Include technical details, implementation considerations, and technical risks.",
             "team": "You are summarizing for project teams. Focus on actionable items, progress updates, and collaboration needs.",
         }
-        return prompts.get(audience, "You are creating a clear, structured summary. Focus on key points and next steps.")
+        return prompts.get(
+            audience,
+            "You are creating a clear, structured summary. Focus on key points and next steps.",
+        )
 
     def _parse_summary(self, response_text: str) -> Dict[str, Any]:
         """Parse summary JSON."""
         try:
-            response_text = re.sub(r'```json?\n?', '', response_text).strip()
-            response_text = re.sub(r'```\n?$', '', response_text).strip()
+            response_text = re.sub(r"```json?\n?", "", response_text).strip()
+            response_text = re.sub(r"```\n?$", "", response_text).strip()
             return json.loads(response_text)
         except json.JSONDecodeError:
-            return {"executive_summary": response_text, "key_points": [], "decisions": [], "next_steps": [], "concerns": []}
+            return {
+                "executive_summary": response_text,
+                "key_points": [],
+                "decisions": [],
+                "next_steps": [],
+                "concerns": [],
+            }

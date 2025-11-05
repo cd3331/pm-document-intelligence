@@ -62,6 +62,7 @@ security = HTTPBearer()
 # Token Validation
 # ============================================================================
 
+
 async def get_token_from_header(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> str:
@@ -96,6 +97,7 @@ async def get_token_from_header(
 # User Retrieval
 # ============================================================================
 
+
 async def get_user_by_id(user_id: str) -> Optional[UserInDB]:
     """
     Get user by ID from database or cache.
@@ -116,10 +118,7 @@ async def get_user_by_id(user_id: str) -> Optional[UserInDB]:
 
     # Get from database
     try:
-        users = await execute_select(
-            "users",
-            match={"id": user_id}
-        )
+        users = await execute_select("users", match={"id": user_id})
 
         if not users:
             logger.warning(f"User {user_id} not found in database")
@@ -128,11 +127,7 @@ async def get_user_by_id(user_id: str) -> Optional[UserInDB]:
         user = UserInDB(**users[0])
 
         # Cache user data for 15 minutes
-        await set_cache(
-            cache_key,
-            user.model_dump(),
-            ttl=900
-        )
+        await set_cache(cache_key, user.model_dump(), ttl=900)
 
         logger.debug(f"User {user_id} retrieved from database and cached")
         return user
@@ -145,6 +140,7 @@ async def get_user_by_id(user_id: str) -> Optional[UserInDB]:
 # ============================================================================
 # Current User Dependencies
 # ============================================================================
+
 
 async def get_current_user(
     token: str = Depends(get_token_from_header),
@@ -187,9 +183,7 @@ async def get_current_user(
         # Update last login time (async, don't wait)
         try:
             await execute_update(
-                "users",
-                {"last_login": datetime.utcnow()},
-                match={"id": user.id}
+                "users", {"last_login": datetime.utcnow()}, match={"id": user.id}
             )
         except Exception as e:
             logger.error(f"Failed to update last login: {e}")
@@ -278,6 +272,7 @@ async def get_current_verified_user(
 # Role-Based Access Control (RBAC)
 # ============================================================================
 
+
 def require_role(*required_roles: UserRole):
     """
     Dependency factory for role-based access control.
@@ -304,6 +299,7 @@ def require_role(*required_roles: UserRole):
         ):
             return {"message": "Manager or admin access granted"}
     """
+
     async def role_checker(
         current_user: UserInDB = Depends(get_current_active_user),
     ) -> UserInDB:
@@ -349,6 +345,7 @@ def require_permission(required_level: PermissionLevel):
         ):
             return {"message": "Document deleted"}
     """
+
     async def permission_checker(
         current_user: UserInDB = Depends(get_current_active_user),
     ) -> UserInDB:
@@ -375,6 +372,7 @@ def require_permission(required_level: PermissionLevel):
 # Account Lockout Management
 # ============================================================================
 
+
 async def check_account_lockout(email: str) -> bool:
     """
     Check if account is locked out due to failed login attempts.
@@ -392,7 +390,9 @@ async def check_account_lockout(email: str) -> bool:
 
     # Lock account after 5 failed attempts
     if len(failed_logins) >= 5:
-        logger.warning(f"Account {email} locked due to {len(failed_logins)} failed attempts")
+        logger.warning(
+            f"Account {email} locked due to {len(failed_logins)} failed attempts"
+        )
         return True
 
     return False
@@ -432,7 +432,9 @@ async def get_lockout_info(email: str) -> dict:
         # Get time until lockout expires (60 minutes from first failed attempt)
         first_attempt = failed_logins[-1]["created_at"]
         lockout_expires = first_attempt + timedelta(hours=1)
-        minutes_remaining = int((lockout_expires - datetime.utcnow()).total_seconds() / 60)
+        minutes_remaining = int(
+            (lockout_expires - datetime.utcnow()).total_seconds() / 60
+        )
 
         return {
             "locked": True,
@@ -450,6 +452,7 @@ async def get_lockout_info(email: str) -> dict:
 # ============================================================================
 # Cache Management
 # ============================================================================
+
 
 async def invalidate_user_cache(user_id: str) -> None:
     """
@@ -471,6 +474,7 @@ async def invalidate_user_cache(user_id: str) -> None:
 # ============================================================================
 # Optional Authentication
 # ============================================================================
+
 
 async def get_current_user_optional(
     token: Optional[str] = Depends(get_token_from_header),
@@ -506,6 +510,7 @@ async def get_current_user_optional(
 # Resource Ownership Verification
 # ============================================================================
 
+
 async def verify_document_ownership(
     document_id: str,
     user: UserInDB,
@@ -527,9 +532,7 @@ async def verify_document_ownership(
     # Check document ownership
     try:
         documents = await execute_select(
-            "documents",
-            columns="user_id",
-            match={"id": document_id}
+            "documents", columns="user_id", match={"id": document_id}
         )
 
         if not documents:

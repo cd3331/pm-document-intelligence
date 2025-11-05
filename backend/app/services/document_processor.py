@@ -63,6 +63,7 @@ logger = get_logger(__name__)
 # Processing State Machine
 # ============================================================================
 
+
 class ProcessingState(str, Enum):
     """Document processing states."""
 
@@ -121,6 +122,7 @@ class ProcessingCheckpoint:
 # ============================================================================
 # Document Processor
 # ============================================================================
+
 
 class DocumentProcessor:
     """Intelligent document processing pipeline."""
@@ -207,9 +209,13 @@ class DocumentProcessor:
             if data:
                 message_data["data"] = data
 
-            await self.pubnub_client.publish().channel(channel).message(message_data).future()
+            await self.pubnub_client.publish().channel(channel).message(
+                message_data
+            ).future()
 
-            logger.debug(f"Published progress: {document_id} - {state.value} ({progress}%)")
+            logger.debug(
+                f"Published progress: {document_id} - {state.value} ({progress}%)"
+            )
 
         except Exception as e:
             logger.error(f"Failed to publish progress: {e}")
@@ -251,7 +257,7 @@ class DocumentProcessor:
                     "processing_checkpoint": json.dumps(checkpoint.to_dict()),
                     "error_message": error,
                 },
-                match={"id": document_id}
+                match={"id": document_id},
             )
         except Exception as e:
             logger.error(f"Failed to save checkpoint: {e}")
@@ -270,7 +276,7 @@ class DocumentProcessor:
             self.cancellation_tokens.remove(document_id)
             raise DocumentProcessingError(
                 message="Processing cancelled by user",
-                details={"document_id": document_id}
+                details={"document_id": document_id},
             )
 
     async def cancel_processing(self, document_id: str) -> bool:
@@ -293,7 +299,7 @@ class DocumentProcessor:
                 "processing_state": ProcessingState.CANCELLED.value,
                 "error_message": "Processing cancelled by user",
             },
-            match={"id": document_id}
+            match={"id": document_id},
         )
 
         logger.info(f"Processing cancelled for document {document_id}")
@@ -351,8 +357,11 @@ class DocumentProcessor:
             self._check_cancellation(document_id)
             await self._save_checkpoint(document_id, ProcessingState.UPLOADING_TO_S3)
             await self._publish_progress(
-                user_id, document_id, ProcessingState.UPLOADING_TO_S3,
-                5, "Uploading document to secure storage..."
+                user_id,
+                document_id,
+                ProcessingState.UPLOADING_TO_S3,
+                5,
+                "Uploading document to secure storage...",
             )
 
             logger.info(f"Step 1: Uploading {filename} to S3")
@@ -379,22 +388,20 @@ class DocumentProcessor:
             # Step 2: Extract text
             self._check_cancellation(document_id)
             await self._save_checkpoint(
-                document_id,
-                ProcessingState.EXTRACTING_TEXT,
-                {"s3_key": s3_key}
+                document_id, ProcessingState.EXTRACTING_TEXT, {"s3_key": s3_key}
             )
             await self._publish_progress(
-                user_id, document_id, ProcessingState.EXTRACTING_TEXT,
-                15, "Extracting text from document..."
+                user_id,
+                document_id,
+                ProcessingState.EXTRACTING_TEXT,
+                15,
+                "Extracting text from document...",
             )
 
             logger.info(f"Step 2: Extracting text from {filename}")
 
             extracted_text = await self._extract_text(
-                file_content,
-                filename,
-                s3_result["s3_bucket"],
-                s3_key
+                file_content, filename, s3_result["s3_bucket"], s3_key
             )
 
             results["extracted_text"] = extracted_text["text"]
@@ -408,11 +415,14 @@ class DocumentProcessor:
             await self._save_checkpoint(
                 document_id,
                 ProcessingState.CLEANING_TEXT,
-                {"s3_key": s3_key, "raw_text": extracted_text["text"]}
+                {"s3_key": s3_key, "raw_text": extracted_text["text"]},
             )
             await self._publish_progress(
-                user_id, document_id, ProcessingState.CLEANING_TEXT,
-                25, "Cleaning and normalizing text..."
+                user_id,
+                document_id,
+                ProcessingState.CLEANING_TEXT,
+                25,
+                "Cleaning and normalizing text...",
             )
 
             logger.info("Step 3: Cleaning text")
@@ -426,22 +436,27 @@ class DocumentProcessor:
                 await self._save_checkpoint(
                     document_id,
                     ProcessingState.ANALYZING_ENTITIES,
-                    {"s3_key": s3_key, "text": cleaned_text}
+                    {"s3_key": s3_key, "text": cleaned_text},
                 )
                 await self._publish_progress(
-                    user_id, document_id, ProcessingState.ANALYZING_ENTITIES,
-                    35, "Analyzing entities and sentiment..."
+                    user_id,
+                    document_id,
+                    ProcessingState.ANALYZING_ENTITIES,
+                    35,
+                    "Analyzing entities and sentiment...",
                 )
 
                 logger.info("Step 4: Analyzing with Comprehend")
 
-                comprehend_results = await self.comprehend.analyze_document_comprehensive(
-                    cleaned_text
+                comprehend_results = (
+                    await self.comprehend.analyze_document_comprehensive(cleaned_text)
                 )
 
                 results["entities"] = comprehend_results["entities"]["entities"]
                 results["sentiment"] = comprehend_results["sentiment"]
-                results["key_phrases"] = comprehend_results["key_phrases"]["key_phrases"]
+                results["key_phrases"] = comprehend_results["key_phrases"][
+                    "key_phrases"
+                ]
 
                 logger.info(
                     f"Found {len(results['entities'])} entities, "
@@ -454,18 +469,20 @@ class DocumentProcessor:
                 await self._save_checkpoint(
                     document_id,
                     ProcessingState.EXTRACTING_ACTIONS,
-                    {"s3_key": s3_key, "text": cleaned_text}
+                    {"s3_key": s3_key, "text": cleaned_text},
                 )
                 await self._publish_progress(
-                    user_id, document_id, ProcessingState.EXTRACTING_ACTIONS,
-                    50, "Extracting action items..."
+                    user_id,
+                    document_id,
+                    ProcessingState.EXTRACTING_ACTIONS,
+                    50,
+                    "Extracting action items...",
                 )
 
                 logger.info("Step 5: Extracting action items")
 
                 action_items = await self.extract_action_items(
-                    cleaned_text,
-                    document_type
+                    cleaned_text, document_type
                 )
 
                 results["action_items"] = action_items
@@ -477,11 +494,14 @@ class DocumentProcessor:
                 await self._save_checkpoint(
                     document_id,
                     ProcessingState.EXTRACTING_RISKS,
-                    {"s3_key": s3_key, "text": cleaned_text}
+                    {"s3_key": s3_key, "text": cleaned_text},
                 )
                 await self._publish_progress(
-                    user_id, document_id, ProcessingState.EXTRACTING_RISKS,
-                    65, "Identifying risks and blockers..."
+                    user_id,
+                    document_id,
+                    ProcessingState.EXTRACTING_RISKS,
+                    65,
+                    "Identifying risks and blockers...",
                 )
 
                 logger.info("Step 6: Extracting risks")
@@ -497,19 +517,20 @@ class DocumentProcessor:
                 await self._save_checkpoint(
                     document_id,
                     ProcessingState.GENERATING_SUMMARY,
-                    {"s3_key": s3_key, "text": cleaned_text}
+                    {"s3_key": s3_key, "text": cleaned_text},
                 )
                 await self._publish_progress(
-                    user_id, document_id, ProcessingState.GENERATING_SUMMARY,
-                    75, "Generating summary..."
+                    user_id,
+                    document_id,
+                    ProcessingState.GENERATING_SUMMARY,
+                    75,
+                    "Generating summary...",
                 )
 
                 logger.info("Step 7: Generating summary")
 
                 summary = await self.generate_summary(
-                    cleaned_text,
-                    document_type,
-                    length="medium"
+                    cleaned_text, document_type, length="medium"
                 )
 
                 results["summary"] = summary
@@ -521,11 +542,14 @@ class DocumentProcessor:
                 await self._save_checkpoint(
                     document_id,
                     ProcessingState.GENERATING_EMBEDDINGS,
-                    {"s3_key": s3_key, "text": cleaned_text}
+                    {"s3_key": s3_key, "text": cleaned_text},
                 )
                 await self._publish_progress(
-                    user_id, document_id, ProcessingState.GENERATING_EMBEDDINGS,
-                    85, "Generating embeddings for search..."
+                    user_id,
+                    document_id,
+                    ProcessingState.GENERATING_EMBEDDINGS,
+                    85,
+                    "Generating embeddings for search...",
                 )
 
                 logger.info("Step 8: Generating embeddings")
@@ -534,19 +558,20 @@ class DocumentProcessor:
                 # In production, integrate with OpenAI embeddings or similar
                 results["embeddings"] = {
                     "status": "not_implemented",
-                    "message": "Embeddings generation requires vector database setup"
+                    "message": "Embeddings generation requires vector database setup",
                 }
 
             # Step 9: Store results
             self._check_cancellation(document_id)
             await self._save_checkpoint(
-                document_id,
-                ProcessingState.STORING_RESULTS,
-                {"s3_key": s3_key}
+                document_id, ProcessingState.STORING_RESULTS, {"s3_key": s3_key}
             )
             await self._publish_progress(
-                user_id, document_id, ProcessingState.STORING_RESULTS,
-                90, "Storing analysis results..."
+                user_id,
+                document_id,
+                ProcessingState.STORING_RESULTS,
+                90,
+                "Storing analysis results...",
             )
 
             logger.info("Step 9: Storing results")
@@ -565,9 +590,12 @@ class DocumentProcessor:
             # Mark as completed
             await self._save_checkpoint(document_id, ProcessingState.COMPLETED)
             await self._publish_progress(
-                user_id, document_id, ProcessingState.COMPLETED,
-                100, "Processing completed successfully!",
-                {"duration": duration, "cost": results["cost"]}
+                user_id,
+                document_id,
+                ProcessingState.COMPLETED,
+                100,
+                "Processing completed successfully!",
+                {"duration": duration, "cost": results["cost"]},
             )
 
             logger.info(
@@ -598,15 +626,16 @@ class DocumentProcessor:
             # Save error checkpoint
             error_message = str(e)
             await self._save_checkpoint(
-                document_id,
-                ProcessingState.FAILED,
-                error=error_message
+                document_id, ProcessingState.FAILED, error=error_message
             )
 
             # Notify user of failure
             await self._publish_progress(
-                user_id, document_id, ProcessingState.FAILED,
-                0, f"Processing failed: {error_message}"
+                user_id,
+                document_id,
+                ProcessingState.FAILED,
+                0,
+                f"Processing failed: {error_message}",
             )
 
             raise DocumentProcessingError(
@@ -615,7 +644,7 @@ class DocumentProcessor:
                     "document_id": document_id,
                     "error": error_message,
                     "state": results.get("status", "unknown"),
-                }
+                },
             )
 
     async def _extract_text(
@@ -664,8 +693,7 @@ class DocumentProcessor:
                         continue
 
                 raise DocumentProcessingError(
-                    message="Failed to decode text file",
-                    details={"filename": filename}
+                    message="Failed to decode text file", details={"filename": filename}
                 )
 
         # PDF and images - Use Textract
@@ -675,15 +703,12 @@ class DocumentProcessor:
 
             if file_size < 5 * 1024 * 1024:  # < 5MB, use sync
                 result = await self.textract.extract_text_synchronous(
-                    file_content,
-                    feature_types=["TABLES", "FORMS"]
+                    file_content, feature_types=["TABLES", "FORMS"]
                 )
             else:
                 # Use async for large files
                 result = await self.textract.extract_text_asynchronous(
-                    s3_bucket,
-                    s3_key,
-                    feature_types=["TABLES", "FORMS"]
+                    s3_bucket, s3_key, feature_types=["TABLES", "FORMS"]
                 )
 
             return {
@@ -698,7 +723,7 @@ class DocumentProcessor:
         else:
             raise DocumentProcessingError(
                 message="Unsupported file type",
-                details={"filename": filename, "extension": file_extension}
+                details={"filename": filename, "extension": file_extension},
             )
 
     def _clean_text(self, text: str) -> str:
@@ -712,13 +737,13 @@ class DocumentProcessor:
             Cleaned text
         """
         # Remove excessive whitespace
-        text = re.sub(r'\s+', ' ', text)
+        text = re.sub(r"\s+", " ", text)
 
         # Remove special characters but keep punctuation
-        text = re.sub(r'[^\w\s\.,!?\-:;()\[\]{}\"\'@#$%&*+=/<>]', '', text)
+        text = re.sub(r"[^\w\s\.,!?\-:;()\[\]{}\"\'@#$%&*+=/<>]", "", text)
 
         # Normalize line breaks
-        text = re.sub(r'\n+', '\n', text)
+        text = re.sub(r"\n+", "\n", text)
 
         # Trim
         text = text.strip()
@@ -784,8 +809,8 @@ Provide ONLY the JSON array, no other text."""
 
             # Remove markdown code blocks if present
             if response_text.startswith("```"):
-                response_text = re.sub(r'```json?\n?', '', response_text)
-                response_text = re.sub(r'```\n?$', '', response_text)
+                response_text = re.sub(r"```json?\n?", "", response_text)
+                response_text = re.sub(r"```\n?$", "", response_text)
                 response_text = response_text.strip()
 
             action_items = json.loads(response_text)
@@ -828,7 +853,9 @@ Provide ONLY the JSON array, no other text."""
             return False
 
         # Validate confidence
-        if not isinstance(item["confidence"], (int, float)) or not (0 <= item["confidence"] <= 1):
+        if not isinstance(item["confidence"], (int, float)) or not (
+            0 <= item["confidence"] <= 1
+        ):
             return False
 
         # Action must be non-empty
@@ -897,8 +924,8 @@ Provide ONLY the JSON array, no other text."""
 
             # Remove markdown code blocks
             if response_text.startswith("```"):
-                response_text = re.sub(r'```json?\n?', '', response_text)
-                response_text = re.sub(r'```\n?$', '', response_text)
+                response_text = re.sub(r"```json?\n?", "", response_text)
+                response_text = re.sub(r"```\n?$", "", response_text)
                 response_text = response_text.strip()
 
             risks = json.loads(response_text)
@@ -937,7 +964,9 @@ Provide ONLY the JSON array, no other text."""
         if risk["severity"] not in ["CRITICAL", "HIGH", "MEDIUM", "LOW"]:
             return False
 
-        if not isinstance(risk["confidence"], (int, float)) or not (0 <= risk["confidence"] <= 1):
+        if not isinstance(risk["confidence"], (int, float)) or not (
+            0 <= risk["confidence"] <= 1
+        ):
             return False
 
         if not risk["risk"] or not risk["risk"].strip():
@@ -1002,8 +1031,8 @@ Provide ONLY the JSON object, no other text."""
             response_text = response["text"].strip()
 
             if response_text.startswith("```"):
-                response_text = re.sub(r'```json?\n?', '', response_text)
-                response_text = re.sub(r'```\n?$', '', response_text)
+                response_text = re.sub(r"```json?\n?", "", response_text)
+                response_text = re.sub(r"```\n?$", "", response_text)
                 response_text = response_text.strip()
 
             claude_entities = json.loads(response_text)
@@ -1082,8 +1111,8 @@ Provide ONLY the JSON object, no other text."""
             response_text = response["text"].strip()
 
             if response_text.startswith("```"):
-                response_text = re.sub(r'```json?\n?', '', response_text)
-                response_text = re.sub(r'```\n?$', '', response_text)
+                response_text = re.sub(r"```json?\n?", "", response_text)
+                response_text = re.sub(r"```\n?$", "", response_text)
                 response_text = response_text.strip()
 
             summary = json.loads(response_text)
@@ -1131,11 +1160,7 @@ Provide ONLY the JSON object, no other text."""
             "processed_at": datetime.utcnow(),
         }
 
-        await execute_update(
-            "documents",
-            document_updates,
-            match={"id": document_id}
-        )
+        await execute_update("documents", document_updates, match={"id": document_id})
 
         # Store analysis results
         analysis_data = {
@@ -1189,14 +1214,14 @@ Provide ONLY the JSON object, no other text."""
                     "risks": len(results.get("risks", [])),
                     "cost": results.get("cost", 0),
                     "duration": results.get("duration_seconds", 0),
-                }
+                },
             }
 
             async with aiohttp.ClientSession() as session:
                 async with session.post(
                     webhook_url,
                     json=webhook_data,
-                    timeout=aiohttp.ClientTimeout(total=10)
+                    timeout=aiohttp.ClientTimeout(total=10),
                 ) as response:
                     if response.status == 200:
                         logger.info(f"Webhook sent successfully to {webhook_url}")
@@ -1244,7 +1269,7 @@ Provide ONLY the JSON object, no other text."""
         failed = []
 
         for i in range(0, len(documents), max_parallel):
-            batch = documents[i:i + max_parallel]
+            batch = documents[i : i + max_parallel]
 
             # Process batch in parallel
             tasks = []
@@ -1264,11 +1289,15 @@ Provide ONLY the JSON object, no other text."""
 
             for doc, result in zip(batch, batch_results):
                 if isinstance(result, Exception):
-                    failed.append({
-                        "document_id": doc["document_id"],
-                        "error": str(result),
-                    })
-                    logger.error(f"Batch processing failed for {doc['document_id']}: {result}")
+                    failed.append(
+                        {
+                            "document_id": doc["document_id"],
+                            "error": str(result),
+                        }
+                    )
+                    logger.error(
+                        f"Batch processing failed for {doc['document_id']}: {result}"
+                    )
                 else:
                     results.append(result)
 

@@ -18,5 +18,5 @@ async def get_system_stats():
     """Get system statistics."""
     raise HTTPException(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Admin stats endpoint not yet implemented"
+        detail="Admin stats endpoint not yet implemented",
     )

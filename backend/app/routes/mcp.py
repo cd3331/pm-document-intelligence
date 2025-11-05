@@ -40,19 +40,21 @@ limiter = Limiter(key_func=get_remote_address)
 # Request/Response Models
 # ============================================================================
 
+
 class ToolExecutionRequest(BaseModel):
     """Request to execute an MCP tool."""
+
     tool_name: str = Field(..., description="Name of tool to execute")
     parameters: Dict[str, Any] = Field(..., description="Tool parameters")
     conversation_id: Optional[str] = Field(
-        None,
-        description="Conversation ID for context"
+        None, description="Conversation ID for context"
     )
     track_cost: bool = Field(default=True, description="Track execution cost")
 
 
 class ToolExecutionResponse(BaseModel):
     """Response from tool execution."""
+
     success: bool
     tool_name: str
     result: Dict[str, Any]
@@ -63,32 +65,32 @@ class ToolExecutionResponse(BaseModel):
 
 class ResourceAccessRequest(BaseModel):
     """Request to access an MCP resource."""
+
     uri: str = Field(..., description="Resource URI (e.g., doc://123)")
 
 
 class ChatMessage(BaseModel):
     """Chat message."""
+
     role: str = Field(..., pattern="^(user|assistant|system)$")
     content: str = Field(..., min_length=1, max_length=10000)
 
 
 class MCPChatRequest(BaseModel):
     """Request for MCP-enabled chat."""
+
     message: str = Field(..., min_length=1, max_length=5000)
     conversation_id: Optional[str] = None
     allow_tools: bool = Field(default=True, description="Allow tool use")
     allowed_tools: Optional[List[str]] = Field(
-        None,
-        description="Specific tools to allow (null = all)"
+        None, description="Specific tools to allow (null = all)"
     )
-    context: Optional[Dict[str, Any]] = Field(
-        None,
-        description="Additional context"
-    )
+    context: Optional[Dict[str, Any]] = Field(None, description="Additional context")
 
 
 class ToolInfo(BaseModel):
     """Information about an MCP tool."""
+
     name: str
     description: str
     parameters: Dict[str, Any]
@@ -99,13 +101,14 @@ class ToolInfo(BaseModel):
 # Audit Logging
 # ============================================================================
 
+
 async def log_tool_execution(
     user_id: str,
     tool_name: str,
     parameters: Dict[str, Any],
     result: Dict[str, Any],
     duration: float,
-    success: bool
+    success: bool,
 ) -> None:
     """
     Log tool execution for audit trail.
@@ -134,13 +137,13 @@ async def log_tool_execution(
                     "result_summary": {
                         "success": result.get("success"),
                         "total_results": result.get("total_results"),
-                        "error": result.get("error")
-                    }
+                        "error": result.get("error"),
+                    },
                 },
                 "timestamp": datetime.utcnow().isoformat(),
                 "ip_address": None,  # Would be set from request
-                "user_agent": None
-            }
+                "user_agent": None,
+            },
         )
 
         logger.info(
@@ -149,8 +152,8 @@ async def log_tool_execution(
                 "user_id": user_id,
                 "tool": tool_name,
                 "success": success,
-                "duration": duration
-            }
+                "duration": duration,
+            },
         )
 
     except Exception as e:
@@ -161,6 +164,7 @@ async def log_tool_execution(
 # ============================================================================
 # MCP Endpoints
 # ============================================================================
+
 
 @router.post("/execute", summary="Execute MCP tool")
 @limiter.limit("60/minute")
@@ -209,24 +213,20 @@ async def execute_tool(
         mcp_server = get_mcp_server()
 
         # Inject user_id into parameters for access control
-        parameters = {
-            **tool_request.parameters,
-            "user_id": current_user.id
-        }
+        parameters = {**tool_request.parameters, "user_id": current_user.id}
 
         logger.info(
             f"Executing MCP tool: {tool_request.tool_name}",
             extra={
                 "user_id": current_user.id,
                 "tool": tool_request.tool_name,
-                "conversation_id": tool_request.conversation_id
-            }
+                "conversation_id": tool_request.conversation_id,
+            },
         )
 
         # Execute tool
         result = await mcp_server.call_tool(
-            tool_name=tool_request.tool_name,
-            parameters=parameters
+            tool_name=tool_request.tool_name, parameters=parameters
         )
 
         # Calculate execution time
@@ -241,8 +241,8 @@ async def execute_tool(
                 metadata={
                     "tool_name": tool_request.tool_name,
                     "parameters": tool_request.parameters,
-                    "result_success": result.get("success", True)
-                }
+                    "result_success": result.get("success", True),
+                },
             )
 
         # Extract cost if available
@@ -256,7 +256,7 @@ async def execute_tool(
             parameters=tool_request.parameters,
             result=result,
             duration=execution_time,
-            success=result.get("success", True)
+            success=result.get("success", True),
         )
 
         return ToolExecutionResponse(
@@ -265,7 +265,7 @@ async def execute_tool(
             result=result,
             execution_time=execution_time,
             cost=cost,
-            timestamp=datetime.utcnow().isoformat()
+            timestamp=datetime.utcnow().isoformat(),
         )
 
     except ValidationError as e:
@@ -276,7 +276,7 @@ async def execute_tool(
         logger.error(f"Tool execution failed: {e}", exc_info=True)
         raise AIServiceError(
             message=f"Failed to execute tool: {tool_request.tool_name}",
-            details={"error": str(e)}
+            details={"error": str(e)},
         )
 
 
@@ -313,7 +313,7 @@ async def list_tools(
         "analyze_metrics": "Extract all numerical metrics from quarterly report",
         "query_database": "Get all high-priority action items due this week",
         "create_action_item": "Create action item to review security audit",
-        "get_user_context": "Retrieve user preferences for personalization"
+        "get_user_context": "Retrieve user preferences for personalization",
     }
 
     return [
@@ -321,7 +321,7 @@ async def list_tools(
             name=tool["name"],
             description=tool["description"],
             parameters=tool["parameters"],
-            example_usage=examples.get(tool["name"])
+            example_usage=examples.get(tool["name"]),
         )
         for tool in tools
     ]
@@ -387,12 +387,11 @@ async def get_resource(
 
         logger.info(
             f"Accessing MCP resource: {resource_request.uri}",
-            extra={"user_id": current_user.id}
+            extra={"user_id": current_user.id},
         )
 
         resource = await mcp_server.get_resource(
-            uri=resource_request.uri,
-            user_id=current_user.id
+            uri=resource_request.uri, user_id=current_user.id
         )
 
         return resource
@@ -405,7 +404,7 @@ async def get_resource(
         logger.error(f"Resource access failed: {e}", exc_info=True)
         raise AIServiceError(
             message="Failed to access resource",
-            details={"uri": resource_request.uri, "error": str(e)}
+            details={"uri": resource_request.uri, "error": str(e)},
         )
 
 
@@ -427,10 +426,7 @@ async def list_prompts(
     mcp_server = get_mcp_server()
     prompts = mcp_server.list_prompts()
 
-    return {
-        "prompts": prompts,
-        "total": len(prompts)
-    }
+    return {"prompts": prompts, "total": len(prompts)}
 
 
 @router.post("/prompt", summary="Get prompt template")
@@ -458,14 +454,10 @@ async def get_prompt(
         mcp_server = get_mcp_server()
 
         prompt = mcp_server.get_prompt_template(
-            template_name=template_name,
-            **variables
+            template_name=template_name, **variables
         )
 
-        return {
-            "template_name": template_name,
-            "prompt": prompt
-        }
+        return {"template_name": template_name, "prompt": prompt}
 
     except ValidationError as e:
         logger.warning(f"Invalid prompt template request: {e}")
@@ -475,7 +467,7 @@ async def get_prompt(
         logger.error(f"Prompt template generation failed: {e}", exc_info=True)
         raise AIServiceError(
             message="Failed to generate prompt",
-            details={"template": template_name, "error": str(e)}
+            details={"template": template_name, "error": str(e)},
         )
 
 
@@ -522,39 +514,42 @@ async def mcp_chat(
         orchestrator = get_orchestrator()
 
         # Generate or use provided conversation ID
-        conversation_id = chat_request.conversation_id or f"conv_{current_user.id}_{int(datetime.utcnow().timestamp())}"
+        conversation_id = (
+            chat_request.conversation_id
+            or f"conv_{current_user.id}_{int(datetime.utcnow().timestamp())}"
+        )
 
         logger.info(
             f"MCP Chat request",
             extra={
                 "user_id": current_user.id,
                 "conversation_id": conversation_id,
-                "message_length": len(chat_request.message)
-            }
+                "message_length": len(chat_request.message),
+            },
         )
 
         # Add user message to context
         mcp_server.context.add_message(
-            conversation_id=conversation_id,
-            role="user",
-            content=chat_request.message
+            conversation_id=conversation_id, role="user", content=chat_request.message
         )
 
         # Get conversation history
         history = mcp_server.context.get_conversation(conversation_id)
 
         # Build context for agent
-        conversation_context = "\n".join([
-            f"{msg['role']}: {msg['content']}"
-            for msg in history[-5:]  # Last 5 messages
-        ])
+        conversation_context = "\n".join(
+            [
+                f"{msg['role']}: {msg['content']}"
+                for msg in history[-5:]  # Last 5 messages
+            ]
+        )
 
         # Use Q&A agent with MCP tools available
         result = await orchestrator.ask_question(
             question=chat_request.message,
             user_id=current_user.id,
             conversation_id=conversation_id,
-            use_context=True
+            use_context=True,
         )
 
         # Add assistant response to context
@@ -564,8 +559,8 @@ async def mcp_chat(
             content=result.get("answer", ""),
             metadata={
                 "cost": result.get("cost"),
-                "citations": result.get("citations", [])
-            }
+                "citations": result.get("citations", []),
+            },
         )
 
         execution_time = (datetime.utcnow() - start_time).total_seconds()
@@ -578,7 +573,7 @@ async def mcp_chat(
             parameters={"message": chat_request.message[:100]},
             result=result,
             duration=execution_time,
-            success=True
+            success=True,
         )
 
         return {
@@ -588,15 +583,12 @@ async def mcp_chat(
             "tools_used": [],  # Would be populated if tools were called
             "cost": result.get("cost"),
             "execution_time": execution_time,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
     except Exception as e:
         logger.error(f"MCP chat failed: {e}", exc_info=True)
-        raise AIServiceError(
-            message="Chat request failed",
-            details={"error": str(e)}
-        )
+        raise AIServiceError(message="Chat request failed", details={"error": str(e)})
 
 
 @router.delete("/conversation/{conversation_id}", summary="Clear conversation")
@@ -622,19 +614,19 @@ async def clear_conversation(
 
         logger.info(
             f"Cleared conversation {conversation_id}",
-            extra={"user_id": current_user.id}
+            extra={"user_id": current_user.id},
         )
 
         return {
             "message": "Conversation cleared successfully",
-            "conversation_id": conversation_id
+            "conversation_id": conversation_id,
         }
 
     except Exception as e:
         logger.error(f"Failed to clear conversation: {e}", exc_info=True)
         raise AIServiceError(
             message="Failed to clear conversation",
-            details={"conversation_id": conversation_id, "error": str(e)}
+            details={"conversation_id": conversation_id, "error": str(e)},
         )
 
 
@@ -656,10 +648,7 @@ async def get_mcp_stats(
 
     stats = mcp_server.context.get_stats()
 
-    return {
-        "statistics": stats,
-        "timestamp": datetime.utcnow().isoformat()
-    }
+    return {"statistics": stats, "timestamp": datetime.utcnow().isoformat()}
 
 
 @router.get("/health", summary="MCP health check")
@@ -681,7 +670,7 @@ async def mcp_health_check() -> Dict[str, Any]:
             "tools_available": len(tools),
             "resources_available": len(resources),
             "prompts_available": len(prompts),
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
     except Exception as e:
@@ -689,5 +678,5 @@ async def mcp_health_check() -> Dict[str, Any]:
         return {
             "status": "unhealthy",
             "error": str(e),
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
         }

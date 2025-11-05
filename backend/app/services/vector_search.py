@@ -42,6 +42,7 @@ logger = get_logger(__name__)
 # Vector Search Service
 # ============================================================================
 
+
 class VectorSearch:
     """Vector search service with pgvector."""
 
@@ -82,7 +83,9 @@ class VectorSearch:
                 embedding_record = {
                     "document_id": document_id,
                     "user_id": user_id,
-                    "embedding": embedding_data["embedding"],  # pgvector will handle this
+                    "embedding": embedding_data[
+                        "embedding"
+                    ],  # pgvector will handle this
                     "chunk_index": embedding_data["chunk_index"],
                     "chunk_text": embedding_data["chunk_text"],
                     "tokens": embedding_data["tokens"],
@@ -105,7 +108,7 @@ class VectorSearch:
             logger.error(f"Failed to store embeddings: {e}", exc_info=True)
             raise DatabaseError(
                 message="Failed to store embeddings",
-                details={"document_id": document_id, "error": str(e)}
+                details={"document_id": document_id, "error": str(e)},
             )
 
     async def semantic_search(
@@ -153,8 +156,7 @@ class VectorSearch:
             logger.info(f"Generating query embedding for: {query[:50]}...")
 
             query_result = await self.embedding_service.generate_query_embedding(
-                query,
-                use_cache=True
+                query, use_cache=True
             )
 
             query_embedding = query_result["embedding"]
@@ -225,20 +227,26 @@ class VectorSearch:
                 if doc_id not in seen_documents:
                     seen_documents.add(doc_id)
 
-                    search_results.append({
-                        "document_id": doc_id,
-                        "filename": row["filename"],
-                        "document_type": row["document_type"],
-                        "similarity_score": float(row["similarity_score"]),
-                        "created_at": row["created_at"].isoformat() if row["created_at"] else None,
-                        "word_count": row["word_count"],
-                        "matched_chunk": {
-                            "text": row["chunk_text"],
-                            "chunk_index": row["chunk_index"],
-                            "start_char": row["start_char"],
-                            "end_char": row["end_char"],
-                        },
-                    })
+                    search_results.append(
+                        {
+                            "document_id": doc_id,
+                            "filename": row["filename"],
+                            "document_type": row["document_type"],
+                            "similarity_score": float(row["similarity_score"]),
+                            "created_at": (
+                                row["created_at"].isoformat()
+                                if row["created_at"]
+                                else None
+                            ),
+                            "word_count": row["word_count"],
+                            "matched_chunk": {
+                                "text": row["chunk_text"],
+                                "chunk_index": row["chunk_index"],
+                                "start_char": row["start_char"],
+                                "end_char": row["end_char"],
+                            },
+                        }
+                    )
 
             duration = (datetime.utcnow() - start_time).total_seconds()
 
@@ -269,7 +277,7 @@ class VectorSearch:
             logger.error(f"Semantic search failed: {e}", exc_info=True)
             raise AIServiceError(
                 message="Semantic search failed",
-                details={"query": query, "error": str(e)}
+                details={"query": query, "error": str(e)},
             )
 
     async def hybrid_search(
@@ -309,8 +317,7 @@ class VectorSearch:
 
             # Generate query embedding
             query_result = await self.embedding_service.generate_query_embedding(
-                query,
-                use_cache=True
+                query, use_cache=True
             )
 
             query_embedding = query_result["embedding"]
@@ -400,17 +407,21 @@ class VectorSearch:
             search_results = []
 
             for row in results:
-                search_results.append({
-                    "document_id": row["id"],
-                    "filename": row["filename"],
-                    "document_type": row["document_type"],
-                    "created_at": row["created_at"].isoformat() if row["created_at"] else None,
-                    "word_count": row["word_count"],
-                    "combined_score": float(row["combined_score"]),
-                    "vector_score": float(row["vector_score"]),
-                    "keyword_score": float(row["keyword_score"]),
-                    "matched_chunk": row["matched_chunk"],
-                })
+                search_results.append(
+                    {
+                        "document_id": row["id"],
+                        "filename": row["filename"],
+                        "document_type": row["document_type"],
+                        "created_at": (
+                            row["created_at"].isoformat() if row["created_at"] else None
+                        ),
+                        "word_count": row["word_count"],
+                        "combined_score": float(row["combined_score"]),
+                        "vector_score": float(row["vector_score"]),
+                        "keyword_score": float(row["keyword_score"]),
+                        "matched_chunk": row["matched_chunk"],
+                    }
+                )
 
             logger.info(f"Hybrid search: {len(search_results)} results")
 
@@ -427,7 +438,7 @@ class VectorSearch:
             logger.error(f"Hybrid search failed: {e}", exc_info=True)
             raise AIServiceError(
                 message="Hybrid search failed",
-                details={"query": query, "error": str(e)}
+                details={"query": query, "error": str(e)},
             )
 
     async def find_similar_documents(
@@ -454,9 +465,7 @@ class VectorSearch:
 
             # Get embeddings for source document
             source_embeddings = await execute_select(
-                "embeddings",
-                match={"document_id": document_id},
-                limit=1
+                "embeddings", match={"document_id": document_id}, limit=1
             )
 
             if not source_embeddings:
@@ -464,7 +473,7 @@ class VectorSearch:
                     "document_id": document_id,
                     "results": [],
                     "total_results": 0,
-                    "message": "No embeddings found for document"
+                    "message": "No embeddings found for document",
                 }
 
             source_embedding = source_embeddings[0]["embedding"]
@@ -505,14 +514,18 @@ class VectorSearch:
             similar_docs = []
 
             for row in results:
-                similar_docs.append({
-                    "document_id": row["document_id"],
-                    "filename": row["filename"],
-                    "document_type": row["document_type"],
-                    "created_at": row["created_at"].isoformat() if row["created_at"] else None,
-                    "word_count": row["word_count"],
-                    "similarity_score": float(row["similarity_score"]),
-                })
+                similar_docs.append(
+                    {
+                        "document_id": row["document_id"],
+                        "filename": row["filename"],
+                        "document_type": row["document_type"],
+                        "created_at": (
+                            row["created_at"].isoformat() if row["created_at"] else None
+                        ),
+                        "word_count": row["word_count"],
+                        "similarity_score": float(row["similarity_score"]),
+                    }
+                )
 
             logger.info(f"Found {len(similar_docs)} similar documents")
 
@@ -527,7 +540,7 @@ class VectorSearch:
             logger.error(f"Find similar documents failed: {e}", exc_info=True)
             raise AIServiceError(
                 message="Find similar documents failed",
-                details={"document_id": document_id, "error": str(e)}
+                details={"document_id": document_id, "error": str(e)},
             )
 
     async def delete_document_embeddings(
@@ -552,7 +565,9 @@ class VectorSearch:
 
             deleted_count = len(results)
 
-            logger.info(f"Deleted {deleted_count} embeddings for document {document_id}")
+            logger.info(
+                f"Deleted {deleted_count} embeddings for document {document_id}"
+            )
 
             return deleted_count
 
@@ -560,7 +575,7 @@ class VectorSearch:
             logger.error(f"Failed to delete embeddings: {e}", exc_info=True)
             raise DatabaseError(
                 message="Failed to delete embeddings",
-                details={"document_id": document_id, "error": str(e)}
+                details={"document_id": document_id, "error": str(e)},
             )
 
     async def update_document_embeddings(
@@ -613,7 +628,7 @@ class VectorSearch:
             logger.error(f"Failed to update embeddings: {e}", exc_info=True)
             raise AIServiceError(
                 message="Failed to update embeddings",
-                details={"document_id": document_id, "error": str(e)}
+                details={"document_id": document_id, "error": str(e)},
             )
 
     async def get_search_suggestions(
@@ -661,11 +676,7 @@ class VectorSearch:
 
             results = await execute_query(sql, tuple(params))
 
-            suggestions = [
-                row["suggestion"]
-                for row in results
-                if row["suggestion"]
-            ]
+            suggestions = [row["suggestion"] for row in results if row["suggestion"]]
 
             # Cache suggestions
             if suggestions:

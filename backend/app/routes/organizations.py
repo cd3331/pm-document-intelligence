@@ -15,13 +15,22 @@ import secrets
 from app.core.database import get_db
 from app.models.user import User
 from app.models.organization import (
-    Organization, OrganizationMember, Team, TeamMember,
-    OrganizationInvitation, OrganizationUsage, OrganizationStatus, PlanTier
+    Organization,
+    OrganizationMember,
+    Team,
+    TeamMember,
+    OrganizationInvitation,
+    OrganizationUsage,
+    OrganizationStatus,
+    PlanTier,
 )
 from app.models.roles import Role, Permission
 from app.middleware.rbac import (
-    get_organization_context, OrganizationContext,
-    require_permission, require_role, require_org_admin
+    get_organization_context,
+    OrganizationContext,
+    require_permission,
+    require_role,
+    require_org_admin,
 )
 from app.core.auth import get_current_user
 from app.services.audit_logger import AuditLogger
@@ -35,6 +44,7 @@ router = APIRouter(prefix="/api/organizations", tags=["organizations"])
 # ============================================================================
 # Pydantic Models for Request/Response
 # ============================================================================
+
 
 class OrganizationCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=255)
@@ -140,11 +150,14 @@ class UsageResponse(BaseModel):
 # Organization Endpoints
 # ============================================================================
 
-@router.post("", response_model=OrganizationResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "", response_model=OrganizationResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_organization(
     org_data: OrganizationCreate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Create a new organization
@@ -158,7 +171,7 @@ async def create_organization(
     if existing:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Organization with slug '{slug}' already exists"
+            detail=f"Organization with slug '{slug}' already exists",
         )
 
     # Create organization
@@ -169,7 +182,7 @@ async def create_organization(
         contact_phone=org_data.contact_phone,
         plan=PlanTier.FREE,
         status=OrganizationStatus.ACTIVE,
-        created_by=current_user.id
+        created_by=current_user.id,
     )
 
     db.add(organization)
@@ -180,7 +193,7 @@ async def create_organization(
         organization_id=organization.id,
         user_id=current_user.id,
         role=Role.ORG_ADMIN.value,
-        is_active=True
+        is_active=True,
     )
 
     db.add(member)
@@ -193,7 +206,7 @@ async def create_organization(
         action="organization_created",
         resource_type="organization",
         resource_id=organization.id,
-        details={"name": organization.name, "slug": organization.slug}
+        details={"name": organization.name, "slug": organization.slug},
     )
 
     db.commit()
@@ -207,7 +220,7 @@ async def create_organization(
         status=organization.status.value,
         created_at=organization.created_at,
         member_count=1,
-        team_count=0
+        team_count=0,
     )
 
 
@@ -216,20 +229,26 @@ async def get_organization(
     organization_id: str,
     current_user: User = Depends(get_current_user),
     org_ctx: OrganizationContext = Depends(get_organization_context),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Get organization details"""
     organization = org_ctx.organization
 
     # Count members and teams
-    member_count = db.query(func.count(OrganizationMember.id)).filter(
-        OrganizationMember.organization_id == organization.id,
-        OrganizationMember.is_active == True
-    ).scalar()
+    member_count = (
+        db.query(func.count(OrganizationMember.id))
+        .filter(
+            OrganizationMember.organization_id == organization.id,
+            OrganizationMember.is_active == True,
+        )
+        .scalar()
+    )
 
-    team_count = db.query(func.count(Team.id)).filter(
-        Team.organization_id == organization.id
-    ).scalar()
+    team_count = (
+        db.query(func.count(Team.id))
+        .filter(Team.organization_id == organization.id)
+        .scalar()
+    )
 
     return OrganizationResponse(
         id=organization.id,
@@ -239,7 +258,7 @@ async def get_organization(
         status=organization.status.value,
         created_at=organization.created_at,
         member_count=member_count,
-        team_count=team_count
+        team_count=team_count,
     )
 
 
@@ -250,7 +269,7 @@ async def update_organization(
     org_update: OrganizationUpdate,
     current_user: User = Depends(get_current_user),
     org_ctx: OrganizationContext = Depends(get_organization_context),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Update organization details (requires ORG_UPDATE permission)"""
     organization = org_ctx.organization
@@ -270,13 +289,16 @@ async def update_organization(
         action="organization_updated",
         resource_type="organization",
         resource_id=organization.id,
-        details=update_data
+        details=update_data,
     )
 
     db.commit()
     db.refresh(organization)
 
-    return {"message": "Organization updated successfully", "organization": organization}
+    return {
+        "message": "Organization updated successfully",
+        "organization": organization,
+    }
 
 
 @router.delete("/{organization_id}")
@@ -285,7 +307,7 @@ async def delete_organization(
     organization_id: str,
     current_user: User = Depends(get_current_user),
     org_ctx: OrganizationContext = Depends(get_organization_context),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Delete organization (requires ORG_ADMIN role)
@@ -297,7 +319,7 @@ async def delete_organization(
     if org_ctx.role != Role.SUPER_ADMIN and organization.created_by != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only the organization creator or super admin can delete the organization"
+            detail="Only the organization creator or super admin can delete the organization",
         )
 
     # Log audit event before deletion
@@ -308,7 +330,7 @@ async def delete_organization(
         action="organization_deleted",
         resource_type="organization",
         resource_id=organization.id,
-        details={"name": organization.name}
+        details={"name": organization.name},
     )
 
     db.delete(organization)
@@ -322,7 +344,7 @@ async def get_organization_usage(
     organization_id: str,
     current_user: User = Depends(get_current_user),
     org_ctx: OrganizationContext = Depends(get_organization_context),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Get current usage statistics for the organization"""
     quota_manager = QuotaManager(db)
@@ -343,13 +365,14 @@ async def get_organization_usage(
         current_usage=current_usage,
         limits=limits,
         period_start=period_start,
-        period_end=period_end
+        period_end=period_end,
     )
 
 
 # ============================================================================
 # Organization Member Endpoints
 # ============================================================================
+
 
 @router.get("/{organization_id}/members", response_model=List[MemberResponse])
 @require_permission(Permission.USER_READ)
@@ -359,27 +382,35 @@ async def list_organization_members(
     limit: int = Query(50, ge=1, le=100),
     current_user: User = Depends(get_current_user),
     org_ctx: OrganizationContext = Depends(get_organization_context),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """List all members of the organization"""
-    members = db.query(OrganizationMember).filter(
-        OrganizationMember.organization_id == org_ctx.organization_id,
-        OrganizationMember.is_active == True
-    ).offset(skip).limit(limit).all()
+    members = (
+        db.query(OrganizationMember)
+        .filter(
+            OrganizationMember.organization_id == org_ctx.organization_id,
+            OrganizationMember.is_active == True,
+        )
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
     result = []
     for member in members:
         user = db.query(User).filter(User.id == member.user_id).first()
         if user:
-            result.append(MemberResponse(
-                id=member.id,
-                user_id=user.id,
-                username=user.username,
-                email=user.email,
-                role=member.role,
-                is_active=member.is_active,
-                joined_at=member.joined_at
-            ))
+            result.append(
+                MemberResponse(
+                    id=member.id,
+                    user_id=user.id,
+                    username=user.username,
+                    email=user.email,
+                    role=member.role,
+                    is_active=member.is_active,
+                    joined_at=member.joined_at,
+                )
+            )
 
     return result
 
@@ -392,7 +423,7 @@ async def update_member_role(
     role_update: MemberRoleUpdate,
     current_user: User = Depends(get_current_user),
     org_ctx: OrganizationContext = Depends(get_organization_context),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Update a member's role in the organization"""
     try:
@@ -400,34 +431,36 @@ async def update_member_role(
         new_role = Role(role_update.role)
     except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid input: {str(e)}"
+            status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid input: {str(e)}"
         )
 
     # Check if current user can assign this role
     if not org_ctx.role.can_assign_role(new_role):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"You cannot assign the role '{new_role.value}'"
+            detail=f"You cannot assign the role '{new_role.value}'",
         )
 
     # Get member
-    member = db.query(OrganizationMember).filter(
-        OrganizationMember.organization_id == org_ctx.organization_id,
-        OrganizationMember.user_id == target_user_id
-    ).first()
+    member = (
+        db.query(OrganizationMember)
+        .filter(
+            OrganizationMember.organization_id == org_ctx.organization_id,
+            OrganizationMember.user_id == target_user_id,
+        )
+        .first()
+    )
 
     if not member:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Member not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Member not found"
         )
 
     # Prevent changing own role
     if target_user_id == current_user.id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You cannot change your own role"
+            detail="You cannot change your own role",
         )
 
     old_role = member.role
@@ -441,7 +474,11 @@ async def update_member_role(
         action="member_role_updated",
         resource_type="organization_member",
         resource_id=member.id,
-        details={"user_id": str(target_user_id), "old_role": old_role, "new_role": new_role.value}
+        details={
+            "user_id": str(target_user_id),
+            "old_role": old_role,
+            "new_role": new_role.value,
+        },
     )
 
     db.commit()
@@ -456,34 +493,36 @@ async def remove_member(
     user_id: str,
     current_user: User = Depends(get_current_user),
     org_ctx: OrganizationContext = Depends(get_organization_context),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Remove a member from the organization"""
     try:
         target_user_id = uuid.UUID(user_id)
     except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid user ID"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user ID"
         )
 
     # Cannot remove self
     if target_user_id == current_user.id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You cannot remove yourself from the organization"
+            detail="You cannot remove yourself from the organization",
         )
 
     # Get member
-    member = db.query(OrganizationMember).filter(
-        OrganizationMember.organization_id == org_ctx.organization_id,
-        OrganizationMember.user_id == target_user_id
-    ).first()
+    member = (
+        db.query(OrganizationMember)
+        .filter(
+            OrganizationMember.organization_id == org_ctx.organization_id,
+            OrganizationMember.user_id == target_user_id,
+        )
+        .first()
+    )
 
     if not member:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Member not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Member not found"
         )
 
     # Check if current user can remove this member
@@ -492,7 +531,7 @@ async def remove_member(
         if member_role.hierarchy_level >= org_ctx.role.hierarchy_level:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="You cannot remove a member with equal or higher role"
+                detail="You cannot remove a member with equal or higher role",
             )
     except ValueError:
         pass
@@ -505,7 +544,7 @@ async def remove_member(
         action="member_removed",
         resource_type="organization_member",
         resource_id=member.id,
-        details={"user_id": str(target_user_id), "role": member.role}
+        details={"user_id": str(target_user_id), "role": member.role},
     )
 
     db.delete(member)
@@ -518,6 +557,7 @@ async def remove_member(
 # Invitation Endpoints
 # ============================================================================
 
+
 @router.post("/{organization_id}/invitations", response_model=InvitationResponse)
 @require_permission(Permission.USER_INVITE)
 async def invite_user(
@@ -526,7 +566,7 @@ async def invite_user(
     background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     org_ctx: OrganizationContext = Depends(get_organization_context),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Invite a user to the organization
@@ -538,34 +578,38 @@ async def invite_user(
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid role: {invite_data.role}"
+            detail=f"Invalid role: {invite_data.role}",
         )
 
     # Check if current user can assign this role
     if not org_ctx.role.can_assign_role(role):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"You cannot invite users with role '{role.value}'"
+            detail=f"You cannot invite users with role '{role.value}'",
         )
 
     # Check if user already exists in organization
     existing_user = db.query(User).filter(User.email == invite_data.email).first()
     if existing_user:
-        existing_member = db.query(OrganizationMember).filter(
-            OrganizationMember.organization_id == org_ctx.organization_id,
-            OrganizationMember.user_id == existing_user.id
-        ).first()
+        existing_member = (
+            db.query(OrganizationMember)
+            .filter(
+                OrganizationMember.organization_id == org_ctx.organization_id,
+                OrganizationMember.user_id == existing_user.id,
+            )
+            .first()
+        )
         if existing_member:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="User is already a member of this organization"
+                detail="User is already a member of this organization",
             )
 
     # Check quota
     if not org_ctx.organization.can_add_user():
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="User limit reached for your plan. Please upgrade to add more users."
+            detail="User limit reached for your plan. Please upgrade to add more users.",
         )
 
     # Create invitation
@@ -576,14 +620,14 @@ async def invite_user(
         role=role.value,
         team_ids=invite_data.team_ids,
         invited_by=current_user.id,
-        expires_in_days=invite_data.expires_in_days
+        expires_in_days=invite_data.expires_in_days,
     )
 
     # Send invitation email in background
     background_tasks.add_task(
         invitation_service.send_invitation_email,
         invitation_id=invitation.id,
-        organization_name=org_ctx.organization.name
+        organization_name=org_ctx.organization.name,
     )
 
     # Log audit event
@@ -594,7 +638,7 @@ async def invite_user(
         action="user_invited",
         resource_type="invitation",
         resource_id=invitation.id,
-        details={"email": invite_data.email, "role": role.value}
+        details={"email": invite_data.email, "role": role.value},
     )
 
     return InvitationResponse(
@@ -603,7 +647,7 @@ async def invite_user(
         role=invitation.role,
         status=invitation.status,
         expires_at=invitation.expires_at,
-        created_at=invitation.created_at
+        created_at=invitation.created_at,
     )
 
 
@@ -614,7 +658,7 @@ async def list_invitations(
     status: Optional[str] = Query(None),
     current_user: User = Depends(get_current_user),
     org_ctx: OrganizationContext = Depends(get_organization_context),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """List all invitations for the organization"""
     query = db.query(OrganizationInvitation).filter(
@@ -633,7 +677,7 @@ async def list_invitations(
             role=inv.role,
             status=inv.status,
             expires_at=inv.expires_at,
-            created_at=inv.created_at
+            created_at=inv.created_at,
         )
         for inv in invitations
     ]
@@ -646,32 +690,34 @@ async def cancel_invitation(
     invitation_id: str,
     current_user: User = Depends(get_current_user),
     org_ctx: OrganizationContext = Depends(get_organization_context),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Cancel a pending invitation"""
     try:
         inv_id = uuid.UUID(invitation_id)
     except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid invitation ID"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid invitation ID"
         )
 
-    invitation = db.query(OrganizationInvitation).filter(
-        OrganizationInvitation.id == inv_id,
-        OrganizationInvitation.organization_id == org_ctx.organization_id
-    ).first()
+    invitation = (
+        db.query(OrganizationInvitation)
+        .filter(
+            OrganizationInvitation.id == inv_id,
+            OrganizationInvitation.organization_id == org_ctx.organization_id,
+        )
+        .first()
+    )
 
     if not invitation:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invitation not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Invitation not found"
         )
 
     if invitation.status != "pending":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot cancel invitation with status '{invitation.status}'"
+            detail=f"Cannot cancel invitation with status '{invitation.status}'",
         )
 
     invitation.status = "cancelled"
@@ -684,7 +730,7 @@ async def cancel_invitation(
         action="invitation_cancelled",
         resource_type="invitation",
         resource_id=invitation.id,
-        details={"email": invitation.email}
+        details={"email": invitation.email},
     )
 
     db.commit()
@@ -696,26 +742,34 @@ async def cancel_invitation(
 # Team Endpoints
 # ============================================================================
 
-@router.post("/{organization_id}/teams", response_model=TeamResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/{organization_id}/teams",
+    response_model=TeamResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 @require_permission(Permission.TEAM_CREATE)
 async def create_team(
     organization_id: str,
     team_data: TeamCreate,
     current_user: User = Depends(get_current_user),
     org_ctx: OrganizationContext = Depends(get_organization_context),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Create a new team in the organization"""
     # Check if team name already exists in organization
-    existing = db.query(Team).filter(
-        Team.organization_id == org_ctx.organization_id,
-        Team.name == team_data.name
-    ).first()
+    existing = (
+        db.query(Team)
+        .filter(
+            Team.organization_id == org_ctx.organization_id, Team.name == team_data.name
+        )
+        .first()
+    )
 
     if existing:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Team with name '{team_data.name}' already exists in this organization"
+            detail=f"Team with name '{team_data.name}' already exists in this organization",
         )
 
     # Create team
@@ -723,7 +777,7 @@ async def create_team(
         organization_id=org_ctx.organization_id,
         name=team_data.name,
         description=team_data.description,
-        created_by=current_user.id
+        created_by=current_user.id,
     )
 
     db.add(team)
@@ -731,9 +785,7 @@ async def create_team(
 
     # Add creator as team member
     team_member = TeamMember(
-        team_id=team.id,
-        user_id=current_user.id,
-        added_by=current_user.id
+        team_id=team.id, user_id=current_user.id, added_by=current_user.id
     )
 
     db.add(team_member)
@@ -746,7 +798,7 @@ async def create_team(
         action="team_created",
         resource_type="team",
         resource_id=team.id,
-        details={"name": team.name}
+        details={"name": team.name},
     )
 
     db.commit()
@@ -757,7 +809,7 @@ async def create_team(
         name=team.name,
         description=team.description,
         member_count=1,
-        created_at=team.created_at
+        created_at=team.created_at,
     )
 
 
@@ -769,26 +821,34 @@ async def list_teams(
     limit: int = Query(50, ge=1, le=100),
     current_user: User = Depends(get_current_user),
     org_ctx: OrganizationContext = Depends(get_organization_context),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """List all teams in the organization"""
-    teams = db.query(Team).filter(
-        Team.organization_id == org_ctx.organization_id
-    ).offset(skip).limit(limit).all()
+    teams = (
+        db.query(Team)
+        .filter(Team.organization_id == org_ctx.organization_id)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
     result = []
     for team in teams:
-        member_count = db.query(func.count(TeamMember.id)).filter(
-            TeamMember.team_id == team.id
-        ).scalar()
+        member_count = (
+            db.query(func.count(TeamMember.id))
+            .filter(TeamMember.team_id == team.id)
+            .scalar()
+        )
 
-        result.append(TeamResponse(
-            id=team.id,
-            name=team.name,
-            description=team.description,
-            member_count=member_count,
-            created_at=team.created_at
-        ))
+        result.append(
+            TeamResponse(
+                id=team.id,
+                name=team.name,
+                description=team.description,
+                member_count=member_count,
+                created_at=team.created_at,
+            )
+        )
 
     return result
 
@@ -800,38 +860,39 @@ async def get_team(
     team_id: str,
     current_user: User = Depends(get_current_user),
     org_ctx: OrganizationContext = Depends(get_organization_context),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Get team details"""
     try:
         team_uuid = uuid.UUID(team_id)
     except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid team ID"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid team ID"
         )
 
-    team = db.query(Team).filter(
-        Team.id == team_uuid,
-        Team.organization_id == org_ctx.organization_id
-    ).first()
+    team = (
+        db.query(Team)
+        .filter(Team.id == team_uuid, Team.organization_id == org_ctx.organization_id)
+        .first()
+    )
 
     if not team:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Team not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Team not found"
         )
 
-    member_count = db.query(func.count(TeamMember.id)).filter(
-        TeamMember.team_id == team.id
-    ).scalar()
+    member_count = (
+        db.query(func.count(TeamMember.id))
+        .filter(TeamMember.team_id == team.id)
+        .scalar()
+    )
 
     return TeamResponse(
         id=team.id,
         name=team.name,
         description=team.description,
         member_count=member_count,
-        created_at=team.created_at
+        created_at=team.created_at,
     )
 
 
@@ -843,26 +904,25 @@ async def update_team(
     team_update: TeamUpdate,
     current_user: User = Depends(get_current_user),
     org_ctx: OrganizationContext = Depends(get_organization_context),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Update team details"""
     try:
         team_uuid = uuid.UUID(team_id)
     except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid team ID"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid team ID"
         )
 
-    team = db.query(Team).filter(
-        Team.id == team_uuid,
-        Team.organization_id == org_ctx.organization_id
-    ).first()
+    team = (
+        db.query(Team)
+        .filter(Team.id == team_uuid, Team.organization_id == org_ctx.organization_id)
+        .first()
+    )
 
     if not team:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Team not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Team not found"
         )
 
     # Update fields
@@ -880,7 +940,7 @@ async def update_team(
         action="team_updated",
         resource_type="team",
         resource_id=team.id,
-        details=update_data
+        details=update_data,
     )
 
     db.commit()
@@ -895,26 +955,25 @@ async def delete_team(
     team_id: str,
     current_user: User = Depends(get_current_user),
     org_ctx: OrganizationContext = Depends(get_organization_context),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Delete a team"""
     try:
         team_uuid = uuid.UUID(team_id)
     except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid team ID"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid team ID"
         )
 
-    team = db.query(Team).filter(
-        Team.id == team_uuid,
-        Team.organization_id == org_ctx.organization_id
-    ).first()
+    team = (
+        db.query(Team)
+        .filter(Team.id == team_uuid, Team.organization_id == org_ctx.organization_id)
+        .first()
+    )
 
     if not team:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Team not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Team not found"
         )
 
     # Log audit event
@@ -925,7 +984,7 @@ async def delete_team(
         action="team_deleted",
         resource_type="team",
         resource_id=team.id,
-        details={"name": team.name}
+        details={"name": team.name},
     )
 
     db.delete(team)
@@ -934,53 +993,54 @@ async def delete_team(
     return {"message": "Team deleted successfully"}
 
 
-@router.get("/{organization_id}/teams/{team_id}/members", response_model=List[MemberResponse])
+@router.get(
+    "/{organization_id}/teams/{team_id}/members", response_model=List[MemberResponse]
+)
 @require_permission(Permission.TEAM_READ)
 async def list_team_members(
     organization_id: str,
     team_id: str,
     current_user: User = Depends(get_current_user),
     org_ctx: OrganizationContext = Depends(get_organization_context),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """List all members of a team"""
     try:
         team_uuid = uuid.UUID(team_id)
     except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid team ID"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid team ID"
         )
 
     # Verify team exists and belongs to organization
-    team = db.query(Team).filter(
-        Team.id == team_uuid,
-        Team.organization_id == org_ctx.organization_id
-    ).first()
+    team = (
+        db.query(Team)
+        .filter(Team.id == team_uuid, Team.organization_id == org_ctx.organization_id)
+        .first()
+    )
 
     if not team:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Team not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Team not found"
         )
 
-    members = db.query(TeamMember).filter(
-        TeamMember.team_id == team_uuid
-    ).all()
+    members = db.query(TeamMember).filter(TeamMember.team_id == team_uuid).all()
 
     result = []
     for member in members:
         user = db.query(User).filter(User.id == member.user_id).first()
         if user:
-            result.append(MemberResponse(
-                id=member.id,
-                user_id=user.id,
-                username=user.username,
-                email=user.email,
-                role=member.role or "member",
-                is_active=True,
-                joined_at=member.joined_at
-            ))
+            result.append(
+                MemberResponse(
+                    id=member.id,
+                    user_id=user.id,
+                    username=user.username,
+                    email=user.email,
+                    role=member.role or "member",
+                    is_active=True,
+                    joined_at=member.joined_at,
+                )
+            )
 
     return result
 
@@ -993,7 +1053,7 @@ async def add_team_member(
     user_id: str,
     current_user: User = Depends(get_current_user),
     org_ctx: OrganizationContext = Depends(get_organization_context),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Add a member to a team"""
     try:
@@ -1001,52 +1061,54 @@ async def add_team_member(
         user_uuid = uuid.UUID(user_id)
     except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid ID format"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid ID format"
         )
 
     # Verify team exists
-    team = db.query(Team).filter(
-        Team.id == team_uuid,
-        Team.organization_id == org_ctx.organization_id
-    ).first()
+    team = (
+        db.query(Team)
+        .filter(Team.id == team_uuid, Team.organization_id == org_ctx.organization_id)
+        .first()
+    )
 
     if not team:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Team not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Team not found"
         )
 
     # Verify user is organization member
-    org_member = db.query(OrganizationMember).filter(
-        OrganizationMember.organization_id == org_ctx.organization_id,
-        OrganizationMember.user_id == user_uuid,
-        OrganizationMember.is_active == True
-    ).first()
+    org_member = (
+        db.query(OrganizationMember)
+        .filter(
+            OrganizationMember.organization_id == org_ctx.organization_id,
+            OrganizationMember.user_id == user_uuid,
+            OrganizationMember.is_active == True,
+        )
+        .first()
+    )
 
     if not org_member:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User is not a member of this organization"
+            detail="User is not a member of this organization",
         )
 
     # Check if already a team member
-    existing = db.query(TeamMember).filter(
-        TeamMember.team_id == team_uuid,
-        TeamMember.user_id == user_uuid
-    ).first()
+    existing = (
+        db.query(TeamMember)
+        .filter(TeamMember.team_id == team_uuid, TeamMember.user_id == user_uuid)
+        .first()
+    )
 
     if existing:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="User is already a member of this team"
+            detail="User is already a member of this team",
         )
 
     # Add team member
     team_member = TeamMember(
-        team_id=team_uuid,
-        user_id=user_uuid,
-        added_by=current_user.id
+        team_id=team_uuid, user_id=user_uuid, added_by=current_user.id
     )
 
     db.add(team_member)
@@ -1059,7 +1121,7 @@ async def add_team_member(
         action="team_member_added",
         resource_type="team",
         resource_id=team.id,
-        details={"user_id": str(user_uuid), "team_name": team.name}
+        details={"user_id": str(user_uuid), "team_name": team.name},
     )
 
     db.commit()
@@ -1075,7 +1137,7 @@ async def remove_team_member(
     user_id: str,
     current_user: User = Depends(get_current_user),
     org_ctx: OrganizationContext = Depends(get_organization_context),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Remove a member from a team"""
     try:
@@ -1083,20 +1145,19 @@ async def remove_team_member(
         user_uuid = uuid.UUID(user_id)
     except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid ID format"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid ID format"
         )
 
     # Get team member
-    team_member = db.query(TeamMember).filter(
-        TeamMember.team_id == team_uuid,
-        TeamMember.user_id == user_uuid
-    ).first()
+    team_member = (
+        db.query(TeamMember)
+        .filter(TeamMember.team_id == team_uuid, TeamMember.user_id == user_uuid)
+        .first()
+    )
 
     if not team_member:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Team member not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Team member not found"
         )
 
     # Log audit event
@@ -1107,7 +1168,7 @@ async def remove_team_member(
         action="team_member_removed",
         resource_type="team",
         resource_id=team_uuid,
-        details={"user_id": str(user_uuid)}
+        details={"user_id": str(user_uuid)},
     )
 
     db.delete(team_member)

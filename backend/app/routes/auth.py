@@ -73,6 +73,7 @@ limiter = Limiter(key_func=get_remote_address)
 # Request/Response Models
 # ============================================================================
 
+
 class RegisterRequest(BaseModel):
     """User registration request."""
 
@@ -127,6 +128,7 @@ class RegisterRequest(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         json_schema_extra = {
             "example": {
                 "email": "user@example.com",
@@ -145,6 +147,7 @@ class LoginRequest(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         json_schema_extra = {
             "example": {
                 "email": "user@example.com",
@@ -164,6 +167,7 @@ class LoginResponse(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         json_schema_extra = {
             "example": {
                 "access_token": "eyJhbGciOiJIUzI1NiIs...",
@@ -188,6 +192,7 @@ class RefreshTokenRequest(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         json_schema_extra = {
             "example": {
                 "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
@@ -202,6 +207,7 @@ class PasswordResetRequest(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         json_schema_extra = {
             "example": {
                 "email": "user@example.com",
@@ -222,6 +228,7 @@ class PasswordResetConfirm(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         json_schema_extra = {
             "example": {
                 "token": "reset-token-here",
@@ -237,6 +244,7 @@ class MessageResponse(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         json_schema_extra = {
             "example": {
                 "message": "Operation completed successfully",
@@ -247,6 +255,7 @@ class MessageResponse(BaseModel):
 # ============================================================================
 # Registration Endpoint
 # ============================================================================
+
 
 @router.post(
     "/register",
@@ -281,10 +290,7 @@ async def register(
         email = registration.email.lower().strip()
 
         # Check if email already exists
-        existing_users = await execute_select(
-            "users",
-            match={"email": email}
-        )
+        existing_users = await execute_select("users", match={"email": email})
 
         if existing_users:
             logger.warning(f"Registration attempt with existing email: {email}")
@@ -301,7 +307,9 @@ async def register(
             "email": email,
             "hashed_password": hashed_password,
             "full_name": registration.full_name.strip(),
-            "organization": registration.organization.strip() if registration.organization else None,
+            "organization": (
+                registration.organization.strip() if registration.organization else None
+            ),
             "role": UserRole.USER.value,  # Default role
             "is_active": True,
             "email_verified": False,  # Requires email verification
@@ -356,6 +364,7 @@ async def register(
 # Login Endpoint
 # ============================================================================
 
+
 @router.post(
     "/login",
     response_model=LoginResponse,
@@ -396,16 +405,17 @@ async def login(
                 status_code=status.HTTP_423_LOCKED,
                 detail={
                     "message": "Account temporarily locked due to multiple failed login attempts",
-                    "locked_until": lockout_info["lockout_expires"].isoformat() if "lockout_expires" in lockout_info else None,
+                    "locked_until": (
+                        lockout_info["lockout_expires"].isoformat()
+                        if "lockout_expires" in lockout_info
+                        else None
+                    ),
                     "minutes_remaining": lockout_info.get("minutes_remaining", 60),
                 },
             )
 
         # Get user by email
-        users = await execute_select(
-            "users",
-            match={"email": email}
-        )
+        users = await execute_select("users", match={"email": email})
 
         if not users:
             # Log failed login
@@ -464,9 +474,7 @@ async def login(
 
         # Update last login
         await execute_update(
-            "users",
-            {"last_login": datetime.utcnow()},
-            match={"id": user.id}
+            "users", {"last_login": datetime.utcnow()}, match={"id": user.id}
         )
 
         # Invalidate user cache
@@ -505,6 +513,7 @@ async def login(
 # Token Refresh Endpoint
 # ============================================================================
 
+
 @router.post(
     "/refresh",
     response_model=Token,
@@ -531,10 +540,7 @@ async def refresh_token(
         token_data = verify_token(token_request.refresh_token, token_type="refresh")
 
         # Get user
-        users = await execute_select(
-            "users",
-            match={"id": token_data.sub}
-        )
+        users = await execute_select("users", match={"id": token_data.sub})
 
         if not users:
             logger.warning(f"Token refresh for non-existent user: {token_data.sub}")
@@ -581,6 +587,7 @@ async def refresh_token(
 # Logout Endpoint
 # ============================================================================
 
+
 @router.post(
     "/logout",
     response_model=MessageResponse,
@@ -621,6 +628,7 @@ async def logout(
 # Get Current User Endpoint
 # ============================================================================
 
+
 @router.get(
     "/me",
     response_model=User,
@@ -645,6 +653,7 @@ async def get_me(
 # ============================================================================
 # Password Reset Flow
 # ============================================================================
+
 
 @router.post(
     "/password-reset/request",
@@ -672,10 +681,7 @@ async def request_password_reset(
 
     try:
         # Get user by email
-        users = await execute_select(
-            "users",
-            match={"email": email}
-        )
+        users = await execute_select("users", match={"email": email})
 
         if users:
             user = UserInDB(**users[0])
@@ -777,7 +783,7 @@ async def confirm_password_reset(
         await execute_update(
             "users",
             {"hashed_password": hashed_password},
-            match={"id": token_data["user_id"]}
+            match={"id": token_data["user_id"]},
         )
 
         # Delete reset token

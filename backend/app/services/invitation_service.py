@@ -11,8 +11,11 @@ import secrets
 import hashlib
 
 from app.models.organization import (
-    Organization, OrganizationMember, OrganizationInvitation,
-    Team, TeamMember
+    Organization,
+    OrganizationMember,
+    OrganizationInvitation,
+    Team,
+    TeamMember,
 )
 from app.models.user import User
 from app.models.roles import Role
@@ -51,7 +54,7 @@ class InvitationService:
         role: str,
         invited_by: uuid.UUID,
         team_ids: Optional[List[uuid.UUID]] = None,
-        expires_in_days: int = 7
+        expires_in_days: int = 7,
     ) -> OrganizationInvitation:
         """
         Create a new organization invitation
@@ -77,11 +80,15 @@ class InvitationService:
             raise ValueError(f"Invalid role: {role}")
 
         # Check if pending invitation already exists
-        existing = self.db.query(OrganizationInvitation).filter(
-            OrganizationInvitation.organization_id == organization_id,
-            OrganizationInvitation.email == email,
-            OrganizationInvitation.status == "pending"
-        ).first()
+        existing = (
+            self.db.query(OrganizationInvitation)
+            .filter(
+                OrganizationInvitation.organization_id == organization_id,
+                OrganizationInvitation.email == email,
+                OrganizationInvitation.status == "pending",
+            )
+            .first()
+        )
 
         if existing:
             # Cancel existing invitation
@@ -103,7 +110,7 @@ class InvitationService:
             status="pending",
             teams=team_ids or [],
             expires_at=expires_at,
-            invited_by=invited_by
+            invited_by=invited_by,
         )
 
         self.db.add(invitation)
@@ -117,9 +124,7 @@ class InvitationService:
     # ============================================================================
 
     async def send_invitation_email(
-        self,
-        invitation_id: uuid.UUID,
-        organization_name: str
+        self, invitation_id: uuid.UUID, organization_name: str
     ):
         """
         Send invitation email to user
@@ -131,9 +136,11 @@ class InvitationService:
         In production, this would integrate with email service (SendGrid, SES, etc.)
         For now, logs the invitation details
         """
-        invitation = self.db.query(OrganizationInvitation).filter(
-            OrganizationInvitation.id == invitation_id
-        ).first()
+        invitation = (
+            self.db.query(OrganizationInvitation)
+            .filter(OrganizationInvitation.id == invitation_id)
+            .first()
+        )
 
         if not invitation:
             raise ValueError("Invitation not found")
@@ -196,8 +203,7 @@ PM Document Intelligence Team
     # ============================================================================
 
     async def validate_invitation_token(
-        self,
-        token: str
+        self, token: str
     ) -> Optional[OrganizationInvitation]:
         """
         Validate an invitation token
@@ -208,9 +214,11 @@ PM Document Intelligence Team
         Returns:
             OrganizationInvitation if valid, None otherwise
         """
-        invitation = self.db.query(OrganizationInvitation).filter(
-            OrganizationInvitation.token == token
-        ).first()
+        invitation = (
+            self.db.query(OrganizationInvitation)
+            .filter(OrganizationInvitation.token == token)
+            .first()
+        )
 
         if not invitation:
             return None
@@ -222,9 +230,7 @@ PM Document Intelligence Team
         return invitation
 
     async def accept_invitation(
-        self,
-        token: str,
-        user_id: uuid.UUID
+        self, token: str, user_id: uuid.UUID
     ) -> OrganizationMember:
         """
         Accept an invitation and add user to organization
@@ -251,13 +257,19 @@ PM Document Intelligence Team
             raise ValueError("User not found")
 
         if user.email.lower() != invitation.email.lower():
-            raise ValueError("Email mismatch: invitation is for a different email address")
+            raise ValueError(
+                "Email mismatch: invitation is for a different email address"
+            )
 
         # Check if user is already a member
-        existing_member = self.db.query(OrganizationMember).filter(
-            OrganizationMember.organization_id == invitation.organization_id,
-            OrganizationMember.user_id == user_id
-        ).first()
+        existing_member = (
+            self.db.query(OrganizationMember)
+            .filter(
+                OrganizationMember.organization_id == invitation.organization_id,
+                OrganizationMember.user_id == user_id,
+            )
+            .first()
+        )
 
         if existing_member:
             if existing_member.is_active:
@@ -288,7 +300,7 @@ PM Document Intelligence Team
             role=invitation.role,
             is_active=True,
             joined_at=datetime.utcnow(),
-            invited_by=invitation.invited_by
+            invited_by=invitation.invited_by,
         )
 
         self.db.add(member)
@@ -317,17 +329,13 @@ PM Document Intelligence Team
             details={
                 "email": invitation.email,
                 "role": invitation.role,
-                "invited_by": str(invitation.invited_by)
-            }
+                "invited_by": str(invitation.invited_by),
+            },
         )
 
         return member
 
-    async def _add_user_to_teams(
-        self,
-        user_id: uuid.UUID,
-        team_ids: List[uuid.UUID]
-    ):
+    async def _add_user_to_teams(self, user_id: uuid.UUID, team_ids: List[uuid.UUID]):
         """
         Add user to specified teams
 
@@ -349,19 +357,20 @@ PM Document Intelligence Team
                     continue
 
                 # Check if already a member
-                existing = self.db.query(TeamMember).filter(
-                    TeamMember.team_id == team_id,
-                    TeamMember.user_id == user_id
-                ).first()
+                existing = (
+                    self.db.query(TeamMember)
+                    .filter(
+                        TeamMember.team_id == team_id, TeamMember.user_id == user_id
+                    )
+                    .first()
+                )
 
                 if existing:
                     continue
 
                 # Add team member
                 team_member = TeamMember(
-                    team_id=team_id,
-                    user_id=user_id,
-                    joined_at=datetime.utcnow()
+                    team_id=team_id, user_id=user_id, joined_at=datetime.utcnow()
                 )
 
                 self.db.add(team_member)
@@ -377,9 +386,7 @@ PM Document Intelligence Team
     # ============================================================================
 
     async def cancel_invitation(
-        self,
-        invitation_id: uuid.UUID,
-        cancelled_by: uuid.UUID
+        self, invitation_id: uuid.UUID, cancelled_by: uuid.UUID
     ):
         """
         Cancel a pending invitation
@@ -391,15 +398,19 @@ PM Document Intelligence Team
         Raises:
             ValueError: If invitation not found or not pending
         """
-        invitation = self.db.query(OrganizationInvitation).filter(
-            OrganizationInvitation.id == invitation_id
-        ).first()
+        invitation = (
+            self.db.query(OrganizationInvitation)
+            .filter(OrganizationInvitation.id == invitation_id)
+            .first()
+        )
 
         if not invitation:
             raise ValueError("Invitation not found")
 
         if invitation.status != "pending":
-            raise ValueError(f"Cannot cancel invitation with status '{invitation.status}'")
+            raise ValueError(
+                f"Cannot cancel invitation with status '{invitation.status}'"
+            )
 
         invitation.status = "cancelled"
 
@@ -412,16 +423,12 @@ PM Document Intelligence Team
             resource_type="invitation",
             resource_id=invitation.id,
             status="success",
-            details={"email": invitation.email, "role": invitation.role}
+            details={"email": invitation.email, "role": invitation.role},
         )
 
         self.db.commit()
 
-    async def resend_invitation(
-        self,
-        invitation_id: uuid.UUID,
-        organization_name: str
-    ):
+    async def resend_invitation(self, invitation_id: uuid.UUID, organization_name: str):
         """
         Resend invitation email
 
@@ -432,15 +439,19 @@ PM Document Intelligence Team
         Raises:
             ValueError: If invitation not valid
         """
-        invitation = self.db.query(OrganizationInvitation).filter(
-            OrganizationInvitation.id == invitation_id
-        ).first()
+        invitation = (
+            self.db.query(OrganizationInvitation)
+            .filter(OrganizationInvitation.id == invitation_id)
+            .first()
+        )
 
         if not invitation:
             raise ValueError("Invitation not found")
 
         if invitation.status != "pending":
-            raise ValueError(f"Cannot resend invitation with status '{invitation.status}'")
+            raise ValueError(
+                f"Cannot resend invitation with status '{invitation.status}'"
+            )
 
         # Extend expiration if close to expiring
         time_until_expiry = invitation.expires_at - datetime.utcnow()
@@ -456,10 +467,14 @@ PM Document Intelligence Team
         Mark expired invitations as expired
         Should be run as a scheduled job
         """
-        expired_invitations = self.db.query(OrganizationInvitation).filter(
-            OrganizationInvitation.status == "pending",
-            OrganizationInvitation.expires_at < datetime.utcnow()
-        ).all()
+        expired_invitations = (
+            self.db.query(OrganizationInvitation)
+            .filter(
+                OrganizationInvitation.status == "pending",
+                OrganizationInvitation.expires_at < datetime.utcnow(),
+            )
+            .all()
+        )
 
         for invitation in expired_invitations:
             invitation.status = "expired"
@@ -472,10 +487,7 @@ PM Document Intelligence Team
     # Invitation Queries
     # ============================================================================
 
-    async def get_user_invitations(
-        self,
-        email: str
-    ) -> List[OrganizationInvitation]:
+    async def get_user_invitations(self, email: str) -> List[OrganizationInvitation]:
         """
         Get all pending invitations for an email address
 
@@ -485,10 +497,14 @@ PM Document Intelligence Team
         Returns:
             List of pending invitations
         """
-        invitations = self.db.query(OrganizationInvitation).filter(
-            OrganizationInvitation.email == email.lower(),
-            OrganizationInvitation.status == "pending"
-        ).all()
+        invitations = (
+            self.db.query(OrganizationInvitation)
+            .filter(
+                OrganizationInvitation.email == email.lower(),
+                OrganizationInvitation.status == "pending",
+            )
+            .all()
+        )
 
         # Filter to only valid (not expired)
         valid_invitations = [inv for inv in invitations if inv.is_valid]
@@ -496,9 +512,7 @@ PM Document Intelligence Team
         return valid_invitations
 
     async def get_organization_invitations(
-        self,
-        organization_id: uuid.UUID,
-        status: Optional[str] = None
+        self, organization_id: uuid.UUID, status: Optional[str] = None
     ) -> List[OrganizationInvitation]:
         """
         Get invitations for an organization
@@ -517,16 +531,11 @@ PM Document Intelligence Team
         if status:
             query = query.filter(OrganizationInvitation.status == status)
 
-        invitations = query.order_by(
-            OrganizationInvitation.created_at.desc()
-        ).all()
+        invitations = query.order_by(OrganizationInvitation.created_at.desc()).all()
 
         return invitations
 
-    async def get_invitation_stats(
-        self,
-        organization_id: uuid.UUID
-    ) -> dict:
+    async def get_invitation_stats(self, organization_id: uuid.UUID) -> dict:
         """
         Get invitation statistics for an organization
 
@@ -548,7 +557,7 @@ PM Document Intelligence Team
             "pending": sum(1 for inv in invitations if inv.status == "pending"),
             "accepted": sum(1 for inv in invitations if inv.status == "accepted"),
             "expired": sum(1 for inv in invitations if inv.status == "expired"),
-            "cancelled": sum(1 for inv in invitations if inv.status == "cancelled")
+            "cancelled": sum(1 for inv in invitations if inv.status == "cancelled"),
         }
 
         # Calculate acceptance rate
@@ -570,7 +579,7 @@ PM Document Intelligence Team
         email_list: List[str],
         role: str,
         invited_by: uuid.UUID,
-        team_ids: Optional[List[uuid.UUID]] = None
+        team_ids: Optional[List[uuid.UUID]] = None,
     ) -> dict:
         """
         Invite multiple users at once
@@ -590,15 +599,13 @@ PM Document Intelligence Team
                 "details": [...]
             }
         """
-        results = {
-            "success": 0,
-            "failed": 0,
-            "details": []
-        }
+        results = {"success": 0, "failed": 0, "details": []}
 
-        organization = self.db.query(Organization).filter(
-            Organization.id == organization_id
-        ).first()
+        organization = (
+            self.db.query(Organization)
+            .filter(Organization.id == organization_id)
+            .first()
+        )
 
         for email in email_list:
             try:
@@ -607,28 +614,25 @@ PM Document Intelligence Team
                     email=email,
                     role=role,
                     invited_by=invited_by,
-                    team_ids=team_ids
+                    team_ids=team_ids,
                 )
 
                 # Send email
-                await self.send_invitation_email(
-                    invitation.id,
-                    organization.name
-                )
+                await self.send_invitation_email(invitation.id, organization.name)
 
                 results["success"] += 1
-                results["details"].append({
-                    "email": email,
-                    "status": "success",
-                    "invitation_id": str(invitation.id)
-                })
+                results["details"].append(
+                    {
+                        "email": email,
+                        "status": "success",
+                        "invitation_id": str(invitation.id),
+                    }
+                )
 
             except Exception as e:
                 results["failed"] += 1
-                results["details"].append({
-                    "email": email,
-                    "status": "failed",
-                    "error": str(e)
-                })
+                results["details"].append(
+                    {"email": email, "status": "failed", "error": str(e)}
+                )
 
         return results

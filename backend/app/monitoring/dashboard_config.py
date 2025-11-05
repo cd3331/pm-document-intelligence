@@ -22,21 +22,21 @@ SYSTEM_OVERVIEW_DASHBOARD = {
                 "targets": [
                     {
                         "expr": "rate(http_requests_total[5m])",
-                        "legendFormat": "{{method}} {{endpoint}}"
+                        "legendFormat": "{{method}} {{endpoint}}",
                     }
                 ],
-                "type": "graph"
+                "type": "graph",
             },
             {
                 "id": 2,
                 "title": "Error Rate",
                 "targets": [
                     {
-                        "expr": "rate(http_requests_total{status_code=~\"5..\"}[5m])",
-                        "legendFormat": "Errors"
+                        "expr": 'rate(http_requests_total{status_code=~"5.."}[5m])',
+                        "legendFormat": "Errors",
                     }
                 ],
-                "type": "graph"
+                "type": "graph",
             },
             {
                 "id": 3,
@@ -44,34 +44,28 @@ SYSTEM_OVERVIEW_DASHBOARD = {
                 "targets": [
                     {
                         "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
-                        "legendFormat": "p95"
+                        "legendFormat": "p95",
                     }
                 ],
-                "type": "graph"
+                "type": "graph",
             },
             {
                 "id": 4,
                 "title": "CPU Usage",
                 "targets": [
-                    {
-                        "expr": "system_cpu_usage_percent",
-                        "legendFormat": "CPU %"
-                    }
+                    {"expr": "system_cpu_usage_percent", "legendFormat": "CPU %"}
                 ],
-                "type": "graph"
+                "type": "graph",
             },
             {
                 "id": 5,
                 "title": "Memory Usage",
                 "targets": [
-                    {
-                        "expr": "system_memory_usage_bytes",
-                        "legendFormat": "Memory"
-                    }
+                    {"expr": "system_memory_usage_bytes", "legendFormat": "Memory"}
                 ],
-                "type": "graph"
-            }
-        ]
+                "type": "graph",
+            },
+        ],
     }
 }
 
@@ -87,9 +81,9 @@ DOCUMENT_PROCESSING_DASHBOARD = {
                 "targets": [
                     {
                         "expr": "rate(documents_uploaded_total[5m])",
-                        "legendFormat": "{{document_type}}"
+                        "legendFormat": "{{document_type}}",
                     }
-                ]
+                ],
             },
             {
                 "id": 2,
@@ -97,9 +91,9 @@ DOCUMENT_PROCESSING_DASHBOARD = {
                 "targets": [
                     {
                         "expr": "histogram_quantile(0.95, rate(document_processing_duration_seconds_bucket[5m]))",
-                        "legendFormat": "{{processing_stage}}"
+                        "legendFormat": "{{processing_stage}}",
                     }
-                ]
+                ],
             },
             {
                 "id": 3,
@@ -107,11 +101,11 @@ DOCUMENT_PROCESSING_DASHBOARD = {
                 "targets": [
                     {
                         "expr": "rate(documents_failed_total[5m])",
-                        "legendFormat": "{{error_type}}"
+                        "legendFormat": "{{error_type}}",
                     }
-                ]
-            }
-        ]
+                ],
+            },
+        ],
     }
 }
 
@@ -125,11 +119,8 @@ COST_DASHBOARD = {
                 "id": 1,
                 "title": "Daily Cost",
                 "targets": [
-                    {
-                        "expr": "total_cost_usd_daily",
-                        "legendFormat": "Total Daily Cost"
-                    }
-                ]
+                    {"expr": "total_cost_usd_daily", "legendFormat": "Total Daily Cost"}
+                ],
             },
             {
                 "id": 2,
@@ -137,9 +128,9 @@ COST_DASHBOARD = {
                 "targets": [
                     {
                         "expr": "rate(aws_cost_usd_total[1d])",
-                        "legendFormat": "{{service}}"
+                        "legendFormat": "{{service}}",
                     }
-                ]
+                ],
             },
             {
                 "id": 3,
@@ -147,11 +138,11 @@ COST_DASHBOARD = {
                 "targets": [
                     {
                         "expr": "rate(openai_cost_usd_total[1d])",
-                        "legendFormat": "{{model}}"
+                        "legendFormat": "{{model}}",
                     }
-                ]
-            }
-        ]
+                ],
+            },
+        ],
     }
 }
 
@@ -161,7 +152,7 @@ def export_dashboards():
     dashboards = {
         "system_overview": SYSTEM_OVERVIEW_DASHBOARD,
         "document_processing": DOCUMENT_PROCESSING_DASHBOARD,
-        "cost_tracking": COST_DASHBOARD
+        "cost_tracking": COST_DASHBOARD,
     }
 
     for name, config in dashboards.items():

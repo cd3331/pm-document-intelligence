@@ -19,11 +19,12 @@ class Role(str, enum.Enum):
     Role hierarchy for RBAC
     Higher roles inherit permissions from lower roles
     """
-    SUPER_ADMIN = "super_admin"      # System-wide admin, all permissions
-    ORG_ADMIN = "org_admin"          # Organization admin, full org control
-    MANAGER = "manager"              # Can manage teams, users, approve content
-    MEMBER = "member"                # Regular user, standard access
-    VIEWER = "viewer"                # Read-only access
+
+    SUPER_ADMIN = "super_admin"  # System-wide admin, all permissions
+    ORG_ADMIN = "org_admin"  # Organization admin, full org control
+    MANAGER = "manager"  # Can manage teams, users, approve content
+    MEMBER = "member"  # Regular user, standard access
+    VIEWER = "viewer"  # Read-only access
 
     @property
     def hierarchy_level(self) -> int:
@@ -33,15 +34,15 @@ class Role(str, enum.Enum):
             Role.ORG_ADMIN: 4,
             Role.MANAGER: 3,
             Role.MEMBER: 2,
-            Role.VIEWER: 1
+            Role.VIEWER: 1,
         }
         return hierarchy.get(self, 0)
 
-    def has_higher_privilege_than(self, other_role: 'Role') -> bool:
+    def has_higher_privilege_than(self, other_role: "Role") -> bool:
         """Check if this role has higher privileges than another role"""
         return self.hierarchy_level > other_role.hierarchy_level
 
-    def can_assign_role(self, target_role: 'Role') -> bool:
+    def can_assign_role(self, target_role: "Role") -> bool:
         """Check if this role can assign another role"""
         # Can only assign roles at same level or lower
         return self.hierarchy_level >= target_role.hierarchy_level
@@ -52,6 +53,7 @@ class Permission(str, enum.Enum):
     Granular permissions for resources
     Grouped by resource type for clarity
     """
+
     # Document Permissions
     DOCUMENT_READ = "document:read"
     DOCUMENT_CREATE = "document:create"
@@ -103,12 +105,12 @@ class Permission(str, enum.Enum):
     @property
     def resource(self) -> str:
         """Get the resource this permission applies to"""
-        return self.value.split(':')[0]
+        return self.value.split(":")[0]
 
     @property
     def action(self) -> str:
         """Get the action this permission allows"""
-        return self.value.split(':')[1]
+        return self.value.split(":")[1]
 
 
 # Role-Permission Mapping
@@ -122,7 +124,6 @@ ROLE_PERMISSIONS: dict[Role, Set[Permission]] = {
         Permission.ORG_READ,
         Permission.ANALYTICS_VIEW,
     },
-
     Role.MEMBER: {
         # All viewer permissions plus standard user capabilities
         Permission.DOCUMENT_READ,
@@ -135,7 +136,6 @@ ROLE_PERMISSIONS: dict[Role, Set[Permission]] = {
         Permission.ANALYTICS_VIEW,
         Permission.REPORT_GENERATE,
     },
-
     Role.MANAGER: {
         # All member permissions plus team/user management
         Permission.DOCUMENT_READ,
@@ -158,7 +158,6 @@ ROLE_PERMISSIONS: dict[Role, Set[Permission]] = {
         Permission.REPORT_GENERATE,
         Permission.REPORT_SCHEDULE,
     },
-
     Role.ORG_ADMIN: {
         # All manager permissions plus org administration
         Permission.DOCUMENT_READ,
@@ -191,11 +190,10 @@ ROLE_PERMISSIONS: dict[Role, Set[Permission]] = {
         Permission.API_ACCESS,
         Permission.API_MANAGE_KEYS,
     },
-
     Role.SUPER_ADMIN: {
         # All permissions - system-wide admin
         *[p for p in Permission]
-    }
+    },
 }
 
 
@@ -279,8 +277,7 @@ class RBACService:
             Role: Lowest role that has the permission, or None if no role has it
         """
         roles_with_permission = [
-            role for role, perms in ROLE_PERMISSIONS.items()
-            if permission in perms
+            role for role, perms in ROLE_PERMISSIONS.items() if permission in perms
         ]
 
         if not roles_with_permission:
@@ -295,10 +292,16 @@ class CustomRole(Base):
     Custom roles for fine-grained permission control
     Allows organizations to define custom roles beyond default ones
     """
+
     __tablename__ = "custom_roles"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    organization_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     name = Column(String(100), nullable=False)
     description = Column(String(500))
 
@@ -306,23 +309,31 @@ class CustomRole(Base):
     base_role = Column(String(50), nullable=False)  # References Role enum
 
     # Additional permissions beyond base role
-    additional_permissions = Column(String, nullable=False, default="")  # Comma-separated Permission values
+    additional_permissions = Column(
+        String, nullable=False, default=""
+    )  # Comma-separated Permission values
 
     # Permissions to remove from base role
-    removed_permissions = Column(String, nullable=False, default="")  # Comma-separated Permission values
+    removed_permissions = Column(
+        String, nullable=False, default=""
+    )  # Comma-separated Permission values
 
     # Metadata
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at = Column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
     created_by = Column(UUID(as_uuid=True), nullable=False)
 
     # Relationships
-    assignments = relationship("CustomRoleAssignment", back_populates="custom_role", cascade="all, delete-orphan")
-
-    __table_args__ = (
-        Index('idx_custom_role_org', 'organization_id'),
+    assignments = relationship(
+        "CustomRoleAssignment",
+        back_populates="custom_role",
+        cascade="all, delete-orphan",
     )
+
+    __table_args__ = (Index("idx_custom_role_org", "organization_id"),)
 
     def __repr__(self):
         return f"<CustomRole(name={self.name}, org={self.organization_id})>"
@@ -337,7 +348,7 @@ class CustomRole(Base):
 
         # Add additional permissions
         if self.additional_permissions:
-            for perm_str in self.additional_permissions.split(','):
+            for perm_str in self.additional_permissions.split(","):
                 try:
                     base_perms.add(Permission(perm_str.strip()))
                 except ValueError:
@@ -345,7 +356,7 @@ class CustomRole(Base):
 
         # Remove specified permissions
         if self.removed_permissions:
-            for perm_str in self.removed_permissions.split(','):
+            for perm_str in self.removed_permissions.split(","):
                 try:
                     base_perms.discard(Permission(perm_str.strip()))
                 except ValueError:
@@ -363,15 +374,36 @@ class CustomRoleAssignment(Base):
     Assigns custom roles to users within an organization
     Alternative to standard role in OrganizationMember
     """
+
     __tablename__ = "custom_role_assignments"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    custom_role_id = Column(UUID(as_uuid=True), ForeignKey("custom_roles.id", ondelete="CASCADE"), nullable=False, index=True)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    custom_role_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("custom_roles.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    user_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    organization_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
 
     # Optional: scope to specific teams
-    team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id", ondelete="CASCADE"), nullable=True, index=True)
+    team_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("teams.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
 
     # Metadata
     assigned_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -382,11 +414,13 @@ class CustomRoleAssignment(Base):
     custom_role = relationship("CustomRole", back_populates="assignments")
 
     __table_args__ = (
-        Index('idx_custom_assignment_user_org', 'user_id', 'organization_id'),
+        Index("idx_custom_assignment_user_org", "user_id", "organization_id"),
     )
 
     def __repr__(self):
-        return f"<CustomRoleAssignment(role={self.custom_role_id}, user={self.user_id})>"
+        return (
+            f"<CustomRoleAssignment(role={self.custom_role_id}, user={self.user_id})>"
+        )
 
     @property
     def is_expired(self) -> bool:
@@ -402,28 +436,43 @@ class ResourcePermission(Base):
     Allows granting specific permissions on individual resources
     Example: User A can edit Document X even if their role doesn't normally allow it
     """
+
     __tablename__ = "resource_permissions"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
     # User being granted permission
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
 
     # Resource information
-    resource_type = Column(String(50), nullable=False, index=True)  # document, team, folder, etc.
+    resource_type = Column(
+        String(50), nullable=False, index=True
+    )  # document, team, folder, etc.
     resource_id = Column(UUID(as_uuid=True), nullable=False, index=True)
 
     # Permissions granted
     permissions = Column(String, nullable=False)  # Comma-separated Permission values
 
     # Metadata
-    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    organization_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     granted_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     granted_by = Column(UUID(as_uuid=True), nullable=False)
     expires_at = Column(DateTime, nullable=True)
 
     __table_args__ = (
-        Index('idx_resource_perm_user_resource', 'user_id', 'resource_type', 'resource_id'),
+        Index(
+            "idx_resource_perm_user_resource", "user_id", "resource_type", "resource_id"
+        ),
     )
 
     def __repr__(self):
@@ -433,7 +482,7 @@ class ResourcePermission(Base):
         """Get all permissions granted by this resource permission"""
         perms = set()
         if self.permissions:
-            for perm_str in self.permissions.split(','):
+            for perm_str in self.permissions.split(","):
                 try:
                     perms.add(Permission(perm_str.strip()))
                 except ValueError:
@@ -457,11 +506,22 @@ class PermissionCache(Base):
     Cache for computed user permissions
     Improves performance by avoiding repeated permission calculations
     """
+
     __tablename__ = "permission_cache"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    organization_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
 
     # Cached permissions as comma-separated values
     permissions = Column(String, nullable=False)
@@ -470,9 +530,7 @@ class PermissionCache(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     expires_at = Column(DateTime, nullable=False, index=True)
 
-    __table_args__ = (
-        Index('idx_perm_cache_user_org', 'user_id', 'organization_id'),
-    )
+    __table_args__ = (Index("idx_perm_cache_user_org", "user_id", "organization_id"),)
 
     def __repr__(self):
         return f"<PermissionCache(user={self.user_id}, org={self.organization_id})>"
@@ -486,7 +544,7 @@ class PermissionCache(Base):
         """Get cached permissions"""
         perms = set()
         if self.permissions:
-            for perm_str in self.permissions.split(','):
+            for perm_str in self.permissions.split(","):
                 try:
                     perms.add(Permission(perm_str.strip()))
                 except ValueError:
@@ -496,18 +554,25 @@ class PermissionCache(Base):
 
 # Utility functions for common permission checks
 
-def get_user_role_in_org(user_id: uuid.UUID, organization_id: uuid.UUID, db) -> Optional[Role]:
+
+def get_user_role_in_org(
+    user_id: uuid.UUID, organization_id: uuid.UUID, db
+) -> Optional[Role]:
     """
     Get user's role in an organization
     Helper function to retrieve role from OrganizationMember
     """
     from app.models.organization import OrganizationMember
 
-    member = db.query(OrganizationMember).filter(
-        OrganizationMember.user_id == user_id,
-        OrganizationMember.organization_id == organization_id,
-        OrganizationMember.is_active == True
-    ).first()
+    member = (
+        db.query(OrganizationMember)
+        .filter(
+            OrganizationMember.user_id == user_id,
+            OrganizationMember.organization_id == organization_id,
+            OrganizationMember.is_active == True,
+        )
+        .first()
+    )
 
     if not member:
         return None
@@ -518,16 +583,22 @@ def get_user_role_in_org(user_id: uuid.UUID, organization_id: uuid.UUID, db) -> 
         return None
 
 
-def get_user_permissions(user_id: uuid.UUID, organization_id: uuid.UUID, db) -> Set[Permission]:
+def get_user_permissions(
+    user_id: uuid.UUID, organization_id: uuid.UUID, db
+) -> Set[Permission]:
     """
     Get all permissions for a user in an organization
     Combines role permissions, custom role permissions, and resource permissions
     """
     # Check cache first
-    cache = db.query(PermissionCache).filter(
-        PermissionCache.user_id == user_id,
-        PermissionCache.organization_id == organization_id
-    ).first()
+    cache = (
+        db.query(PermissionCache)
+        .filter(
+            PermissionCache.user_id == user_id,
+            PermissionCache.organization_id == organization_id,
+        )
+        .first()
+    )
 
     if cache and not cache.is_expired:
         return cache.get_permissions()
@@ -541,20 +612,28 @@ def get_user_permissions(user_id: uuid.UUID, organization_id: uuid.UUID, db) -> 
         all_permissions.update(ROLE_PERMISSIONS.get(role, set()))
 
     # 2. Get custom role permissions
-    custom_assignments = db.query(CustomRoleAssignment).filter(
-        CustomRoleAssignment.user_id == user_id,
-        CustomRoleAssignment.organization_id == organization_id
-    ).all()
+    custom_assignments = (
+        db.query(CustomRoleAssignment)
+        .filter(
+            CustomRoleAssignment.user_id == user_id,
+            CustomRoleAssignment.organization_id == organization_id,
+        )
+        .all()
+    )
 
     for assignment in custom_assignments:
         if not assignment.is_expired and assignment.custom_role.is_active:
             all_permissions.update(assignment.custom_role.get_permissions())
 
     # 3. Get resource-specific permissions
-    resource_perms = db.query(ResourcePermission).filter(
-        ResourcePermission.user_id == user_id,
-        ResourcePermission.organization_id == organization_id
-    ).all()
+    resource_perms = (
+        db.query(ResourcePermission)
+        .filter(
+            ResourcePermission.user_id == user_id,
+            ResourcePermission.organization_id == organization_id,
+        )
+        .all()
+    )
 
     for res_perm in resource_perms:
         if not res_perm.is_expired:
@@ -562,15 +641,16 @@ def get_user_permissions(user_id: uuid.UUID, organization_id: uuid.UUID, db) -> 
 
     # Cache the result (cache for 15 minutes)
     if cache:
-        cache.permissions = ','.join([p.value for p in all_permissions])
+        cache.permissions = ",".join([p.value for p in all_permissions])
         cache.expires_at = datetime.utcnow() + timedelta(minutes=15)
     else:
         from datetime import timedelta
+
         cache = PermissionCache(
             user_id=user_id,
             organization_id=organization_id,
-            permissions=','.join([p.value for p in all_permissions]),
-            expires_at=datetime.utcnow() + timedelta(minutes=15)
+            permissions=",".join([p.value for p in all_permissions]),
+            expires_at=datetime.utcnow() + timedelta(minutes=15),
         )
         db.add(cache)
 
@@ -579,8 +659,9 @@ def get_user_permissions(user_id: uuid.UUID, organization_id: uuid.UUID, db) -> 
     return all_permissions
 
 
-def check_permission(user_id: uuid.UUID, organization_id: uuid.UUID,
-                     permission: Permission, db) -> bool:
+def check_permission(
+    user_id: uuid.UUID, organization_id: uuid.UUID, permission: Permission, db
+) -> bool:
     """
     Check if user has a specific permission in an organization
 
@@ -597,9 +678,14 @@ def check_permission(user_id: uuid.UUID, organization_id: uuid.UUID,
     return permission in user_permissions
 
 
-def check_resource_permission(user_id: uuid.UUID, organization_id: uuid.UUID,
-                              resource_type: str, resource_id: uuid.UUID,
-                              permission: Permission, db) -> bool:
+def check_resource_permission(
+    user_id: uuid.UUID,
+    organization_id: uuid.UUID,
+    resource_type: str,
+    resource_id: uuid.UUID,
+    permission: Permission,
+    db,
+) -> bool:
     """
     Check if user has permission on a specific resource
 
@@ -624,12 +710,16 @@ def check_resource_permission(user_id: uuid.UUID, organization_id: uuid.UUID,
         return True
 
     # Check resource-specific permissions
-    res_perm = db.query(ResourcePermission).filter(
-        ResourcePermission.user_id == user_id,
-        ResourcePermission.organization_id == organization_id,
-        ResourcePermission.resource_type == resource_type,
-        ResourcePermission.resource_id == resource_id
-    ).first()
+    res_perm = (
+        db.query(ResourcePermission)
+        .filter(
+            ResourcePermission.user_id == user_id,
+            ResourcePermission.organization_id == organization_id,
+            ResourcePermission.resource_type == resource_type,
+            ResourcePermission.resource_id == resource_id,
+        )
+        .first()
+    )
 
     if res_perm and not res_perm.is_expired:
         return res_perm.has_permission(permission)

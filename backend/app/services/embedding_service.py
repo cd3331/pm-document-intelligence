@@ -51,6 +51,7 @@ logger = get_logger(__name__)
 # Embedding Models and Pricing
 # ============================================================================
 
+
 class EmbeddingModel:
     """OpenAI embedding model configurations."""
 
@@ -80,6 +81,7 @@ class EmbeddingModel:
 # ============================================================================
 # Cost Tracking
 # ============================================================================
+
 
 class EmbeddingCostTracker:
     """Track embedding generation costs."""
@@ -129,7 +131,9 @@ class EmbeddingCostTracker:
             "total_tokens": self.total_tokens,
             "total_embeddings": self.total_embeddings,
             "average_cost_per_embedding": (
-                self.total_cost / self.total_embeddings if self.total_embeddings > 0 else 0
+                self.total_cost / self.total_embeddings
+                if self.total_embeddings > 0
+                else 0
             ),
             "costs_by_model": self.costs_by_model.copy(),
             "tokens_by_model": self.tokens_by_model.copy(),
@@ -151,6 +155,7 @@ embedding_cost_tracker = EmbeddingCostTracker()
 # ============================================================================
 # Text Chunking
 # ============================================================================
+
 
 class TextChunker:
     """Chunk text for embedding generation."""
@@ -214,14 +219,16 @@ class TextChunker:
 
         # If text fits in one chunk, return as-is
         if total_tokens <= chunk_size:
-            return [{
-                "text": text,
-                "chunk_index": 0,
-                "total_chunks": 1,
-                "tokens": total_tokens,
-                "start_char": 0,
-                "end_char": len(text),
-            }]
+            return [
+                {
+                    "text": text,
+                    "chunk_index": 0,
+                    "total_chunks": 1,
+                    "tokens": total_tokens,
+                    "start_char": 0,
+                    "end_char": len(text),
+                }
+            ]
 
         # Split into sentences for better chunking
         sentences = self._split_into_sentences(text)
@@ -240,13 +247,15 @@ class TextChunker:
                 if current_chunk:
                     # Save current chunk
                     chunk_text = " ".join(current_chunk)
-                    chunks.append({
-                        "text": chunk_text,
-                        "chunk_index": chunk_index,
-                        "tokens": current_tokens,
-                        "start_char": char_position - len(chunk_text),
-                        "end_char": char_position,
-                    })
+                    chunks.append(
+                        {
+                            "text": chunk_text,
+                            "chunk_index": chunk_index,
+                            "tokens": current_tokens,
+                            "start_char": char_position - len(chunk_text),
+                            "end_char": char_position,
+                        }
+                    )
                     chunk_index += 1
                     current_chunk = []
                     current_tokens = 0
@@ -254,13 +263,15 @@ class TextChunker:
                 # Split long sentence by characters
                 sub_chunks = self._split_long_text(sentence, chunk_size)
                 for sub_chunk in sub_chunks:
-                    chunks.append({
-                        "text": sub_chunk,
-                        "chunk_index": chunk_index,
-                        "tokens": self.count_tokens(sub_chunk),
-                        "start_char": char_position,
-                        "end_char": char_position + len(sub_chunk),
-                    })
+                    chunks.append(
+                        {
+                            "text": sub_chunk,
+                            "chunk_index": chunk_index,
+                            "tokens": self.count_tokens(sub_chunk),
+                            "start_char": char_position,
+                            "end_char": char_position + len(sub_chunk),
+                        }
+                    )
                     chunk_index += 1
                     char_position += len(sub_chunk)
                 continue
@@ -269,13 +280,15 @@ class TextChunker:
             if current_tokens + sentence_tokens > chunk_size:
                 # Save current chunk
                 chunk_text = " ".join(current_chunk)
-                chunks.append({
-                    "text": chunk_text,
-                    "chunk_index": chunk_index,
-                    "tokens": current_tokens,
-                    "start_char": char_position - len(chunk_text),
-                    "end_char": char_position,
-                })
+                chunks.append(
+                    {
+                        "text": chunk_text,
+                        "chunk_index": chunk_index,
+                        "tokens": current_tokens,
+                        "start_char": char_position - len(chunk_text),
+                        "end_char": char_position,
+                    }
+                )
                 chunk_index += 1
 
                 # Start new chunk with overlap
@@ -304,20 +317,24 @@ class TextChunker:
         # Add final chunk
         if current_chunk:
             chunk_text = " ".join(current_chunk)
-            chunks.append({
-                "text": chunk_text,
-                "chunk_index": chunk_index,
-                "tokens": current_tokens,
-                "start_char": char_position - len(chunk_text),
-                "end_char": char_position,
-            })
+            chunks.append(
+                {
+                    "text": chunk_text,
+                    "chunk_index": chunk_index,
+                    "tokens": current_tokens,
+                    "start_char": char_position - len(chunk_text),
+                    "end_char": char_position,
+                }
+            )
 
         # Add total_chunks to all chunks
         total_chunks = len(chunks)
         for chunk in chunks:
             chunk["total_chunks"] = total_chunks
 
-        logger.info(f"Chunked text into {total_chunks} chunks ({total_tokens} total tokens)")
+        logger.info(
+            f"Chunked text into {total_chunks} chunks ({total_tokens} total tokens)"
+        )
 
         return chunks
 
@@ -334,7 +351,7 @@ class TextChunker:
         import re
 
         # Simple sentence splitting (can be improved with nltk/spacy)
-        sentences = re.split(r'[.!?]+\s+', text)
+        sentences = re.split(r"[.!?]+\s+", text)
         return [s.strip() for s in sentences if s.strip()]
 
     def _split_long_text(self, text: str, max_tokens: int) -> List[str]:
@@ -353,7 +370,7 @@ class TextChunker:
 
         chunks = []
         for i in range(0, len(text), max_chars):
-            chunks.append(text[i:i + max_chars])
+            chunks.append(text[i : i + max_chars])
 
         return chunks
 
@@ -361,6 +378,7 @@ class TextChunker:
 # ============================================================================
 # Embedding Service
 # ============================================================================
+
 
 class EmbeddingService:
     """OpenAI embedding generation service."""
@@ -376,7 +394,8 @@ class EmbeddingService:
 
         # Default model
         self.default_model = (
-            "text-embedding-3-small" if settings.is_production
+            "text-embedding-3-small"
+            if settings.is_production
             else "text-embedding-3-small"  # Use small model for dev too
         )
 
@@ -421,8 +440,7 @@ class EmbeddingService:
 
         # Remove timestamps older than window
         self.request_timestamps = [
-            ts for ts in self.request_timestamps
-            if now - ts < self.rate_limit_window
+            ts for ts in self.request_timestamps if now - ts < self.rate_limit_window
         ]
 
         # Check if we're at limit
@@ -500,9 +518,7 @@ class EmbeddingService:
             tokens = response.usage.total_tokens
             model_config = self._get_model_config(model)
             cost = embedding_cost_tracker.track_usage(
-                model,
-                tokens,
-                model_config["price_per_1k_tokens"]
+                model, tokens, model_config["price_per_1k_tokens"]
             )
 
             logger.debug(
@@ -519,14 +535,14 @@ class EmbeddingService:
             logger.error(f"OpenAI API error: {e}")
             raise AIServiceError(
                 message="Embedding generation failed",
-                details={"error": str(e), "model": model}
+                details={"error": str(e), "model": model},
             )
 
         except Exception as e:
             logger.error(f"Unexpected embedding error: {e}", exc_info=True)
             raise AIServiceError(
                 message="Unexpected error during embedding generation",
-                details={"error": str(e)}
+                details={"error": str(e)},
             )
 
     async def generate_embedding(
@@ -548,8 +564,7 @@ class EmbeddingService:
         """
         if not text or not text.strip():
             raise AIServiceError(
-                message="Cannot generate embedding for empty text",
-                details={}
+                message="Cannot generate embedding for empty text", details={}
             )
 
         model = model or self.default_model
@@ -641,14 +656,16 @@ class EmbeddingService:
                 use_cache=use_cache,
             )
 
-            chunk_embeddings.append({
-                "embedding": result["embedding"],
-                "chunk_index": chunk["chunk_index"],
-                "chunk_text": chunk["text"],
-                "tokens": result["tokens"],
-                "start_char": chunk["start_char"],
-                "end_char": chunk["end_char"],
-            })
+            chunk_embeddings.append(
+                {
+                    "embedding": result["embedding"],
+                    "chunk_index": chunk["chunk_index"],
+                    "chunk_text": chunk["text"],
+                    "tokens": result["tokens"],
+                    "start_char": chunk["start_char"],
+                    "end_char": chunk["end_char"],
+                }
+            )
 
             total_cost += result["cost"]
 
@@ -714,7 +731,7 @@ class EmbeddingService:
 
         # Process in batches
         for i in range(0, len(texts), batch_size):
-            batch = texts[i:i + batch_size]
+            batch = texts[i : i + batch_size]
 
             # Check cache first
             uncached_texts = []
@@ -726,15 +743,17 @@ class EmbeddingService:
                     cached = await get_cache(cache_key)
 
                     if cached:
-                        results.append({
-                            "embedding": cached["embedding"],
-                            "model": model,
-                            "dimensions": len(cached["embedding"]),
-                            "tokens": cached.get("tokens", 0),
-                            "cost": 0.0,
-                            "cached": True,
-                            "text_index": i + idx,
-                        })
+                        results.append(
+                            {
+                                "embedding": cached["embedding"],
+                                "model": model,
+                                "dimensions": len(cached["embedding"]),
+                                "tokens": cached.get("tokens", 0),
+                                "cost": 0.0,
+                                "cached": True,
+                                "text_index": i + idx,
+                            }
+                        )
                         continue
 
                 uncached_texts.append(text)
@@ -758,9 +777,7 @@ class EmbeddingService:
                     tokens = response.usage.total_tokens
                     model_config = self._get_model_config(model)
                     cost = embedding_cost_tracker.track_usage(
-                        model,
-                        tokens,
-                        model_config["price_per_1k_tokens"]
+                        model, tokens, model_config["price_per_1k_tokens"]
                     )
 
                     # Process results
@@ -803,7 +820,7 @@ class EmbeddingService:
                     logger.error(f"Batch embedding failed: {e}")
                     raise AIServiceError(
                         message="Batch embedding generation failed",
-                        details={"error": str(e), "batch_size": len(uncached_texts)}
+                        details={"error": str(e), "batch_size": len(uncached_texts)},
                     )
 
         # Sort by original text index

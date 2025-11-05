@@ -490,9 +490,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         limit_key = self._get_limit_key(request)
 
         # Check rate limit
-        is_allowed, retry_after = await self._check_rate_limit(
-            client_id, limit_key
-        )
+        is_allowed, retry_after = await self._check_rate_limit(client_id, limit_key)
 
         if not is_allowed:
             # Log rate limit exceeded

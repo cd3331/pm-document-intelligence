@@ -37,7 +37,7 @@ async def upload_document():
     logger.info("Document upload endpoint called")
     raise HTTPException(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Document upload endpoint not yet implemented"
+        detail="Document upload endpoint not yet implemented",
     )
 
 
@@ -56,7 +56,7 @@ async def get_document(document_id: str):
     logger.info(f"Get document endpoint called: {document_id}")
     raise HTTPException(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Get document endpoint not yet implemented"
+        detail="Get document endpoint not yet implemented",
     )
 
 
@@ -72,7 +72,7 @@ async def list_documents():
     logger.info("List documents endpoint called")
     raise HTTPException(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="List documents endpoint not yet implemented"
+        detail="List documents endpoint not yet implemented",
     )
 
 
@@ -91,7 +91,7 @@ async def process_document(document_id: str):
     logger.info(f"Process document endpoint called: {document_id}")
     raise HTTPException(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Process document endpoint not yet implemented"
+        detail="Process document endpoint not yet implemented",
     )
 
 
@@ -110,5 +110,5 @@ async def delete_document(document_id: str):
     logger.info(f"Delete document endpoint called: {document_id}")
     raise HTTPException(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Delete document endpoint not yet implemented"
+        detail="Delete document endpoint not yet implemented",
     )

@@ -49,6 +49,7 @@ logger = get_logger(__name__)
 # Audit Event Types
 # ============================================================================
 
+
 class AuditAction:
     """Audit action constants."""
 
@@ -103,6 +104,7 @@ class AuditStatus:
 # ============================================================================
 # Helper Functions
 # ============================================================================
+
 
 def get_client_ip(request: Request) -> Optional[str]:
     """
@@ -196,6 +198,7 @@ def mask_sensitive_data(data: Dict[str, Any]) -> Dict[str, Any]:
 # Core Audit Logging Function
 # ============================================================================
 
+
 async def create_audit_log(
     action: str,
     resource_type: str,
@@ -279,6 +282,7 @@ async def create_audit_log(
 # ============================================================================
 # Authentication Event Logging
 # ============================================================================
+
 
 async def log_auth_event(
     action: str,
@@ -400,6 +404,7 @@ async def log_account_lockout(
 # Document Event Logging
 # ============================================================================
 
+
 async def log_document_access(
     user_id: str,
     document_id: str,
@@ -499,6 +504,7 @@ async def log_document_change(
 # AI Service Event Logging
 # ============================================================================
 
+
 async def log_ai_service_call(
     user_id: str,
     service: str,
@@ -572,6 +578,7 @@ async def log_ai_service_call(
 # Admin Event Logging
 # ============================================================================
 
+
 async def log_admin_action(
     admin_user_id: str,
     action: str,
@@ -623,6 +630,7 @@ async def log_admin_action(
 # ============================================================================
 # Audit Log Queries
 # ============================================================================
+
 
 async def get_user_audit_logs(
     user_id: str,

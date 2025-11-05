@@ -46,7 +46,7 @@ class AuditLogger:
         user_agent: Optional[str] = None,
         request_method: Optional[str] = None,
         request_path: Optional[str] = None,
-        sensitivity_level: str = "normal"
+        sensitivity_level: str = "normal",
     ) -> AuditLog:
         """
         Log a general audit event
@@ -107,7 +107,7 @@ class AuditLogger:
             request_method=request_method,
             request_path=request_path,
             sensitivity_level=sensitivity_level,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.utcnow(),
         )
 
         self.db.add(audit_log)
@@ -131,7 +131,7 @@ class AuditLogger:
         records_accessed: Optional[str] = None,
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
-        session_id: Optional[str] = None
+        session_id: Optional[str] = None,
     ) -> DataAccessLog:
         """
         Log data access for compliance
@@ -170,7 +170,7 @@ class AuditLogger:
             ip_address=ip_address,
             user_agent=user_agent,
             session_id=session_id,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.utcnow(),
         )
 
         self.db.add(data_access_log)
@@ -190,7 +190,7 @@ class AuditLogger:
         involved_users: Optional[List[uuid.UUID]] = None,
         affected_data: Optional[Dict[str, Any]] = None,
         requires_reporting: bool = False,
-        occurred_at: Optional[datetime] = None
+        occurred_at: Optional[datetime] = None,
     ) -> ComplianceEvent:
         """
         Log a compliance event
@@ -222,7 +222,7 @@ class AuditLogger:
             requires_reporting=requires_reporting,
             occurred_at=occurred_at or datetime.utcnow(),
             detected_at=datetime.utcnow(),
-            status="open"
+            status="open",
         )
 
         self.db.add(compliance_event)
@@ -241,7 +241,7 @@ class AuditLogger:
         success: bool,
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
-        error_message: Optional[str] = None
+        error_message: Optional[str] = None,
     ):
         """Log user login attempt"""
         return await self.log_event(
@@ -252,21 +252,17 @@ class AuditLogger:
             error_message=error_message,
             ip_address=ip_address,
             user_agent=user_agent,
-            details={"login_successful": success}
+            details={"login_successful": success},
         )
 
-    async def log_logout(
-        self,
-        user_id: uuid.UUID,
-        ip_address: Optional[str] = None
-    ):
+    async def log_logout(self, user_id: uuid.UUID, ip_address: Optional[str] = None):
         """Log user logout"""
         return await self.log_event(
             action="user_logout",
             category="auth",
             user_id=user_id,
             status="success",
-            ip_address=ip_address
+            ip_address=ip_address,
         )
 
     async def log_permission_change(
@@ -277,7 +273,7 @@ class AuditLogger:
         old_role: str,
         new_role: str,
         resource_type: str = "user",
-        resource_id: Optional[uuid.UUID] = None
+        resource_id: Optional[uuid.UUID] = None,
     ):
         """Log permission/role change"""
         return await self.log_event(
@@ -288,16 +284,13 @@ class AuditLogger:
             resource_type=resource_type,
             resource_id=resource_id or target_user_id,
             status="success",
-            changes={
-                "before": {"role": old_role},
-                "after": {"role": new_role}
-            },
+            changes={"before": {"role": old_role}, "after": {"role": new_role}},
             details={
                 "target_user_id": str(target_user_id),
                 "old_role": old_role,
-                "new_role": new_role
+                "new_role": new_role,
             },
-            sensitivity_level="sensitive"
+            sensitivity_level="sensitive",
         )
 
     async def log_data_export(
@@ -306,7 +299,7 @@ class AuditLogger:
         organization_id: uuid.UUID,
         export_type: str,
         record_count: int,
-        file_size_bytes: int
+        file_size_bytes: int,
     ):
         """Log data export"""
         return await self.log_event(
@@ -318,9 +311,9 @@ class AuditLogger:
             details={
                 "export_type": export_type,
                 "record_count": record_count,
-                "file_size_bytes": file_size_bytes
+                "file_size_bytes": file_size_bytes,
             },
-            sensitivity_level="sensitive"
+            sensitivity_level="sensitive",
         )
 
     # ============================================================================
@@ -339,7 +332,7 @@ class AuditLogger:
         end_date: Optional[datetime] = None,
         status: Optional[str] = None,
         skip: int = 0,
-        limit: int = 100
+        limit: int = 100,
     ) -> List[AuditLog]:
         """
         Query audit logs with filters
@@ -394,7 +387,7 @@ class AuditLogger:
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
         skip: int = 0,
-        limit: int = 100
+        limit: int = 100,
     ) -> List[DataAccessLog]:
         """Query data access logs with filters"""
         query = self.db.query(DataAccessLog)
@@ -432,7 +425,7 @@ class AuditLogger:
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
         skip: int = 0,
-        limit: int = 100
+        limit: int = 100,
     ) -> List[ComplianceEvent]:
         """Query compliance events with filters"""
         query = self.db.query(ComplianceEvent)
@@ -450,7 +443,9 @@ class AuditLogger:
             query = query.filter(ComplianceEvent.status == status)
 
         if requires_reporting is not None:
-            query = query.filter(ComplianceEvent.requires_reporting == requires_reporting)
+            query = query.filter(
+                ComplianceEvent.requires_reporting == requires_reporting
+            )
 
         if start_date:
             query = query.filter(ComplianceEvent.occurred_at >= start_date)
@@ -471,7 +466,7 @@ class AuditLogger:
         self,
         organization_id: Optional[uuid.UUID] = None,
         start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None
+        end_date: Optional[datetime] = None,
     ) -> str:
         """
         Export audit logs to CSV format
@@ -483,34 +478,46 @@ class AuditLogger:
             organization_id=organization_id,
             start_date=start_date,
             end_date=end_date,
-            limit=10000  # Large limit for export
+            limit=10000,  # Large limit for export
         )
 
         output = io.StringIO()
         writer = csv.writer(output)
 
         # Header
-        writer.writerow([
-            'Timestamp', 'User', 'Email', 'Organization ID', 'Action',
-            'Category', 'Resource Type', 'Resource ID', 'Status',
-            'IP Address', 'Details'
-        ])
+        writer.writerow(
+            [
+                "Timestamp",
+                "User",
+                "Email",
+                "Organization ID",
+                "Action",
+                "Category",
+                "Resource Type",
+                "Resource ID",
+                "Status",
+                "IP Address",
+                "Details",
+            ]
+        )
 
         # Data rows
         for log in logs:
-            writer.writerow([
-                log.timestamp.isoformat(),
-                log.username or 'System',
-                log.user_email or '',
-                str(log.organization_id) if log.organization_id else '',
-                log.action,
-                log.category,
-                log.resource_type or '',
-                str(log.resource_id) if log.resource_id else '',
-                log.status,
-                log.ip_address or '',
-                json.dumps(log.details) if log.details else ''
-            ])
+            writer.writerow(
+                [
+                    log.timestamp.isoformat(),
+                    log.username or "System",
+                    log.user_email or "",
+                    str(log.organization_id) if log.organization_id else "",
+                    log.action,
+                    log.category,
+                    log.resource_type or "",
+                    str(log.resource_id) if log.resource_id else "",
+                    log.status,
+                    log.ip_address or "",
+                    json.dumps(log.details) if log.details else "",
+                ]
+            )
 
         return output.getvalue()
 
@@ -518,7 +525,7 @@ class AuditLogger:
         self,
         organization_id: Optional[uuid.UUID] = None,
         start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None
+        end_date: Optional[datetime] = None,
     ) -> str:
         """
         Export audit logs to JSON format
@@ -530,52 +537,56 @@ class AuditLogger:
             organization_id=organization_id,
             start_date=start_date,
             end_date=end_date,
-            limit=10000
+            limit=10000,
         )
 
         logs_data = []
         for log in logs:
-            logs_data.append({
-                'id': str(log.id),
-                'timestamp': log.timestamp.isoformat(),
-                'user_id': str(log.user_id) if log.user_id else None,
-                'username': log.username,
-                'user_email': log.user_email,
-                'organization_id': str(log.organization_id) if log.organization_id else None,
-                'action': log.action,
-                'category': log.category,
-                'resource_type': log.resource_type,
-                'resource_id': str(log.resource_id) if log.resource_id else None,
-                'status': log.status,
-                'status_code': log.status_code,
-                'details': log.details,
-                'changes': log.changes,
-                'error_message': log.error_message,
-                'ip_address': log.ip_address,
-                'user_agent': log.user_agent,
-                'request_method': log.request_method,
-                'request_path': log.request_path,
-                'sensitivity_level': log.sensitivity_level
-            })
+            logs_data.append(
+                {
+                    "id": str(log.id),
+                    "timestamp": log.timestamp.isoformat(),
+                    "user_id": str(log.user_id) if log.user_id else None,
+                    "username": log.username,
+                    "user_email": log.user_email,
+                    "organization_id": (
+                        str(log.organization_id) if log.organization_id else None
+                    ),
+                    "action": log.action,
+                    "category": log.category,
+                    "resource_type": log.resource_type,
+                    "resource_id": str(log.resource_id) if log.resource_id else None,
+                    "status": log.status,
+                    "status_code": log.status_code,
+                    "details": log.details,
+                    "changes": log.changes,
+                    "error_message": log.error_message,
+                    "ip_address": log.ip_address,
+                    "user_agent": log.user_agent,
+                    "request_method": log.request_method,
+                    "request_path": log.request_path,
+                    "sensitivity_level": log.sensitivity_level,
+                }
+            )
 
-        return json.dumps({
-            'export_timestamp': datetime.utcnow().isoformat(),
-            'organization_id': str(organization_id) if organization_id else None,
-            'start_date': start_date.isoformat() if start_date else None,
-            'end_date': end_date.isoformat() if end_date else None,
-            'total_records': len(logs_data),
-            'logs': logs_data
-        }, indent=2)
+        return json.dumps(
+            {
+                "export_timestamp": datetime.utcnow().isoformat(),
+                "organization_id": str(organization_id) if organization_id else None,
+                "start_date": start_date.isoformat() if start_date else None,
+                "end_date": end_date.isoformat() if end_date else None,
+                "total_records": len(logs_data),
+                "logs": logs_data,
+            },
+            indent=2,
+        )
 
     # ============================================================================
     # Analytics
     # ============================================================================
 
     async def get_audit_summary(
-        self,
-        organization_id: uuid.UUID,
-        start_date: datetime,
-        end_date: datetime
+        self, organization_id: uuid.UUID, start_date: datetime, end_date: datetime
     ) -> Dict[str, Any]:
         """
         Get audit log summary for a period
@@ -584,74 +595,83 @@ class AuditLogger:
             dict with summary statistics
         """
         # Total events
-        total_events = self.db.query(func.count(AuditLog.id)).filter(
-            AuditLog.organization_id == organization_id,
-            AuditLog.timestamp >= start_date,
-            AuditLog.timestamp <= end_date
-        ).scalar()
+        total_events = (
+            self.db.query(func.count(AuditLog.id))
+            .filter(
+                AuditLog.organization_id == organization_id,
+                AuditLog.timestamp >= start_date,
+                AuditLog.timestamp <= end_date,
+            )
+            .scalar()
+        )
 
         # Events by category
-        events_by_category = self.db.query(
-            AuditLog.category,
-            func.count(AuditLog.id)
-        ).filter(
-            AuditLog.organization_id == organization_id,
-            AuditLog.timestamp >= start_date,
-            AuditLog.timestamp <= end_date
-        ).group_by(AuditLog.category).all()
+        events_by_category = (
+            self.db.query(AuditLog.category, func.count(AuditLog.id))
+            .filter(
+                AuditLog.organization_id == organization_id,
+                AuditLog.timestamp >= start_date,
+                AuditLog.timestamp <= end_date,
+            )
+            .group_by(AuditLog.category)
+            .all()
+        )
 
         # Failed events
-        failed_events = self.db.query(func.count(AuditLog.id)).filter(
-            AuditLog.organization_id == organization_id,
-            AuditLog.timestamp >= start_date,
-            AuditLog.timestamp <= end_date,
-            AuditLog.status == "failure"
-        ).scalar()
+        failed_events = (
+            self.db.query(func.count(AuditLog.id))
+            .filter(
+                AuditLog.organization_id == organization_id,
+                AuditLog.timestamp >= start_date,
+                AuditLog.timestamp <= end_date,
+                AuditLog.status == "failure",
+            )
+            .scalar()
+        )
 
         # Top users by activity
-        top_users = self.db.query(
-            AuditLog.user_id,
-            AuditLog.username,
-            func.count(AuditLog.id).label('event_count')
-        ).filter(
-            AuditLog.organization_id == organization_id,
-            AuditLog.timestamp >= start_date,
-            AuditLog.timestamp <= end_date,
-            AuditLog.user_id.isnot(None)
-        ).group_by(
-            AuditLog.user_id,
-            AuditLog.username
-        ).order_by(
-            desc('event_count')
-        ).limit(10).all()
+        top_users = (
+            self.db.query(
+                AuditLog.user_id,
+                AuditLog.username,
+                func.count(AuditLog.id).label("event_count"),
+            )
+            .filter(
+                AuditLog.organization_id == organization_id,
+                AuditLog.timestamp >= start_date,
+                AuditLog.timestamp <= end_date,
+                AuditLog.user_id.isnot(None),
+            )
+            .group_by(AuditLog.user_id, AuditLog.username)
+            .order_by(desc("event_count"))
+            .limit(10)
+            .all()
+        )
 
         # Sensitive actions
-        sensitive_actions = self.db.query(func.count(AuditLog.id)).filter(
-            AuditLog.organization_id == organization_id,
-            AuditLog.timestamp >= start_date,
-            AuditLog.timestamp <= end_date,
-            AuditLog.sensitivity_level.in_(['sensitive', 'confidential'])
-        ).scalar()
+        sensitive_actions = (
+            self.db.query(func.count(AuditLog.id))
+            .filter(
+                AuditLog.organization_id == organization_id,
+                AuditLog.timestamp >= start_date,
+                AuditLog.timestamp <= end_date,
+                AuditLog.sensitivity_level.in_(["sensitive", "confidential"]),
+            )
+            .scalar()
+        )
 
         return {
-            'period': {
-                'start': start_date.isoformat(),
-                'end': end_date.isoformat()
-            },
-            'total_events': total_events,
-            'failed_events': failed_events,
-            'sensitive_actions': sensitive_actions,
-            'events_by_category': {
+            "period": {"start": start_date.isoformat(), "end": end_date.isoformat()},
+            "total_events": total_events,
+            "failed_events": failed_events,
+            "sensitive_actions": sensitive_actions,
+            "events_by_category": {
                 category: count for category, count in events_by_category
             },
-            'top_users': [
-                {
-                    'user_id': str(user_id),
-                    'username': username,
-                    'event_count': count
-                }
+            "top_users": [
+                {"user_id": str(user_id), "username": username, "event_count": count}
                 for user_id, username, count in top_users
-            ]
+            ],
         }
 
     # ============================================================================
@@ -671,26 +691,34 @@ class AuditLogger:
             cutoff_date = datetime.utcnow() - timedelta(days=policy.retention_days)
 
             if policy.log_type == "audit_logs":
-                deleted = self.db.query(AuditLog).filter(
-                    and_(
-                        AuditLog.timestamp < cutoff_date,
-                        or_(
-                            policy.organization_id.is_(None),
-                            AuditLog.organization_id == policy.organization_id
+                deleted = (
+                    self.db.query(AuditLog)
+                    .filter(
+                        and_(
+                            AuditLog.timestamp < cutoff_date,
+                            or_(
+                                policy.organization_id.is_(None),
+                                AuditLog.organization_id == policy.organization_id,
+                            ),
                         )
                     )
-                ).delete()
+                    .delete()
+                )
 
             elif policy.log_type == "data_access_logs":
-                deleted = self.db.query(DataAccessLog).filter(
-                    and_(
-                        DataAccessLog.timestamp < cutoff_date,
-                        or_(
-                            policy.organization_id.is_(None),
-                            DataAccessLog.organization_id == policy.organization_id
+                deleted = (
+                    self.db.query(DataAccessLog)
+                    .filter(
+                        and_(
+                            DataAccessLog.timestamp < cutoff_date,
+                            or_(
+                                policy.organization_id.is_(None),
+                                DataAccessLog.organization_id == policy.organization_id,
+                            ),
                         )
                     )
-                ).delete()
+                    .delete()
+                )
 
             elif policy.log_type == "compliance_events":
                 # Never delete compliance events automatically, only archive
@@ -699,12 +727,18 @@ class AuditLogger:
             policy.last_cleanup_at = datetime.utcnow()
             policy.records_deleted += deleted
 
-            cleanup_results.append({
-                'log_type': policy.log_type,
-                'organization_id': str(policy.organization_id) if policy.organization_id else 'system',
-                'records_deleted': deleted,
-                'cutoff_date': cutoff_date.isoformat()
-            })
+            cleanup_results.append(
+                {
+                    "log_type": policy.log_type,
+                    "organization_id": (
+                        str(policy.organization_id)
+                        if policy.organization_id
+                        else "system"
+                    ),
+                    "records_deleted": deleted,
+                    "cutoff_date": cutoff_date.isoformat(),
+                }
+            )
 
         self.db.commit()
 

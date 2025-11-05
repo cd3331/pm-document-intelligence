@@ -29,7 +29,13 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from prometheus_client import Counter, Gauge, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from prometheus_client import (
+    Counter,
+    Gauge,
+    Histogram,
+    generate_latest,
+    CONTENT_TYPE_LATEST,
+)
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -120,6 +126,7 @@ errors_total = Counter(
 # ============================================================================
 # Lifespan Manager
 # ============================================================================
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -322,6 +329,7 @@ app = FastAPI(
 # Rate Limiting Setup
 # ============================================================================
 
+
 def get_limiter_key(request: Request) -> str:
     """
     Get rate limiter key based on user or IP address.
@@ -347,8 +355,14 @@ def get_limiter_key(request: Request) -> str:
 # Initialize rate limiter
 limiter = Limiter(
     key_func=get_limiter_key,
-    default_limits=["1000/hour", "100/minute"] if settings.rate_limit.rate_limit_enabled else [],
-    storage_uri=str(settings.redis.redis_url) if settings.rate_limit.rate_limit_enabled else None,
+    default_limits=(
+        ["1000/hour", "100/minute"] if settings.rate_limit.rate_limit_enabled else []
+    ),
+    storage_uri=(
+        str(settings.redis.redis_url)
+        if settings.rate_limit.rate_limit_enabled
+        else None
+    ),
     strategy=settings.rate_limit.rate_limit_strategy,
     enabled=settings.rate_limit.rate_limit_enabled,
 )
@@ -360,6 +374,7 @@ app.state.limiter = limiter
 # ============================================================================
 # Middleware Configuration
 # ============================================================================
+
 
 class RequestTimingMiddleware(BaseHTTPMiddleware):
     """Middleware to track request timing and add metrics."""
@@ -457,6 +472,7 @@ if settings.gzip_enabled:
 # Error Handlers
 # ============================================================================
 
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(
     request: Request,
@@ -488,11 +504,13 @@ async def validation_exception_handler(
     # Format validation errors
     formatted_errors = []
     for error in exc.errors():
-        formatted_errors.append({
-            "field": ".".join(str(loc) for loc in error["loc"]),
-            "message": error["msg"],
-            "type": error["type"],
-        })
+        formatted_errors.append(
+            {
+                "field": ".".join(str(loc) for loc in error["loc"]),
+                "message": error["msg"],
+                "type": error["type"],
+            }
+        )
 
     response_data = {
         "error": {
@@ -545,7 +563,9 @@ async def http_exception_handler(
     response_data = {
         "error": {
             "code": "HTTP_ERROR",
-            "message": exc.detail if isinstance(exc.detail, str) else "An error occurred",
+            "message": (
+                exc.detail if isinstance(exc.detail, str) else "An error occurred"
+            ),
             "status_code": exc.status_code,
         }
     }
@@ -615,6 +635,7 @@ app.add_exception_handler(Exception, generic_exception_handler)
 # Health Check & Monitoring Endpoints
 # ============================================================================
 
+
 @app.get(
     settings.health_check_path,
     tags=["monitoring"],
@@ -652,7 +673,11 @@ async def health_check() -> Dict[str, Any]:
         db_healthy = await test_database_connection()
         health_status["checks"]["database"] = {
             "status": "healthy" if db_healthy else "unhealthy",
-            "message": "Database connection successful" if db_healthy else "Database connection failed",
+            "message": (
+                "Database connection successful"
+                if db_healthy
+                else "Database connection failed"
+            ),
         }
         if not db_healthy:
             all_healthy = False
@@ -688,7 +713,11 @@ async def health_check() -> Dict[str, Any]:
         redis_healthy = await test_redis_connection()
         health_status["checks"]["redis"] = {
             "status": "healthy" if redis_healthy else "unhealthy",
-            "message": "Redis connection successful" if redis_healthy else "Redis connection failed",
+            "message": (
+                "Redis connection successful"
+                if redis_healthy
+                else "Redis connection failed"
+            ),
         }
         if not redis_healthy:
             all_healthy = False
@@ -709,7 +738,9 @@ async def health_check() -> Dict[str, Any]:
         health_status["status"] = "degraded"
 
     # Return appropriate status code
-    status_code = status.HTTP_200_OK if all_healthy else status.HTTP_503_SERVICE_UNAVAILABLE
+    status_code = (
+        status.HTTP_200_OK if all_healthy else status.HTTP_503_SERVICE_UNAVAILABLE
+    )
 
     return JSONResponse(content=health_status, status_code=status_code)
 
@@ -732,8 +763,7 @@ async def readiness_check() -> Dict[str, Any]:
     if hasattr(app.state, "startup_errors") and app.state.startup_errors:
         # Only fail if database is unavailable (critical)
         critical_errors = [
-            err for err in app.state.startup_errors
-            if "database" in err.lower()
+            err for err in app.state.startup_errors if "database" in err.lower()
         ]
 
         if critical_errors:
@@ -771,6 +801,7 @@ async def metrics() -> Any:
 # Route Registration
 # ============================================================================
 
+
 # Root endpoint
 @app.get("/", tags=["general"])
 async def root() -> Dict[str, Any]:
@@ -797,6 +828,7 @@ def register_routes():
     try:
         # Authentication routes
         from app.routes import auth
+
         app.include_router(
             auth.router,
             prefix="/api/v1/auth",
@@ -809,6 +841,7 @@ def register_routes():
     try:
         # Document processing routes
         from app.routes import documents
+
         app.include_router(
             documents.router,
             prefix="/api/v1/documents",
@@ -821,6 +854,7 @@ def register_routes():
     try:
         # AI agent routes
         from app.routes import agents
+
         app.include_router(
             agents.router,
             prefix="/api/v1/agents",
@@ -833,6 +867,7 @@ def register_routes():
     try:
         # Search routes
         from app.routes import search
+
         app.include_router(
             search.router,
             prefix="/api/v1/search",
@@ -845,6 +880,7 @@ def register_routes():
     try:
         # MCP routes
         from app.routes import mcp
+
         app.include_router(
             mcp.router,
             prefix="/api/v1/mcp",
@@ -857,6 +893,7 @@ def register_routes():
     try:
         # Real-time communication routes
         from app.routes import realtime
+
         app.include_router(
             realtime.router,
             prefix="/api/v1/realtime",
@@ -869,6 +906,7 @@ def register_routes():
     try:
         # htmx API routes (HTML fragments)
         from app.routes import htmx
+
         app.include_router(
             htmx.router,
             tags=["htmx"],
@@ -880,6 +918,7 @@ def register_routes():
     try:
         # Page routes (must be last to avoid conflicts)
         from app.routes import pages
+
         app.include_router(
             pages.router,
             tags=["pages"],
@@ -891,6 +930,7 @@ def register_routes():
     try:
         # Admin routes
         from app.routes import admin
+
         app.include_router(
             admin.router,
             prefix="/api/v1/admin",
@@ -937,6 +977,7 @@ except Exception as e:
 # ============================================================================
 # OpenAPI Documentation Configuration
 # ============================================================================
+
 
 # Configure OpenAPI schema
 def custom_openapi():

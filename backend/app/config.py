@@ -795,7 +795,9 @@ class Settings(BaseSettings):
             if self.reload:
                 raise ValueError("Auto-reload must be disabled in production")
             if len(self.secret_key) < 32:
-                raise ValueError("Secret key must be at least 32 characters in production")
+                raise ValueError(
+                    "Secret key must be at least 32 characters in production"
+                )
             if self.monitoring.log_level == "DEBUG":
                 raise ValueError("Log level must not be DEBUG in production")
 
@@ -924,7 +926,10 @@ class Settings(BaseSettings):
                 for key, value in d.items():
                     if isinstance(value, dict):
                         mask_secrets(value)
-                    elif any(secret in key.lower() for secret in ["key", "secret", "password", "token", "dsn"]):
+                    elif any(
+                        secret in key.lower()
+                        for secret in ["key", "secret", "password", "token", "dsn"]
+                    ):
                         if value:
                             d[key] = "***MASKED***"
 

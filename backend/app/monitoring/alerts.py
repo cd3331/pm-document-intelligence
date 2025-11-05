@@ -16,6 +16,7 @@ from datetime import datetime
 
 class AlertSeverity(Enum):
     """Alert severity levels"""
+
     INFO = "info"
     WARNING = "warning"
     ERROR = "error"
@@ -24,6 +25,7 @@ class AlertSeverity(Enum):
 
 class AlertChannel(Enum):
     """Alert delivery channels"""
+
     EMAIL = "email"
     SLACK = "slack"
     PAGERDUTY = "pagerduty"
@@ -33,6 +35,7 @@ class AlertChannel(Enum):
 @dataclass
 class Alert:
     """Alert definition"""
+
     name: str
     severity: AlertSeverity
     message: str
@@ -57,7 +60,7 @@ HIGH_ERROR_RATE = Alert(
     threshold=0.05,
     comparison="gt",
     duration="5m",
-    channels=[AlertChannel.SLACK, AlertChannel.PAGERDUTY]
+    channels=[AlertChannel.SLACK, AlertChannel.PAGERDUTY],
 )
 
 # Slow response time alert
@@ -69,7 +72,7 @@ SLOW_RESPONSE_TIME = Alert(
     threshold=2.0,
     comparison="gt",
     duration="10m",
-    channels=[AlertChannel.SLACK]
+    channels=[AlertChannel.SLACK],
 )
 
 # AWS service failure alert
@@ -81,7 +84,7 @@ AWS_SERVICE_FAILURE = Alert(
     threshold=0.1,  # 10% failure rate
     comparison="gt",
     duration="5m",
-    channels=[AlertChannel.SLACK, AlertChannel.EMAIL]
+    channels=[AlertChannel.SLACK, AlertChannel.EMAIL],
 )
 
 # Database connection alert
@@ -93,7 +96,7 @@ DATABASE_CONNECTION_ERROR = Alert(
     threshold=0.05,
     comparison="gt",
     duration="2m",
-    channels=[AlertChannel.SLACK, AlertChannel.PAGERDUTY]
+    channels=[AlertChannel.SLACK, AlertChannel.PAGERDUTY],
 )
 
 # Cost threshold alert
@@ -105,7 +108,7 @@ COST_THRESHOLD_EXCEEDED = Alert(
     threshold=100.0,
     comparison="gt",
     duration="1h",
-    channels=[AlertChannel.EMAIL, AlertChannel.SLACK]
+    channels=[AlertChannel.EMAIL, AlertChannel.SLACK],
 )
 
 # Disk space alert
@@ -117,7 +120,7 @@ DISK_SPACE_LOW = Alert(
     threshold=0.9,  # 90% used
     comparison="gt",
     duration="5m",
-    channels=[AlertChannel.SLACK]
+    channels=[AlertChannel.SLACK],
 )
 
 # Memory usage alert
@@ -129,7 +132,7 @@ MEMORY_USAGE_HIGH = Alert(
     threshold=0.85,
     comparison="gt",
     duration="10m",
-    channels=[AlertChannel.SLACK]
+    channels=[AlertChannel.SLACK],
 )
 
 # Document processing failure alert
@@ -141,7 +144,7 @@ DOCUMENT_PROCESSING_FAILURES = Alert(
     threshold=10,  # More than 10 failures
     comparison="gt",
     duration="15m",
-    channels=[AlertChannel.SLACK, AlertChannel.EMAIL]
+    channels=[AlertChannel.SLACK, AlertChannel.EMAIL],
 )
 
 
@@ -154,13 +157,14 @@ ALL_ALERTS = [
     COST_THRESHOLD_EXCEEDED,
     DISK_SPACE_LOW,
     MEMORY_USAGE_HIGH,
-    DOCUMENT_PROCESSING_FAILURES
+    DOCUMENT_PROCESSING_FAILURES,
 ]
 
 
 # ============================================================================
 # Alert Delivery
 # ============================================================================
+
 
 class AlertDelivery:
     """Handles alert delivery to various channels"""
@@ -198,9 +202,9 @@ class AlertDelivery:
             return
 
         msg = MIMEMultipart()
-        msg['From'] = self.smtp_user
-        msg['To'] = ", ".join(recipients)
-        msg['Subject'] = f"[{alert.severity.value.upper()}] {alert.name}"
+        msg["From"] = self.smtp_user
+        msg["To"] = ", ".join(recipients)
+        msg["Subject"] = f"[{alert.severity.value.upper()}] {alert.name}"
 
         body = f"""
 Alert: {alert.name}
@@ -219,7 +223,7 @@ Timestamp: {datetime.utcnow().isoformat()}
 This is an automated alert from PM Document Intelligence monitoring system.
         """
 
-        msg.attach(MIMEText(body, 'plain'))
+        msg.attach(MIMEText(body, "plain"))
 
         try:
             server = smtplib.SMTP(self.smtp_host, self.smtp_port)
@@ -241,7 +245,7 @@ This is an automated alert from PM Document Intelligence monitoring system.
             AlertSeverity.INFO: "#36a64f",
             AlertSeverity.WARNING: "#ff9900",
             AlertSeverity.ERROR: "#ff4444",
-            AlertSeverity.CRITICAL: "#cc0000"
+            AlertSeverity.CRITICAL: "#cc0000",
         }
 
         payload = {
@@ -255,26 +259,22 @@ This is an automated alert from PM Document Intelligence monitoring system.
                         {
                             "title": "Severity",
                             "value": alert.severity.value.upper(),
-                            "short": True
+                            "short": True,
                         },
                         {
                             "title": "Current Value",
                             "value": f"{current_value:.2f}",
-                            "short": True
+                            "short": True,
                         },
                         {
                             "title": "Threshold",
                             "value": f"{alert.threshold}",
-                            "short": True
+                            "short": True,
                         },
-                        {
-                            "title": "Metric",
-                            "value": alert.metric_name,
-                            "short": True
-                        }
+                        {"title": "Metric", "value": alert.metric_name, "short": True},
                     ],
                     "footer": "PM Document Intelligence Monitoring",
-                    "ts": int(datetime.utcnow().timestamp())
+                    "ts": int(datetime.utcnow().timestamp()),
                 }
             ]
         }
@@ -283,7 +283,7 @@ This is an automated alert from PM Document Intelligence monitoring system.
             response = requests.post(
                 self.slack_webhook_url,
                 json=payload,
-                headers={'Content-Type': 'application/json'}
+                headers={"Content-Type": "application/json"},
             )
             response.raise_for_status()
             print(f"Alert sent to Slack: {alert.name}")
@@ -300,7 +300,7 @@ This is an automated alert from PM Document Intelligence monitoring system.
             AlertSeverity.INFO: "info",
             AlertSeverity.WARNING: "warning",
             AlertSeverity.ERROR: "error",
-            AlertSeverity.CRITICAL: "critical"
+            AlertSeverity.CRITICAL: "critical",
         }
 
         payload = {
@@ -315,16 +315,16 @@ This is an automated alert from PM Document Intelligence monitoring system.
                     "metric": alert.metric_name,
                     "current_value": current_value,
                     "threshold": alert.threshold,
-                    "comparison": alert.comparison
-                }
-            }
+                    "comparison": alert.comparison,
+                },
+            },
         }
 
         try:
             response = requests.post(
                 "https://events.pagerduty.com/v2/enqueue",
                 json=payload,
-                headers={'Content-Type': 'application/json'}
+                headers={"Content-Type": "application/json"},
             )
             response.raise_for_status()
             print(f"Alert sent to PagerDuty: {alert.name}")
@@ -336,33 +336,26 @@ This is an automated alert from PM Document Intelligence monitoring system.
 # Prometheus AlertManager Rules
 # ============================================================================
 
+
 def generate_prometheus_rules() -> str:
     """Generate Prometheus AlertManager rules YAML"""
-    rules = {
-        "groups": [
-            {
-                "name": "pm_document_intelligence",
-                "rules": []
-            }
-        ]
-    }
+    rules = {"groups": [{"name": "pm_document_intelligence", "rules": []}]}
 
     for alert in ALL_ALERTS:
         rule = {
             "alert": alert.name,
             "expr": f"{alert.metric_name} {alert.comparison} {alert.threshold}",
             "for": alert.duration,
-            "labels": {
-                "severity": alert.severity.value
-            },
+            "labels": {"severity": alert.severity.value},
             "annotations": {
                 "summary": alert.message,
-                "description": f"{alert.metric_name} is {alert.comparison} {alert.threshold}"
-            }
+                "description": f"{alert.metric_name} is {alert.comparison} {alert.threshold}",
+            },
         }
         rules["groups"][0]["rules"].append(rule)
 
     import yaml
+
     return yaml.dump(rules, default_flow_style=False)
 
 
@@ -397,7 +390,6 @@ Users are experiencing failures when using the application.
 - Add circuit breakers for external services
 - Increase test coverage
     """,
-
     "slow_response_time": """
 # Slow Response Time Runbook
 
@@ -424,7 +416,6 @@ Users experiencing slow application performance.
 - Query optimization reviews
 - Implement proper caching strategy
     """,
-
     "database_connection_error": """
 # Database Connection Error Runbook
 
@@ -451,7 +442,7 @@ CRITICAL - Application cannot access database.
 - Set up database monitoring
 - Configure automatic failover
 - Regular database maintenance
-    """
+    """,
 }
 
 

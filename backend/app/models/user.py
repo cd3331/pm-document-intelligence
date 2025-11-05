@@ -33,7 +33,11 @@ from passlib.context import CryptContext
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.config import settings
-from app.utils.exceptions import AuthenticationError, InvalidTokenError, TokenExpiredError
+from app.utils.exceptions import (
+    AuthenticationError,
+    InvalidTokenError,
+    TokenExpiredError,
+)
 from app.utils.logger import get_logger
 
 
@@ -93,6 +97,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 # Role-Based Access Control (RBAC)
 # ============================================================================
 
+
 class UserRole(str, Enum):
     """User roles for access control."""
 
@@ -148,18 +153,22 @@ def has_permission(user_role: UserRole, required_level: PermissionLevel) -> bool
 # User Preferences
 # ============================================================================
 
+
 class UserPreferences(BaseModel):
     """User preferences and settings."""
 
     theme: str = Field(default="light", description="UI theme (light/dark)")
     language: str = Field(default="en", description="Preferred language")
     timezone: str = Field(default="UTC", description="User timezone")
-    notifications_enabled: bool = Field(default=True, description="Enable notifications")
+    notifications_enabled: bool = Field(
+        default=True, description="Enable notifications"
+    )
     email_notifications: bool = Field(default=True, description="Email notifications")
     default_view: str = Field(default="grid", description="Default document view")
 
     class Config:
         """Pydantic configuration."""
+
         json_schema_extra = {
             "example": {
                 "theme": "dark",
@@ -176,12 +185,17 @@ class UserPreferences(BaseModel):
 # User Models
 # ============================================================================
 
+
 class UserBase(BaseModel):
     """Base user model with common fields."""
 
     email: EmailStr = Field(..., description="User email address")
-    full_name: str = Field(..., min_length=1, max_length=255, description="User full name")
-    organization: Optional[str] = Field(None, max_length=255, description="Organization name")
+    full_name: str = Field(
+        ..., min_length=1, max_length=255, description="User full name"
+    )
+    organization: Optional[str] = Field(
+        None, max_length=255, description="Organization name"
+    )
     role: UserRole = Field(default=UserRole.USER, description="User role")
     is_active: bool = Field(default=True, description="Account active status")
     preferences: UserPreferences = Field(
@@ -242,6 +256,7 @@ class UserCreate(UserBase):
 
     class Config:
         """Pydantic configuration."""
+
         json_schema_extra = {
             "example": {
                 "email": "user@example.com",
@@ -263,6 +278,7 @@ class UserUpdate(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         json_schema_extra = {
             "example": {
                 "full_name": "Jane Doe",
@@ -287,6 +303,7 @@ class UserInDB(UserBase):
 
     class Config:
         """Pydantic configuration."""
+
         from_attributes = True
         json_schema_extra = {
             "example": {
@@ -314,12 +331,14 @@ class User(UserBase):
 
     class Config:
         """Pydantic configuration."""
+
         from_attributes = True
 
 
 # ============================================================================
 # JWT Token Models
 # ============================================================================
+
 
 class Token(BaseModel):
     """JWT token response."""
@@ -331,6 +350,7 @@ class Token(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         json_schema_extra = {
             "example": {
                 "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -353,6 +373,7 @@ class TokenData(BaseModel):
 # ============================================================================
 # JWT Token Functions
 # ============================================================================
+
 
 def create_access_token(
     data: Dict[str, Any],
@@ -474,7 +495,11 @@ def verify_token(token: str, token_type: str = "access") -> TokenData:
             sub=user_id,
             email=payload.get("email"),
             role=payload.get("role"),
-            exp=datetime.fromtimestamp(payload.get("exp")) if payload.get("exp") else None,
+            exp=(
+                datetime.fromtimestamp(payload.get("exp"))
+                if payload.get("exp")
+                else None
+            ),
         )
 
         logger.debug(f"Token verified for user: {user_id}")
@@ -518,9 +543,7 @@ def create_token_pair(user: UserInDB) -> Token:
     )
 
     # Create refresh token
-    refresh_token = create_refresh_token(
-        data={"sub": user.id}
-    )
+    refresh_token = create_refresh_token(data={"sub": user.id})
 
     return Token(
         access_token=access_token,
@@ -533,6 +556,7 @@ def create_token_pair(user: UserInDB) -> Token:
 # ============================================================================
 # User Helper Functions
 # ============================================================================
+
 
 def user_to_dict(user: UserInDB, include_sensitive: bool = False) -> Dict[str, Any]:
     """

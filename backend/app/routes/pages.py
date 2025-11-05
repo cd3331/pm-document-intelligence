@@ -18,8 +18,11 @@ from app.models import User, Document
 router = APIRouter(tags=["pages"])
 
 # Set up templates directory
-templates_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "frontend", "templates")
+templates_dir = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "frontend", "templates"
+)
 templates = Jinja2Templates(directory=templates_dir)
+
 
 # Add custom filters and functions to Jinja2
 def format_datetime(value):
@@ -28,11 +31,13 @@ def format_datetime(value):
         return ""
     return value.strftime("%b %d, %Y at %I:%M %p")
 
+
 def format_date(value):
     """Format date for display"""
     if not value:
         return ""
     return value.strftime("%b %d, %Y")
+
 
 templates.env.filters["datetime"] = format_datetime
 templates.env.filters["date"] = format_date
@@ -42,7 +47,7 @@ templates.env.filters["date"] = format_date
 async def index(
     request: Request,
     current_user: Optional[User] = Depends(get_current_user_optional),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Dashboard / Home page
@@ -56,7 +61,7 @@ async def index(
         {
             "request": request,
             "user": current_user,
-        }
+        },
     )
 
 
@@ -64,7 +69,7 @@ async def index(
 async def upload_page(
     request: Request,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Upload page
@@ -75,7 +80,7 @@ async def upload_page(
         {
             "request": request,
             "user": current_user,
-        }
+        },
     )
 
 
@@ -84,22 +89,22 @@ async def document_detail(
     request: Request,
     document_id: int,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Document detail page
     Displays document content, analysis, action items, and Q&A
     """
     # Get document
-    document = db.query(Document).filter(
-        Document.id == document_id,
-        Document.user_id == current_user.id
-    ).first()
+    document = (
+        db.query(Document)
+        .filter(Document.id == document_id, Document.user_id == current_user.id)
+        .first()
+    )
 
     if not document:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Document not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
         )
 
     return templates.TemplateResponse(
@@ -108,7 +113,7 @@ async def document_detail(
             "request": request,
             "user": current_user,
             "document": document,
-        }
+        },
     )
 
 
@@ -116,7 +121,7 @@ async def document_detail(
 async def search_page(
     request: Request,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Search page
@@ -127,7 +132,7 @@ async def search_page(
         {
             "request": request,
             "user": current_user,
-        }
+        },
     )
 
 
@@ -135,16 +140,19 @@ async def search_page(
 async def documents_page(
     request: Request,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     All documents page
     Lists all user documents with filtering and sorting
     """
     # Get all user documents
-    documents = db.query(Document).filter(
-        Document.user_id == current_user.id
-    ).order_by(Document.created_at.desc()).all()
+    documents = (
+        db.query(Document)
+        .filter(Document.user_id == current_user.id)
+        .order_by(Document.created_at.desc())
+        .all()
+    )
 
     return templates.TemplateResponse(
         "documents.html",
@@ -152,7 +160,7 @@ async def documents_page(
             "request": request,
             "user": current_user,
             "documents": documents,
-        }
+        },
     )
 
 
@@ -160,7 +168,7 @@ async def documents_page(
 async def settings_page(
     request: Request,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Settings page
@@ -171,7 +179,7 @@ async def settings_page(
         {
             "request": request,
             "user": current_user,
-        }
+        },
     )
 
 
@@ -179,7 +187,7 @@ async def settings_page(
 async def profile_page(
     request: Request,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     User profile page
@@ -190,15 +198,12 @@ async def profile_page(
         {
             "request": request,
             "user": current_user,
-        }
+        },
     )
 
 
 @router.get("/login", response_class=HTMLResponse)
-async def login_page(
-    request: Request,
-    next: Optional[str] = None
-):
+async def login_page(request: Request, next: Optional[str] = None):
     """
     Login page
     User authentication
@@ -208,7 +213,7 @@ async def login_page(
         {
             "request": request,
             "next": next,
-        }
+        },
     )
 
 
@@ -222,7 +227,7 @@ async def register_page(request: Request):
         "register.html",
         {
             "request": request,
-        }
+        },
     )
 
 
@@ -236,7 +241,7 @@ async def documentation_page(request: Request):
         "docs.html",
         {
             "request": request,
-        }
+        },
     )
 
 
@@ -250,7 +255,7 @@ async def help_page(request: Request):
         "help.html",
         {
             "request": request,
-        }
+        },
     )
 
 
@@ -264,7 +269,7 @@ async def about_page(request: Request):
         "about.html",
         {
             "request": request,
-        }
+        },
     )
 
 
@@ -277,7 +282,7 @@ async def not_found_page(request: Request):
         {
             "request": request,
         },
-        status_code=status.HTTP_404_NOT_FOUND
+        status_code=status.HTTP_404_NOT_FOUND,
     )
 
 
@@ -289,5 +294,5 @@ async def server_error_page(request: Request):
         {
             "request": request,
         },
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
     )

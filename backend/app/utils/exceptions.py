@@ -571,9 +571,7 @@ async def api_exception_handler(
     )
 
 
-async def generic_exception_handler(
-    request: Request, exc: Exception
-) -> JSONResponse:
+async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """
     Global exception handler for unexpected exceptions.
 

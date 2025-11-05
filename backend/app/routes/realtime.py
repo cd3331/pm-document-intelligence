@@ -41,8 +41,10 @@ router = APIRouter(prefix="/api/realtime", tags=["realtime"])
 # Request/Response Models
 # ============================================================================
 
+
 class WebhookEvent(BaseModel):
     """PubNub webhook event."""
+
     channel: str
     subscription: Optional[str] = None
     timetoken: str
@@ -52,6 +54,7 @@ class WebhookEvent(BaseModel):
 
 class PresenceEvent(BaseModel):
     """PubNub presence event."""
+
     action: str  # join, leave, timeout
     channel: str
     uuid: str
@@ -61,6 +64,7 @@ class PresenceEvent(BaseModel):
 
 class SendNotificationRequest(BaseModel):
     """Request to send notification via PubNub."""
+
     title: str = Field(..., min_length=1, max_length=200)
     message: str = Field(..., min_length=1, max_length=1000)
     priority: NotificationPriority = NotificationPriority.MEDIUM
@@ -70,6 +74,7 @@ class SendNotificationRequest(BaseModel):
 
 class PresenceResponse(BaseModel):
     """Response with presence information."""
+
     channel: str
     online: bool
     active_users: List[str]
@@ -80,11 +85,12 @@ class PresenceResponse(BaseModel):
 # Webhook Endpoints
 # ============================================================================
 
+
 @router.post("/webhook/message", summary="PubNub message webhook")
 async def pubnub_message_webhook(
     request: Request,
     event: WebhookEvent,
-    x_pubnub_signature: Optional[str] = Header(None)
+    x_pubnub_signature: Optional[str] = Header(None),
 ):
     """
     Receive message delivery confirmations from PubNub.
@@ -105,10 +111,11 @@ async def pubnub_message_webhook(
         # Validate signature if provided
         if x_pubnub_signature:
             from app.config import settings
+
             if not validate_webhook_signature(
                 body=body,
                 signature=x_pubnub_signature,
-                secret_key=settings.pubnub.pubnub_secret_key
+                secret_key=settings.pubnub.pubnub_secret_key,
             ):
                 logger.warning("Invalid webhook signature")
                 raise AuthorizationError("Invalid webhook signature")
@@ -118,8 +125,8 @@ async def pubnub_message_webhook(
             extra={
                 "channel": event.channel,
                 "timetoken": event.timetoken,
-                "publisher": event.publisher
-            }
+                "publisher": event.publisher,
+            },
         )
 
         # Log the event
@@ -129,14 +136,14 @@ async def pubnub_message_webhook(
         return {
             "status": "received",
             "channel": event.channel,
-            "timetoken": event.timetoken
+            "timetoken": event.timetoken,
         }
 
     except Exception as e:
         logger.error(f"Webhook processing failed: {e}", exc_info=True)
         return Response(
             content=f"Error: {str(e)}",
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
 
@@ -144,7 +151,7 @@ async def pubnub_message_webhook(
 async def pubnub_presence_webhook(
     request: Request,
     event: PresenceEvent,
-    x_pubnub_signature: Optional[str] = Header(None)
+    x_pubnub_signature: Optional[str] = Header(None),
 ):
     """
     Receive presence events from PubNub.
@@ -168,10 +175,11 @@ async def pubnub_presence_webhook(
         # Validate signature if provided
         if x_pubnub_signature:
             from app.config import settings
+
             if not validate_webhook_signature(
                 body=body,
                 signature=x_pubnub_signature,
-                secret_key=settings.pubnub.pubnub_secret_key
+                secret_key=settings.pubnub.pubnub_secret_key,
             ):
                 logger.warning("Invalid webhook signature")
                 raise AuthorizationError("Invalid webhook signature")
@@ -181,8 +189,8 @@ async def pubnub_presence_webhook(
             extra={
                 "channel": event.channel,
                 "uuid": event.uuid,
-                "occupancy": event.occupancy
-            }
+                "occupancy": event.occupancy,
+            },
         )
 
         pubnub = get_pubnub_service()
@@ -199,20 +207,21 @@ async def pubnub_presence_webhook(
             "status": "processed",
             "action": event.action,
             "channel": event.channel,
-            "uuid": event.uuid
+            "uuid": event.uuid,
         }
 
     except Exception as e:
         logger.error(f"Presence webhook failed: {e}", exc_info=True)
         return Response(
             content=f"Error: {str(e)}",
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
 
 # ============================================================================
 # Client API Endpoints
 # ============================================================================
+
 
 @router.post("/notify", summary="Send notification to user")
 async def send_notification(
@@ -249,7 +258,7 @@ async def send_notification(
             message=notification.message,
             priority=notification.priority,
             action_url=notification.action_url,
-            action_label=notification.action_label
+            action_label=notification.action_label,
         )
 
         if not success:
@@ -258,7 +267,7 @@ async def send_notification(
         return {
             "success": True,
             "message": "Notification sent successfully",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
     except Exception as e:
@@ -297,7 +306,7 @@ async def get_channel_presence(
         channel=channel,
         online=len(active_users) > 0,
         active_users=list(active_users),
-        total_users=len(active_users)
+        total_users=len(active_users),
     )
 
 
@@ -333,7 +342,7 @@ async def get_connection_status(
         "online": is_online,
         "user_channel": user_channel,
         "queued_messages": queued_count,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.utcnow().isoformat(),
     }
 
 
@@ -365,11 +374,7 @@ async def get_message_history(
 
     messages = pubnub.get_message_history(channel, count=min(count, 100))
 
-    return {
-        "channel": channel,
-        "total_messages": len(messages),
-        "messages": messages
-    }
+    return {"channel": channel, "total_messages": len(messages), "messages": messages}
 
 
 @router.delete("/queue", summary="Clear queued messages")
@@ -391,7 +396,7 @@ async def clear_message_queue(
     return {
         "success": True,
         "messages_cleared": cleared_count,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.utcnow().isoformat(),
     }
 
 
@@ -419,7 +424,7 @@ async def get_user_channels(
 
     channels = {
         "user": pubnub.get_user_channel(current_user.id),
-        "broadcast": pubnub.get_broadcast_channel()
+        "broadcast": pubnub.get_broadcast_channel(),
     }
 
     if current_user.role == "admin":
@@ -452,9 +457,7 @@ async def pubnub_health_check() -> Dict[str, Any]:
         pubnub = get_pubnub_service()
 
         total_channels = len(pubnub.active_users)
-        total_active_users = sum(
-            len(users) for users in pubnub.active_users.values()
-        )
+        total_active_users = sum(len(users) for users in pubnub.active_users.values())
         total_queued = sum(
             pubnub.offline_queue.get_queue_size(user_id)
             for user_id in pubnub.offline_queue.queues.keys()
@@ -465,7 +468,7 @@ async def pubnub_health_check() -> Dict[str, Any]:
             "active_channels": total_channels,
             "total_active_users": total_active_users,
             "total_queued_messages": total_queued,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
     except Exception as e:
@@ -473,5 +476,5 @@ async def pubnub_health_check() -> Dict[str, Any]:
         return {
             "status": "unhealthy",
             "error": str(e),
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
         }

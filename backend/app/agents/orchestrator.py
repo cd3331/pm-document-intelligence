@@ -29,6 +29,7 @@ logger = get_logger(__name__)
 # Task Types
 # ============================================================================
 
+
 class TaskType(str, Enum):
     """Agent task types."""
 
@@ -43,6 +44,7 @@ class TaskType(str, Enum):
 # ============================================================================
 # Agent Orchestrator
 # ============================================================================
+
 
 class AgentOrchestrator:
     """Orchestrates multiple specialized agents."""
@@ -121,7 +123,7 @@ class AgentOrchestrator:
         if not agent:
             raise ValidationError(
                 message=f"No agent registered for task type: {task_type.value}",
-                details={"task_type": task_type.value}
+                details={"task_type": task_type.value},
             )
 
         logger.info(f"Routing {task_type.value} task to agent {agent.name}")
@@ -214,25 +216,26 @@ class AgentOrchestrator:
                     }
 
                     agent_tasks.append(
-                        self.route_task(task_type, input_data, task_id=f"{document_id}_{task}")
+                        self.route_task(
+                            task_type, input_data, task_id=f"{document_id}_{task}"
+                        )
                     )
 
                 except ValueError:
-                    errors.append({
-                        "task": task,
-                        "error": f"Invalid task type: {task}"
-                    })
+                    errors.append({"task": task, "error": f"Invalid task type: {task}"})
 
             # Wait for all tasks
             if agent_tasks:
-                task_results = await asyncio.gather(*agent_tasks, return_exceptions=True)
+                task_results = await asyncio.gather(
+                    *agent_tasks, return_exceptions=True
+                )
 
-                for task, result in zip([t for t in tasks if t not in [e["task"] for e in errors]], task_results):
+                for task, result in zip(
+                    [t for t in tasks if t not in [e["task"] for e in errors]],
+                    task_results,
+                ):
                     if isinstance(result, Exception):
-                        errors.append({
-                            "task": task,
-                            "error": str(result)
-                        })
+                        errors.append({"task": task, "error": str(result)})
                     else:
                         results[task] = result
                         if "_metadata" in result:
@@ -250,7 +253,9 @@ class AgentOrchestrator:
                         "options": {},
                     }
 
-                    result = await self.route_task(task_type, input_data, task_id=f"{document_id}_{task}")
+                    result = await self.route_task(
+                        task_type, input_data, task_id=f"{document_id}_{task}"
+                    )
 
                     results[task] = result
 
@@ -258,16 +263,10 @@ class AgentOrchestrator:
                         total_cost += result["_metadata"].get("cost_usd", 0)
 
                 except ValueError:
-                    errors.append({
-                        "task": task,
-                        "error": f"Invalid task type: {task}"
-                    })
+                    errors.append({"task": task, "error": f"Invalid task type: {task}"})
 
                 except Exception as e:
-                    errors.append({
-                        "task": task,
-                        "error": str(e)
-                    })
+                    errors.append({"task": task, "error": str(e)})
 
         # Calculate total duration
         duration = (datetime.utcnow() - start_time).total_seconds()
@@ -314,12 +313,14 @@ class AgentOrchestrator:
 
         # Add conversation memory
         if conversation_id and conversation_id in self.conversation_memory:
-            input_data["conversation_history"] = self.conversation_memory[conversation_id]
+            input_data["conversation_history"] = self.conversation_memory[
+                conversation_id
+            ]
 
         result = await self.route_task(
             TaskType.QUESTION_ANSWER,
             input_data,
-            task_id=conversation_id or f"qa_{datetime.utcnow().timestamp()}"
+            task_id=conversation_id or f"qa_{datetime.utcnow().timestamp()}",
         )
 
         # Update conversation memory
@@ -327,15 +328,18 @@ class AgentOrchestrator:
             if conversation_id not in self.conversation_memory:
                 self.conversation_memory[conversation_id] = []
 
-            self.conversation_memory[conversation_id].append({
-                "question": question,
-                "answer": result.get("answer"),
-                "timestamp": datetime.utcnow().isoformat(),
-            })
+            self.conversation_memory[conversation_id].append(
+                {
+                    "question": question,
+                    "answer": result.get("answer"),
+                    "timestamp": datetime.utcnow().isoformat(),
+                }
+            )
 
             # Keep last 10 exchanges
-            self.conversation_memory[conversation_id] = \
-                self.conversation_memory[conversation_id][-10:]
+            self.conversation_memory[conversation_id] = self.conversation_memory[
+                conversation_id
+            ][-10:]
 
         return result
 
@@ -382,8 +386,7 @@ class AgentOrchestrator:
             Status dictionary for all agents
         """
         return {
-            agent_name: agent.get_status()
-            for agent_name, agent in self.agents.items()
+            agent_name: agent.get_status() for agent_name, agent in self.agents.items()
         }
 
     def get_orchestrator_stats(self) -> Dict[str, Any]:
@@ -394,14 +397,10 @@ class AgentOrchestrator:
             Statistics dictionary
         """
         total_requests = sum(
-            agent.metrics.total_requests
-            for agent in self.agents.values()
+            agent.metrics.total_requests for agent in self.agents.values()
         )
 
-        total_cost = sum(
-            agent.metrics.total_cost
-            for agent in self.agents.values()
-        )
+        total_cost = sum(agent.metrics.total_cost for agent in self.agents.values())
 
         return {
             "total_agents": len(self.agents),
@@ -416,7 +415,7 @@ class AgentOrchestrator:
                     "success_rate": agent.metrics.get_success_rate(),
                 }
                 for agent_name, agent in self.agents.items()
-            }
+            },
         }
 
     def reset_all_metrics(self) -> None:
@@ -434,7 +433,8 @@ class AgentOrchestrator:
             Health status
         """
         healthy_agents = sum(
-            1 for agent in self.agents.values()
+            1
+            for agent in self.agents.values()
             if agent.status not in [AgentStatus.FAILED, AgentStatus.CIRCUIT_OPEN]
         )
 
@@ -494,30 +494,15 @@ def initialize_agents() -> AgentOrchestrator:
     orchestrator = get_orchestrator()
 
     # Register agents
-    orchestrator.register_agent(
-        AnalysisAgent(),
-        [TaskType.DEEP_ANALYSIS]
-    )
+    orchestrator.register_agent(AnalysisAgent(), [TaskType.DEEP_ANALYSIS])
 
-    orchestrator.register_agent(
-        ActionItemAgent(),
-        [TaskType.EXTRACT_ACTIONS]
-    )
+    orchestrator.register_agent(ActionItemAgent(), [TaskType.EXTRACT_ACTIONS])
 
-    orchestrator.register_agent(
-        SummaryAgent(),
-        [TaskType.SUMMARIZE]
-    )
+    orchestrator.register_agent(SummaryAgent(), [TaskType.SUMMARIZE])
 
-    orchestrator.register_agent(
-        EntityAgent(),
-        [TaskType.EXTRACT_ENTITIES]
-    )
+    orchestrator.register_agent(EntityAgent(), [TaskType.EXTRACT_ENTITIES])
 
-    orchestrator.register_agent(
-        QAAgent(),
-        [TaskType.QUESTION_ANSWER]
-    )
+    orchestrator.register_agent(QAAgent(), [TaskType.QUESTION_ANSWER])
 
     logger.info("All agents initialized and registered")
 

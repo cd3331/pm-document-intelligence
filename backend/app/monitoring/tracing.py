@@ -25,11 +25,13 @@ import os
 # ============================================================================
 
 # Create resource with service information
-resource = Resource(attributes={
-    SERVICE_NAME: "pm-document-intelligence",
-    "service.version": "1.0.0",
-    "deployment.environment": os.getenv("ENVIRONMENT", "production")
-})
+resource = Resource(
+    attributes={
+        SERVICE_NAME: "pm-document-intelligence",
+        "service.version": "1.0.0",
+        "deployment.environment": os.getenv("ENVIRONMENT", "production"),
+    }
+)
 
 # Create tracer provider
 tracer_provider = TracerProvider(resource=resource)
@@ -64,6 +66,7 @@ propagator = TraceContextTextMapPropagator()
 # Instrumentation
 # ============================================================================
 
+
 def instrument_app(app):
     """Instrument FastAPI application with OpenTelemetry"""
     FastAPIInstrumentor.instrument_app(app)
@@ -83,11 +86,12 @@ def instrument_redis(client):
 # Tracing Utilities
 # ============================================================================
 
+
 @contextmanager
 def trace_span(
     name: str,
     kind: SpanKind = SpanKind.INTERNAL,
-    attributes: Optional[Dict[str, Any]] = None
+    attributes: Optional[Dict[str, Any]] = None,
 ):
     """
     Context manager to create and manage a trace span
@@ -115,7 +119,9 @@ def trace_span(
             raise
 
 
-def trace_function(name: Optional[str] = None, attributes: Optional[Dict[str, Any]] = None):
+def trace_function(
+    name: Optional[str] = None, attributes: Optional[Dict[str, Any]] = None
+):
     """
     Decorator to trace function execution
 
@@ -128,6 +134,7 @@ def trace_function(name: Optional[str] = None, attributes: Optional[Dict[str, An
         def my_function():
             pass
     """
+
     def decorator(func):
         span_name = name or f"{func.__module__}.{func.__name__}"
 
@@ -142,6 +149,7 @@ def trace_function(name: Optional[str] = None, attributes: Optional[Dict[str, An
                 return func(*args, **kwargs)
 
         import asyncio
+
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
         return sync_wrapper
@@ -153,6 +161,7 @@ def trace_function(name: Optional[str] = None, attributes: Optional[Dict[str, An
 # Document Processing Tracing
 # ============================================================================
 
+
 @contextmanager
 def trace_document_upload(document_id: int, filename: str, size_bytes: int):
     """Trace document upload"""
@@ -162,8 +171,8 @@ def trace_document_upload(document_id: int, filename: str, size_bytes: int):
         attributes={
             "document.id": document_id,
             "document.filename": filename,
-            "document.size_bytes": size_bytes
-        }
+            "document.size_bytes": size_bytes,
+        },
     ) as span:
         yield span
 
@@ -174,10 +183,7 @@ def trace_document_processing(document_id: int, document_type: str):
     with trace_span(
         "document.processing.pipeline",
         kind=SpanKind.INTERNAL,
-        attributes={
-            "document.id": document_id,
-            "document.type": document_type
-        }
+        attributes={"document.id": document_id, "document.type": document_type},
     ) as span:
         yield span
 
@@ -187,10 +193,7 @@ def trace_text_extraction(document_id: int, extractor: str):
     """Trace text extraction"""
     with trace_span(
         "document.processing.text_extraction",
-        attributes={
-            "document.id": document_id,
-            "extractor": extractor
-        }
+        attributes={"document.id": document_id, "extractor": extractor},
     ) as span:
         yield span
 
@@ -200,10 +203,7 @@ def trace_entity_extraction(document_id: int, text_length: int):
     """Trace entity extraction"""
     with trace_span(
         "document.processing.entity_extraction",
-        attributes={
-            "document.id": document_id,
-            "text_length": text_length
-        }
+        attributes={"document.id": document_id, "text_length": text_length},
     ) as span:
         yield span
 
@@ -212,8 +212,7 @@ def trace_entity_extraction(document_id: int, text_length: int):
 def trace_action_item_extraction(document_id: int):
     """Trace action item extraction"""
     with trace_span(
-        "document.processing.action_items",
-        attributes={"document.id": document_id}
+        "document.processing.action_items", attributes={"document.id": document_id}
     ) as span:
         yield span
 
@@ -221,6 +220,7 @@ def trace_action_item_extraction(document_id: int):
 # ============================================================================
 # AWS Service Tracing
 # ============================================================================
+
 
 @contextmanager
 def trace_aws_service_call(service: str, operation: str, **kwargs):
@@ -231,8 +231,8 @@ def trace_aws_service_call(service: str, operation: str, **kwargs):
         attributes={
             "aws.service": service,
             "aws.operation": operation,
-            **{f"aws.{k}": str(v) for k, v in kwargs.items()}
-        }
+            **{f"aws.{k}": str(v) for k, v in kwargs.items()},
+        },
     ) as span:
         yield span
 
@@ -240,23 +240,14 @@ def trace_aws_service_call(service: str, operation: str, **kwargs):
 @contextmanager
 def trace_s3_operation(operation: str, bucket: str, key: str):
     """Trace S3 operation"""
-    with trace_aws_service_call(
-        "s3",
-        operation,
-        bucket=bucket,
-        key=key
-    ) as span:
+    with trace_aws_service_call("s3", operation, bucket=bucket, key=key) as span:
         yield span
 
 
 @contextmanager
 def trace_textract_operation(operation: str, pages: int):
     """Trace Textract operation"""
-    with trace_aws_service_call(
-        "textract",
-        operation,
-        pages=pages
-    ) as span:
+    with trace_aws_service_call("textract", operation, pages=pages) as span:
         yield span
 
 
@@ -264,9 +255,7 @@ def trace_textract_operation(operation: str, pages: int):
 def trace_comprehend_operation(operation: str, text_length: int):
     """Trace Comprehend operation"""
     with trace_aws_service_call(
-        "comprehend",
-        operation,
-        text_length=text_length
+        "comprehend", operation, text_length=text_length
     ) as span:
         yield span
 
@@ -275,10 +264,7 @@ def trace_comprehend_operation(operation: str, text_length: int):
 def trace_bedrock_operation(operation: str, model: str, input_tokens: int):
     """Trace Bedrock operation"""
     with trace_aws_service_call(
-        "bedrock",
-        operation,
-        model=model,
-        input_tokens=input_tokens
+        "bedrock", operation, model=model, input_tokens=input_tokens
     ) as span:
         yield span
 
@@ -287,16 +273,14 @@ def trace_bedrock_operation(operation: str, model: str, input_tokens: int):
 # OpenAI Service Tracing
 # ============================================================================
 
+
 @contextmanager
 def trace_openai_call(operation: str, model: str):
     """Trace OpenAI API call"""
     with trace_span(
         f"openai.{operation}",
         kind=SpanKind.CLIENT,
-        attributes={
-            "openai.operation": operation,
-            "openai.model": model
-        }
+        attributes={"openai.operation": operation, "openai.model": model},
     ) as span:
         yield span
 
@@ -313,6 +297,7 @@ def trace_embedding_generation(model: str, text_count: int):
 # Database Tracing
 # ============================================================================
 
+
 @contextmanager
 def trace_database_query(operation: str, table: Optional[str] = None):
     """Trace database query"""
@@ -321,9 +306,7 @@ def trace_database_query(operation: str, table: Optional[str] = None):
         attributes["db.table"] = table
 
     with trace_span(
-        f"db.query.{operation}",
-        kind=SpanKind.CLIENT,
-        attributes=attributes
+        f"db.query.{operation}", kind=SpanKind.CLIENT, attributes=attributes
     ) as span:
         yield span
 
@@ -332,6 +315,7 @@ def trace_database_query(operation: str, table: Optional[str] = None):
 # AI Agent Tracing
 # ============================================================================
 
+
 @contextmanager
 def trace_agent_execution(agent_type: str, document_id: Optional[int] = None):
     """Trace AI agent execution"""
@@ -339,10 +323,7 @@ def trace_agent_execution(agent_type: str, document_id: Optional[int] = None):
     if document_id:
         attributes["document.id"] = document_id
 
-    with trace_span(
-        f"agent.execute.{agent_type}",
-        attributes=attributes
-    ) as span:
+    with trace_span(f"agent.execute.{agent_type}", attributes=attributes) as span:
         yield span
 
 
@@ -350,8 +331,7 @@ def trace_agent_execution(agent_type: str, document_id: Optional[int] = None):
 def trace_agent_orchestration(num_agents: int):
     """Trace agent orchestration"""
     with trace_span(
-        "agent.orchestration",
-        attributes={"agent.count": num_agents}
+        "agent.orchestration", attributes={"agent.count": num_agents}
     ) as span:
         yield span
 
@@ -360,6 +340,7 @@ def trace_agent_orchestration(num_agents: int):
 # Vector Search Tracing
 # ============================================================================
 
+
 @contextmanager
 def trace_vector_search(query: str, search_type: str):
     """Trace vector search"""
@@ -367,8 +348,8 @@ def trace_vector_search(query: str, search_type: str):
         f"vector_search.{search_type}",
         attributes={
             "search.query": query[:100],  # Limit query length
-            "search.type": search_type
-        }
+            "search.type": search_type,
+        },
     ) as span:
         yield span
 
@@ -378,10 +359,7 @@ def trace_vector_indexing(document_id: int, text_length: int):
     """Trace vector indexing"""
     with trace_span(
         "vector_search.indexing",
-        attributes={
-            "document.id": document_id,
-            "text.length": text_length
-        }
+        attributes={"document.id": document_id, "text.length": text_length},
     ) as span:
         yield span
 
@@ -390,20 +368,16 @@ def trace_vector_indexing(document_id: int, text_length: int):
 # API Request Tracing
 # ============================================================================
 
+
 @contextmanager
 def trace_api_request(method: str, endpoint: str, user_id: Optional[int] = None):
     """Trace API request"""
-    attributes = {
-        "http.method": method,
-        "http.endpoint": endpoint
-    }
+    attributes = {"http.method": method, "http.endpoint": endpoint}
     if user_id:
         attributes["user.id"] = user_id
 
     with trace_span(
-        f"http.{method}.{endpoint}",
-        kind=SpanKind.SERVER,
-        attributes=attributes
+        f"http.{method}.{endpoint}", kind=SpanKind.SERVER, attributes=attributes
     ) as span:
         yield span
 
@@ -411,6 +385,7 @@ def trace_api_request(method: str, endpoint: str, user_id: Optional[int] = None)
 # ============================================================================
 # Context Propagation
 # ============================================================================
+
 
 def inject_trace_context(headers: Dict[str, str]) -> Dict[str, str]:
     """
@@ -440,6 +415,7 @@ def extract_trace_context(headers: Dict[str, str]):
 # Span Utilities
 # ============================================================================
 
+
 def add_span_event(name: str, attributes: Optional[Dict[str, Any]] = None):
     """Add event to current span"""
     span = trace.get_current_span()
@@ -466,7 +442,7 @@ def get_trace_id() -> Optional[str]:
     """Get current trace ID"""
     span = trace.get_current_span()
     if span and span.is_recording():
-        return format(span.get_span_context().trace_id, '032x')
+        return format(span.get_span_context().trace_id, "032x")
     return None
 
 
@@ -474,13 +450,14 @@ def get_span_id() -> Optional[str]:
     """Get current span ID"""
     span = trace.get_current_span()
     if span and span.is_recording():
-        return format(span.get_span_context().span_id, '016x')
+        return format(span.get_span_context().span_id, "016x")
     return None
 
 
 # ============================================================================
 # Sampling Configuration
 # ============================================================================
+
 
 def should_sample_trace() -> bool:
     """
@@ -494,12 +471,14 @@ def should_sample_trace() -> bool:
 
     # Sample based on trace ID for consistent sampling
     import random
+
     return random.random() < 0.1  # 10% sampling
 
 
 # ============================================================================
 # Cleanup
 # ============================================================================
+
 
 def shutdown_tracing():
     """Shutdown tracing and flush remaining spans"""

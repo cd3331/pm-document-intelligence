@@ -42,13 +42,14 @@ class ModelVersionInfo(BaseModel):
 # Model Performance Endpoints
 # ============================================================================
 
+
 @router.get("/performance")
 async def get_model_performance(
     model_version: Optional[str] = Query(None),
     task_type: Optional[str] = Query(None),
     days: int = Query(7, ge=1, le=90),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Get model performance metrics
@@ -62,9 +63,7 @@ async def get_model_performance(
 
     if model_version and task_type:
         metrics = monitor.calculate_accuracy_metrics(
-            model_version,
-            task_type,
-            timedelta(days=days)
+            model_version, task_type, timedelta(days=days)
         )
     else:
         metrics = monitor.get_success_metrics_summary(timedelta(days=days))
@@ -72,7 +71,7 @@ async def get_model_performance(
     return {
         "metrics": metrics,
         "time_window_days": days,
-        "generated_at": datetime.utcnow().isoformat()
+        "generated_at": datetime.utcnow().isoformat(),
     }
 
 
@@ -81,7 +80,7 @@ async def check_model_drift(
     model_version: str = Query(...),
     task_type: str = Query(...),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Check for model drift
@@ -94,7 +93,7 @@ async def check_model_drift(
         model_version,
         task_type,
         baseline_window=timedelta(days=30),
-        current_window=timedelta(days=7)
+        current_window=timedelta(days=7),
     )
 
     return drift_results
@@ -102,8 +101,7 @@ async def check_model_drift(
 
 @router.get("/performance/alerts")
 async def get_performance_alerts(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """
     Get active performance alerts
@@ -120,7 +118,7 @@ async def get_performance_alerts(
     return {
         "alerts": alerts,
         "alert_count": len(alerts),
-        "checked_at": datetime.utcnow().isoformat()
+        "checked_at": datetime.utcnow().isoformat(),
     }
 
 
@@ -128,11 +126,12 @@ async def get_performance_alerts(
 # Feedback Endpoints
 # ============================================================================
 
+
 @router.post("/feedback")
 async def submit_feedback(
     feedback: FeedbackSubmission,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Submit feedback on AI output
@@ -154,7 +153,7 @@ async def submit_feedback(
         rating=feedback.rating,
         corrections=feedback.corrections,
         comments=feedback.comments,
-        specific_issues=feedback.specific_issues
+        specific_issues=feedback.specific_issues,
     )
 
     return result
@@ -166,7 +165,7 @@ async def get_feedback_summary(
     task_type: Optional[str] = Query(None),
     days: int = Query(30, ge=1, le=365),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Get feedback summary statistics
@@ -174,9 +173,7 @@ async def get_feedback_summary(
     collector = FeedbackCollector(db)
 
     summary = collector.get_feedback_summary(
-        document_type=document_type,
-        task_type=task_type,
-        time_window_days=days
+        document_type=document_type, task_type=task_type, time_window_days=days
     )
 
     return summary
@@ -184,8 +181,7 @@ async def get_feedback_summary(
 
 @router.get("/feedback/improvements")
 async def get_improvement_opportunities(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """
     Get identified improvement opportunities based on feedback
@@ -194,16 +190,12 @@ async def get_improvement_opportunities(
 
     opportunities = analyzer.identify_improvement_opportunities()
 
-    return {
-        "opportunities": opportunities,
-        "count": len(opportunities)
-    }
+    return {"opportunities": opportunities, "count": len(opportunities)}
 
 
 @router.get("/feedback/retraining-needed")
 async def check_retraining_needed(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """
     Check if model retraining is recommended
@@ -216,8 +208,12 @@ async def check_retraining_needed(
 
     return {
         "retraining_recommended": should_retrain,
-        "reason": "High negative feedback rate or sufficient corrections" if should_retrain else None,
-        "feedback_summary": summary
+        "reason": (
+            "High negative feedback rate or sufficient corrections"
+            if should_retrain
+            else None
+        ),
+        "feedback_summary": summary,
     }
 
 
@@ -225,10 +221,9 @@ async def check_retraining_needed(
 # Model Version Management
 # ============================================================================
 
+
 @router.get("/versions")
-async def list_model_versions(
-    current_user: User = Depends(get_current_user)
-):
+async def list_model_versions(current_user: User = Depends(get_current_user)):
     """
     List available model versions
     """
@@ -241,15 +236,15 @@ async def list_model_versions(
             "name": "Base Model",
             "description": "Initial production model",
             "is_active": False,
-            "deployed_at": "2024-01-01T00:00:00Z"
+            "deployed_at": "2024-01-01T00:00:00Z",
         },
         {
             "version": "1.1.0",
             "name": "Fine-tuned v1",
             "description": "First fine-tuning iteration",
             "is_active": True,
-            "deployed_at": "2024-02-01T00:00:00Z"
-        }
+            "deployed_at": "2024-02-01T00:00:00Z",
+        },
     ]
 
     return {"versions": versions}
@@ -257,8 +252,7 @@ async def list_model_versions(
 
 @router.post("/versions/{version}/activate")
 async def activate_model_version(
-    version: str,
-    current_user: User = Depends(get_current_user)
+    version: str, current_user: User = Depends(get_current_user)
 ):
     """
     Activate a specific model version
@@ -272,7 +266,7 @@ async def activate_model_version(
     return {
         "message": f"Model version {version} activated",
         "version": version,
-        "activated_at": datetime.utcnow().isoformat()
+        "activated_at": datetime.utcnow().isoformat(),
     }
 
 
@@ -282,7 +276,7 @@ async def compare_model_versions(
     version_b: str = Query(...),
     metric: str = Query("accuracy"),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Compare performance between two model versions
@@ -291,15 +285,11 @@ async def compare_model_versions(
 
     # Get metrics for both versions
     metrics_a = monitor.calculate_accuracy_metrics(
-        version_a,
-        "summary",  # Default task
-        timedelta(days=30)
+        version_a, "summary", timedelta(days=30)  # Default task
     )
 
     metrics_b = monitor.calculate_accuracy_metrics(
-        version_b,
-        "summary",
-        timedelta(days=30)
+        version_b, "summary", timedelta(days=30)
     )
 
     # Calculate difference
@@ -309,15 +299,9 @@ async def compare_model_versions(
             diff[key] = metrics_b[key] - metrics_a[key]
 
     return {
-        "version_a": {
-            "version": version_a,
-            "metrics": metrics_a
-        },
-        "version_b": {
-            "version": version_b,
-            "metrics": metrics_b
-        },
-        "difference": diff
+        "version_a": {"version": version_a, "metrics": metrics_a},
+        "version_b": {"version": version_b, "metrics": metrics_b},
+        "difference": diff,
     }
 
 
@@ -325,10 +309,11 @@ async def compare_model_versions(
 # Prompt Performance
 # ============================================================================
 
+
 @router.get("/prompts/performance")
 async def get_prompt_performance(
     template_id: Optional[str] = Query(None),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     Get prompt template performance metrics
@@ -350,8 +335,7 @@ async def get_prompt_performance(
 
 @router.get("/prompts/compare")
 async def compare_prompts(
-    template_ids: List[str] = Query(...),
-    current_user: User = Depends(get_current_user)
+    template_ids: List[str] = Query(...), current_user: User = Depends(get_current_user)
 ):
     """
     Compare performance across multiple prompt templates
@@ -367,11 +351,12 @@ async def compare_prompts(
 # Cost Analytics
 # ============================================================================
 
+
 @router.get("/costs/summary")
 async def get_cost_summary(
     days: int = Query(30, ge=1, le=365),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Get AI cost summary
@@ -385,16 +370,9 @@ async def get_cost_summary(
     cost_summary = {
         "total_cost": 1250.50,  # Example
         "cost_per_document": 0.15,
-        "cost_by_model": {
-            "gpt-4": 850.30,
-            "gpt-3.5-turbo": 200.20,
-            "claude-2": 200.00
-        },
+        "cost_by_model": {"gpt-4": 850.30, "gpt-3.5-turbo": 200.20, "claude-2": 200.00},
         "cost_trend": "decreasing",  # or "increasing", "stable"
-        "savings_from_caching": 125.50
+        "savings_from_caching": 125.50,
     }
 
-    return {
-        **cost_summary,
-        "time_window_days": days
-    }
+    return {**cost_summary, "time_window_days": days}
