@@ -350,6 +350,263 @@ resource "aws_lb_listener" "https" {
 }
 
 # ==========================================
+# AWS WAF (Web Application Firewall)
+# ==========================================
+resource "aws_wafv2_web_acl" "main" {
+  name  = "${var.project_name}-waf-${var.environment}"
+  scope = "REGIONAL"
+
+  default_action {
+    allow {}
+  }
+
+  # Rule 1: AWS Managed Rules - Core Rule Set (CRS)
+  # Protects against OWASP Top 10 vulnerabilities
+  rule {
+    name     = "AWSManagedRulesCommonRuleSet"
+    priority = 1
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        vendor_name = "AWS"
+        name        = "AWSManagedRulesCommonRuleSet"
+
+        # Exclude rules that might cause false positives
+        rule_action_override {
+          action_to_use {
+            count {}
+          }
+          name = "SizeRestrictions_BODY"
+        }
+
+        rule_action_override {
+          action_to_use {
+            count {}
+          }
+          name = "GenericRFI_BODY"
+        }
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AWSManagedRulesCommonRuleSetMetric"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # Rule 2: AWS Managed Rules - Known Bad Inputs
+  # Protects against known malicious inputs
+  rule {
+    name     = "AWSManagedRulesKnownBadInputsRuleSet"
+    priority = 2
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        vendor_name = "AWS"
+        name        = "AWSManagedRulesKnownBadInputsRuleSet"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AWSManagedRulesKnownBadInputsRuleSetMetric"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # Rule 3: AWS Managed Rules - SQL Database
+  # Protects against SQL injection attacks
+  rule {
+    name     = "AWSManagedRulesSQLiRuleSet"
+    priority = 3
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        vendor_name = "AWS"
+        name        = "AWSManagedRulesSQLiRuleSet"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AWSManagedRulesSQLiRuleSetMetric"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # Rule 4: AWS Managed Rules - Linux Operating System
+  # Protects against Linux-specific exploits
+  rule {
+    name     = "AWSManagedRulesLinuxRuleSet"
+    priority = 4
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        vendor_name = "AWS"
+        name        = "AWSManagedRulesLinuxRuleSet"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AWSManagedRulesLinuxRuleSetMetric"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # Rule 5: Rate Limiting (WAF-level)
+  # Additional rate limiting beyond application-level
+  rule {
+    name     = "RateLimitRule"
+    priority = 5
+
+    action {
+      block {
+        custom_response {
+          response_code            = 429
+          custom_response_body_key = "rate_limit_response"
+        }
+      }
+    }
+
+    statement {
+      rate_based_statement {
+        limit              = 2000 # requests per 5-minute window per IP
+        aggregate_key_type = "IP"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "RateLimitRuleMetric"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # Rule 6: IP Reputation List
+  # Block known malicious IPs
+  rule {
+    name     = "AWSManagedRulesAmazonIpReputationList"
+    priority = 6
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        vendor_name = "AWS"
+        name        = "AWSManagedRulesAmazonIpReputationList"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AWSManagedRulesAmazonIpReputationListMetric"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # Rule 7: Anonymous IP List
+  # Block requests from anonymizing services (VPNs, TOR, proxies)
+  rule {
+    name     = "AWSManagedRulesAnonymousIpList"
+    priority = 7
+
+    override_action {
+      count {} # Count mode - monitor before enforcing
+    }
+
+    statement {
+      managed_rule_group_statement {
+        vendor_name = "AWS"
+        name        = "AWSManagedRulesAnonymousIpList"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AWSManagedRulesAnonymousIpListMetric"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # Custom response body for rate limiting
+  custom_response_body {
+    key = "rate_limit_response"
+    content = jsonencode({
+      detail = "Rate limit exceeded. Please try again later."
+      code   = "RATE_LIMIT_EXCEEDED"
+    })
+    content_type = "APPLICATION_JSON"
+  }
+
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "${var.project_name}WAFMetric${var.environment}"
+    sampled_requests_enabled   = true
+  }
+
+  tags = {
+    Name        = "${var.project_name}-waf-${var.environment}"
+    Environment = var.environment
+  }
+}
+
+# Associate WAF with ALB
+resource "aws_wafv2_web_acl_association" "main" {
+  resource_arn = aws_lb.main.arn
+  web_acl_arn  = aws_wafv2_web_acl.main.arn
+}
+
+# CloudWatch Log Group for WAF
+# Note: WAF log group names MUST start with "aws-waf-logs-" prefix
+resource "aws_cloudwatch_log_group" "waf" {
+  name              = "aws-waf-logs-${var.project_name}-${var.environment}"
+  retention_in_days = var.environment == "production" ? 90 : 30
+
+  tags = {
+    Name        = "${var.project_name}-waf-logs-${var.environment}"
+    Environment = var.environment
+  }
+}
+
+# WAF Logging Configuration
+resource "aws_wafv2_web_acl_logging_configuration" "main" {
+  resource_arn            = aws_wafv2_web_acl.main.arn
+  log_destination_configs = [aws_cloudwatch_log_group.waf.arn]
+
+  redacted_fields {
+    single_header {
+      name = "authorization"
+    }
+  }
+
+  redacted_fields {
+    single_header {
+      name = "cookie"
+    }
+  }
+}
+
+# ==========================================
 # ECS Cluster
 # ==========================================
 resource "aws_ecs_cluster" "main" {
@@ -546,10 +803,6 @@ resource "aws_ecs_task_definition" "backend" {
           value = var.aws_region
         },
         {
-          name  = "DATABASE_URL"
-          value = "postgresql://postgres:n%26w2V%21g%26oGYi@db.dzsnzgtevbdqczjieslk.supabase.co:5432/postgres"
-        },
-        {
           name  = "REDIS_URL"
           value = "redis://${aws_elasticache_cluster.main.cache_nodes[0].address}:${aws_elasticache_cluster.main.cache_nodes[0].port}"
         },
@@ -558,16 +811,20 @@ resource "aws_ecs_task_definition" "backend" {
           value = aws_s3_bucket.documents.bucket
         },
         {
-          name  = "API_KEY_SALT"
-          value = "XWW0jSeI37SndMMhwcjZGsmDPAe0tEev8pnP0pIebTM"
-        },
-        {
           name  = "ALLOWED_HOSTS"
           value = "*"
         }
       ]
 
       secrets = [
+        {
+          name      = "DATABASE_URL"
+          valueFrom = aws_secretsmanager_secret.database_url.arn
+        },
+        {
+          name      = "API_KEY_SALT"
+          valueFrom = aws_secretsmanager_secret.api_key_salt.arn
+        },
         {
           name      = "JWT_SECRET_KEY"
           valueFrom = aws_secretsmanager_secret.jwt_secret.arn
@@ -1013,6 +1270,22 @@ resource "aws_secretsmanager_secret" "pubnub_secret_key" {
 
   tags = {
     Name = "${var.project_name}-pubnub-secret-key-${var.environment}"
+  }
+}
+
+resource "aws_secretsmanager_secret" "database_url" {
+  name = "${var.project_name}/database-url-${var.environment}"
+
+  tags = {
+    Name = "${var.project_name}-database-url-${var.environment}"
+  }
+}
+
+resource "aws_secretsmanager_secret" "api_key_salt" {
+  name = "${var.project_name}/api-key-salt-${var.environment}"
+
+  tags = {
+    Name = "${var.project_name}-api-key-salt-${var.environment}"
   }
 }
 
