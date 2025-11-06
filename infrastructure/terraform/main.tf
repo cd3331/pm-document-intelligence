@@ -414,6 +414,25 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+# Task Execution Role Policy for Secrets Manager
+resource "aws_iam_role_policy" "ecs_task_execution_secrets" {
+  name = "${var.project_name}-ecs-task-execution-secrets-${var.environment}"
+  role = aws_iam_role.ecs_task_execution.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ]
+        Resource = "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:${var.project_name}/*"
+      }
+    ]
+  })
+}
+
 # ECS Task Role
 resource "aws_iam_role" "ecs_task" {
   name = "${var.project_name}-ecs-task-${var.environment}"
@@ -519,16 +538,28 @@ resource "aws_ecs_task_definition" "backend" {
           value = var.environment
         },
         {
+          name  = "ENVIRONMENT"
+          value = var.environment
+        },
+        {
           name  = "AWS_REGION"
           value = var.aws_region
         },
         {
           name  = "DATABASE_URL"
-          value = "postgresql://${aws_db_instance.main.username}:${random_password.db_password.result}@${aws_db_instance.main.endpoint}/${aws_db_instance.main.db_name}"
+          value = "postgresql://postgres:n%26w2V%21g%26oGYi@db.dzsnzgtevbdqczjieslk.supabase.co:5432/postgres"
         },
         {
           name  = "REDIS_URL"
           value = "redis://${aws_elasticache_cluster.main.cache_nodes[0].address}:${aws_elasticache_cluster.main.cache_nodes[0].port}"
+        },
+        {
+          name  = "AWS_S3_BUCKET"
+          value = aws_s3_bucket.documents.bucket
+        },
+        {
+          name  = "API_KEY_SALT"
+          value = "XWW0jSeI37SndMMhwcjZGsmDPAe0tEev8pnP0pIebTM"
         }
       ]
 
@@ -538,8 +569,40 @@ resource "aws_ecs_task_definition" "backend" {
           valueFrom = aws_secretsmanager_secret.jwt_secret.arn
         },
         {
+          name      = "SECRET_KEY"
+          valueFrom = aws_secretsmanager_secret.jwt_secret.arn
+        },
+        {
           name      = "OPENAI_API_KEY"
           valueFrom = aws_secretsmanager_secret.openai_api_key.arn
+        },
+        {
+          name      = "SUPABASE_URL"
+          valueFrom = aws_secretsmanager_secret.supabase_url.arn
+        },
+        {
+          name      = "SUPABASE_KEY"
+          valueFrom = aws_secretsmanager_secret.supabase_key.arn
+        },
+        {
+          name      = "SUPABASE_SERVICE_KEY"
+          valueFrom = aws_secretsmanager_secret.supabase_service_key.arn
+        },
+        {
+          name      = "SUPABASE_JWT_SECRET"
+          valueFrom = aws_secretsmanager_secret.supabase_jwt_secret.arn
+        },
+        {
+          name      = "PUBNUB_PUBLISH_KEY"
+          valueFrom = aws_secretsmanager_secret.pubnub_publish_key.arn
+        },
+        {
+          name      = "PUBNUB_SUBSCRIBE_KEY"
+          valueFrom = aws_secretsmanager_secret.pubnub_subscribe_key.arn
+        },
+        {
+          name      = "PUBNUB_SECRET_KEY"
+          valueFrom = aws_secretsmanager_secret.pubnub_secret_key.arn
         }
       ]
 
@@ -890,6 +953,62 @@ resource "aws_secretsmanager_secret" "openai_api_key" {
 
   tags = {
     Name = "${var.project_name}-openai-api-key-${var.environment}"
+  }
+}
+
+resource "aws_secretsmanager_secret" "supabase_url" {
+  name = "${var.project_name}/supabase-url-${var.environment}"
+
+  tags = {
+    Name = "${var.project_name}-supabase-url-${var.environment}"
+  }
+}
+
+resource "aws_secretsmanager_secret" "supabase_key" {
+  name = "${var.project_name}/supabase-key-${var.environment}"
+
+  tags = {
+    Name = "${var.project_name}-supabase-key-${var.environment}"
+  }
+}
+
+resource "aws_secretsmanager_secret" "supabase_service_key" {
+  name = "${var.project_name}/supabase-service-key-${var.environment}"
+
+  tags = {
+    Name = "${var.project_name}-supabase-service-key-${var.environment}"
+  }
+}
+
+resource "aws_secretsmanager_secret" "supabase_jwt_secret" {
+  name = "${var.project_name}/supabase-jwt-secret-${var.environment}"
+
+  tags = {
+    Name = "${var.project_name}-supabase-jwt-secret-${var.environment}"
+  }
+}
+
+resource "aws_secretsmanager_secret" "pubnub_publish_key" {
+  name = "${var.project_name}/pubnub-publish-key-${var.environment}"
+
+  tags = {
+    Name = "${var.project_name}-pubnub-publish-key-${var.environment}"
+  }
+}
+
+resource "aws_secretsmanager_secret" "pubnub_subscribe_key" {
+  name = "${var.project_name}/pubnub-subscribe-key-${var.environment}"
+
+  tags = {
+    Name = "${var.project_name}-pubnub-subscribe-key-${var.environment}"
+  }
+}
+
+resource "aws_secretsmanager_secret" "pubnub_secret_key" {
+  name = "${var.project_name}/pubnub-secret-key-${var.environment}"
+
+  tags = {
+    Name = "${var.project_name}-pubnub-secret-key-${var.environment}"
   }
 }
 
