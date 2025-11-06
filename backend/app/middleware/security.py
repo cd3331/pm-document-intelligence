@@ -92,15 +92,41 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
         Returns:
             Dictionary of CSP directives
+
+        Security Notes:
+            - 'unsafe-eval' removed: No eval() usage in codebase
+            - 'unsafe-inline' kept: Required for inline scripts in Jinja2 templates
+            - TODO: Implement nonce-based CSP for inline scripts (future improvement)
         """
         if settings.is_production:
             return {
                 "default-src": "'self'",
-                "script-src": "'self' 'unsafe-inline' 'unsafe-eval'",
-                "style-src": "'self' 'unsafe-inline'",
+                # Script sources: removed unsafe-eval, kept unsafe-inline for templates
+                # Explicit CDN allowlist for external libraries
+                "script-src": " ".join([
+                    "'self'",
+                    "'unsafe-inline'",  # TODO: Replace with nonce-based CSP
+                    "https://cdn.tailwindcss.com",
+                    "https://unpkg.com",
+                    "https://cdn.jsdelivr.net",
+                    "https://cdn.pubnub.com",
+                ]),
+                # Style sources: kept unsafe-inline for Tailwind and inline styles
+                "style-src": " ".join([
+                    "'self'",
+                    "'unsafe-inline'",  # TODO: Replace with nonce-based CSP
+                    "https://cdn.tailwindcss.com",
+                    "https://cdn.jsdelivr.net",
+                ]),
                 "img-src": "'self' data: https:",
                 "font-src": "'self' data:",
-                "connect-src": "'self' https://api.openai.com https://*.supabase.co",
+                # Connect sources: Updated for RDS migration (removed Supabase)
+                "connect-src": " ".join([
+                    "'self'",
+                    "https://api.openai.com",
+                    "https://pubsub.pubnub.com",
+                    "https://*.pubnub.com",
+                ]),
                 "frame-ancestors": "'none'",
                 "base-uri": "'self'",
                 "form-action": "'self'",
@@ -109,7 +135,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         else:
             # More permissive CSP for development
             return {
-                "default-src": "'self' 'unsafe-inline' 'unsafe-eval'",
+                "default-src": "'self' 'unsafe-inline'",  # Removed unsafe-eval
+                "script-src": "'self' 'unsafe-inline' http: https:",
+                "style-src": "'self' 'unsafe-inline' http: https:",
                 "img-src": "'self' data: https: http:",
                 "connect-src": "'self' http://localhost:* https://*",
             }
