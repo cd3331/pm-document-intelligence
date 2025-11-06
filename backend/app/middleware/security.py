@@ -28,6 +28,7 @@ import time
 import uuid
 from collections.abc import Callable
 
+from app.cache.redis import get_cache_ttl, increment_cache
 from app.config import settings
 from app.utils.logger import (
     clear_request_context,
@@ -589,7 +590,14 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
     async def _check_rate_limit(self, client_id: str, limit_key: str) -> tuple[bool, int]:
         """
-        Check if request is within rate limit.
+        Check if request is within rate limit using Redis-based fixed-window counter.
+
+        Algorithm:
+        1. Build rate limit key with current time window
+        2. Increment counter atomically in Redis
+        3. Set TTL on first increment
+        4. Check if counter exceeds limit
+        5. Return result with retry-after seconds
 
         Args:
             client_id: Client identifier
@@ -598,10 +606,116 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         Returns:
             Tuple of (is_allowed, retry_after_seconds)
         """
-        # TODO: Implement Redis-based rate limiting
-        # For now, return True (allowed)
-        # In production, integrate with Redis or similar store
-        return True, 0
+        try:
+            # Get rate limit configuration for this endpoint
+            limit_config = self._get_rate_limit_config(limit_key)
+            limit = limit_config["limit"]
+            window_seconds = limit_config["window_seconds"]
+
+            # Build Redis key with current time window
+            # This creates a new counter for each time window (fixed-window algorithm)
+            current_window = int(time.time() / window_seconds)
+            redis_key = f"ratelimit:{limit_key}:{client_id}:{current_window}"
+
+            # Increment counter atomically
+            # The increment_cache function handles TTL setting for new keys
+            current_count = await increment_cache(
+                key=redis_key,
+                amount=1,
+                prefix=None,  # Key already has full prefix
+                ttl=window_seconds,
+            )
+
+            # If Redis is unavailable, allow the request (fail open for availability)
+            if current_count is None:
+                logger.warning(
+                    "Rate limiting unavailable (Redis error), allowing request",
+                    extra={"client_id": client_id, "limit_key": limit_key},
+                )
+                return True, 0
+
+            # Check if limit exceeded
+            if current_count > limit:
+                # Calculate retry-after: remaining time in current window
+                ttl = await get_cache_ttl(redis_key, prefix=None)
+                retry_after = ttl if ttl and ttl > 0 else window_seconds
+
+                logger.info(
+                    f"Rate limit exceeded: {current_count}/{limit}",
+                    extra={
+                        "client_id": client_id,
+                        "limit_key": limit_key,
+                        "current_count": current_count,
+                        "limit": limit,
+                        "retry_after": retry_after,
+                    },
+                )
+
+                return False, retry_after
+
+            # Log if approaching limit (80% threshold)
+            if current_count >= limit * 0.8:
+                logger.debug(
+                    f"Rate limit approaching: {current_count}/{limit}",
+                    extra={
+                        "client_id": client_id,
+                        "limit_key": limit_key,
+                        "current_count": current_count,
+                        "limit": limit,
+                    },
+                )
+
+            return True, 0
+
+        except Exception as e:
+            # Fail open: allow request if rate limiting fails
+            logger.error(
+                f"Rate limiting error: {e}",
+                extra={"client_id": client_id, "limit_key": limit_key},
+                exc_info=True,
+            )
+            return True, 0
+
+    def _get_rate_limit_config(self, limit_key: str) -> dict[str, int]:
+        """
+        Get rate limit configuration for a specific endpoint.
+
+        Args:
+            limit_key: Rate limit key
+
+        Returns:
+            Dictionary with 'limit' and 'window_seconds'
+        """
+        # Parse rate limit configuration from settings
+        # Format: "N/period" where period is minute, hour, day
+        if limit_key == "upload":
+            limit_str = settings.rate_limit.rate_limit_upload
+        elif limit_key == "process":
+            limit_str = settings.rate_limit.rate_limit_process
+        elif limit_key == "query":
+            limit_str = settings.rate_limit.rate_limit_query
+        else:
+            limit_str = settings.rate_limit.rate_limit_default
+
+        # Parse limit string (e.g., "100/minute")
+        parts = limit_str.split("/")
+        limit = int(parts[0])
+
+        # Convert period to seconds
+        period = parts[1].lower()
+        if period.startswith("second"):
+            window_seconds = 1
+        elif period.startswith("minute"):
+            window_seconds = 60
+        elif period.startswith("hour"):
+            window_seconds = 3600
+        elif period.startswith("day"):
+            window_seconds = 86400
+        else:
+            # Default to minute
+            window_seconds = 60
+
+        return {"limit": limit, "window_seconds": window_seconds}
 
 
 def setup_security_middleware(app: ASGIApp) -> None:
