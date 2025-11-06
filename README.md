@@ -46,14 +46,72 @@ See [full feature list](docs/FEATURES.md) for details.
 High-level system architecture:
 
 ```
-Frontend (htmx + Tailwind) → FastAPI Backend → AI Services (Claude/GPT-4)
-                                ↓
-                         PostgreSQL + pgvector
-                                ↓
-                         AWS S3 + Redis Cache
+┌─────────────────────────────────────────────────────────────────┐
+│                       AWS WAF (7 Security Rules)                 │
+│  • OWASP Top 10  • SQL Injection  • Rate Limiting  • IP Rep     │
+└────────────────────────────┬────────────────────────────────────┘
+                             ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                Application Load Balancer (ALB)                   │
+│            TLS 1.2+  •  Health Checks  •  Auto Scaling           │
+└────────────────────────────┬────────────────────────────────────┘
+                             ↓
+┌─────────────────────────────────────────────────────────────────┐
+│        FastAPI Backend (ECS Fargate)  •  CSP Headers             │
+│        Redis Rate Limiting  •  Request Tracking                  │
+└────────────────────────────┬────────────────────────────────────┘
+                             ↓
+      ┌──────────────────────┼──────────────────────┐
+      ↓                      ↓                       ↓
+┌──────────┐         ┌──────────────┐        ┌────────────┐
+│ AWS RDS  │         │  Redis Cache │        │   AWS S3   │
+│PostgreSQL│         │  ElastiCache │        │  Documents │
+│ +pgvector│         │              │        │            │
+└──────────┘         └──────────────┘        └────────────┘
+                             ↓
+                   AI Services (Claude/GPT-4)
 ```
 
+**Infrastructure Highlights:**
+- **Multi-layered Security**: WAF → ALB → Application → Database
+- **High Availability**: Multi-AZ deployment with auto-scaling
+- **Production Database**: AWS RDS PostgreSQL with automated backups
+- **Distributed Caching**: Redis ElastiCache for performance
+- **Enterprise Monitoring**: CloudWatch metrics, logs, and alarms
+
 See [Architecture Documentation](docs/ARCHITECTURE.md) for detailed diagrams.
+
+---
+
+## 🔐 Security
+
+Enterprise-grade security with defense-in-depth approach:
+
+### Network Security
+- **AWS WAF** with 7 managed rule sets (OWASP Top 10, SQLi, Linux exploits)
+- **ALB Security Groups** restricting traffic to HTTPS only
+- **Private Subnets** for all compute and data resources
+- **NAT Gateways** for secure outbound traffic
+
+### Application Security
+- **Redis-Based Rate Limiting** (configurable per endpoint)
+- **Content Security Policy (CSP)** with strict directives
+- **JWT Authentication** with secure secret rotation
+- **Request Tracking** with unique IDs for audit trails
+
+### Data Security
+- **Encrypted at Rest**: RDS encryption, S3 server-side encryption
+- **Encrypted in Transit**: TLS 1.2+ everywhere
+- **AWS Secrets Manager**: Secure credential storage with rotation
+- **Database Isolation**: Private subnet, security group restrictions
+
+### Monitoring & Compliance
+- **CloudWatch Logging**: All requests, security events, and errors
+- **Structured Logging**: JSON format with sensitive data redaction
+- **Security Metrics**: WAF blocks, rate limits, suspicious patterns
+- **Audit Trails**: Complete request/response logging
+
+**Security Audit Status**: ✅ All CRITICAL and HIGH issues resolved
 
 ---
 
@@ -62,10 +120,14 @@ See [Architecture Documentation](docs/ARCHITECTURE.md) for detailed diagrams.
 ### Prerequisites
 
 - Python 3.11+
-- PostgreSQL 15+ with pgvector
-- Redis 7+
-- AWS Account (S3, Bedrock)
+- AWS Account with:
+  - RDS PostgreSQL 15+ (pgvector enabled)
+  - ElastiCache Redis 7+
+  - S3 Buckets
+  - WAF & ALB
+  - ECS Fargate
 - OpenAI API Key
+- PubNub Account (for real-time features)
 
 ### Installation
 
