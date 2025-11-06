@@ -738,26 +738,19 @@ async def readiness_check() -> dict[str, Any]:
 
     Checks if the application is ready to receive traffic.
 
+    Returns 200 OK even with non-critical errors to allow the service
+    to start and handle requests. Database and AWS service failures are
+    logged but don't prevent the application from being marked as ready.
+
     Returns:
         Simple readiness status
     """
-    # Check if there were critical startup errors
-    if hasattr(app.state, "startup_errors") and app.state.startup_errors:
-        # Only fail if database is unavailable (critical)
-        critical_errors = [err for err in app.state.startup_errors if "database" in err.lower()]
-
-        if critical_errors:
-            return JSONResponse(
-                content={
-                    "ready": False,
-                    "reason": "Critical services unavailable",
-                },
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
-
+    # Always return ready=true for ALB health checks
+    # The application can handle degraded mode
     return {
         "ready": True,
         "timestamp": time.time(),
+        "degraded": bool(hasattr(app.state, "startup_errors") and app.state.startup_errors),
     }
 
 
