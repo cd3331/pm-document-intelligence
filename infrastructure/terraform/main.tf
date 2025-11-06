@@ -560,6 +560,10 @@ resource "aws_ecs_task_definition" "backend" {
         {
           name  = "API_KEY_SALT"
           value = "XWW0jSeI37SndMMhwcjZGsmDPAe0tEev8pnP0pIebTM"
+        },
+        {
+          name  = "ALLOWED_HOSTS"
+          value = "*"
         }
       ]
 
