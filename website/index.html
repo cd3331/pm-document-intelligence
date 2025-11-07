@@ -329,28 +329,49 @@
                     Schedule a free 30-minute consultation to discuss your PM automation needs
                 </p>
             </div>
-            <form class="space-y-6">
+
+            <!-- Success Message (Hidden by default) -->
+            <div id="success-message" class="hidden bg-joy-teal bg-opacity-10 border-2 border-joy-teal rounded-xl p-8 mb-8">
+                <div class="text-center">
+                    <div class="text-5xl mb-4">🎉</div>
+                    <h3 class="text-2xl font-bold text-deep-navy mb-3">Thank You!</h3>
+                    <p class="text-lg text-slate-gray mb-6">
+                        Your message has been received. We'll be in touch soon!
+                    </p>
+                    <a href="https://calendly.com/chandra-r-dunn" target="_blank" class="inline-block bg-warm-coral text-white px-8 py-4 rounded-lg text-lg font-medium hover:bg-opacity-90 transition">
+                        Schedule a Call Now
+                    </a>
+                </div>
+            </div>
+
+            <!-- Error Message (Hidden by default) -->
+            <div id="error-message" class="hidden bg-red-50 border-2 border-red-300 rounded-xl p-6 mb-8">
+                <p class="text-red-800 text-center font-medium"></p>
+            </div>
+
+            <!-- Contact Form -->
+            <form id="contact-form" class="space-y-6">
                 <div class="grid md:grid-cols-2 gap-6">
                     <div>
                         <label class="block text-sm font-medium text-deep-navy mb-2">First Name</label>
-                        <input type="text" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-joy-teal focus:border-transparent" required>
+                        <input type="text" name="firstName" id="firstName" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-joy-teal focus:border-transparent" required>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-deep-navy mb-2">Last Name</label>
-                        <input type="text" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-joy-teal focus:border-transparent" required>
+                        <input type="text" name="lastName" id="lastName" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-joy-teal focus:border-transparent" required>
                     </div>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-deep-navy mb-2">Email</label>
-                    <input type="email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-joy-teal focus:border-transparent" required>
+                    <input type="email" name="email" id="email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-joy-teal focus:border-transparent" required>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-deep-navy mb-2">Company</label>
-                    <input type="text" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-joy-teal focus:border-transparent">
+                    <input type="text" name="company" id="company" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-joy-teal focus:border-transparent">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-deep-navy mb-2">What are you interested in?</label>
-                    <select class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-joy-teal focus:border-transparent">
+                    <select name="interest" id="interest" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-joy-teal focus:border-transparent" required>
                         <option>Templates & Resources</option>
                         <option>Quick-Win Automations</option>
                         <option>Custom AI Solutions</option>
@@ -359,14 +380,86 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-deep-navy mb-2">Tell us about your PM challenges</label>
-                    <textarea rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-joy-teal focus:border-transparent"></textarea>
+                    <textarea name="message" id="message" rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-joy-teal focus:border-transparent"></textarea>
                 </div>
-                <button type="submit" class="w-full bg-warm-coral text-white px-8 py-4 rounded-lg text-lg font-medium hover:bg-opacity-90 transition">
+                <button type="submit" id="submit-btn" class="w-full bg-warm-coral text-white px-8 py-4 rounded-lg text-lg font-medium hover:bg-opacity-90 transition">
                     Book Free Consultation
                 </button>
             </form>
         </div>
     </section>
+
+    <script>
+        // Contact Form Submission Handler
+        document.getElementById('contact-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submit-btn');
+            const form = document.getElementById('contact-form');
+            const successMessage = document.getElementById('success-message');
+            const errorMessage = document.getElementById('error-message');
+
+            // Disable submit button and show loading state
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending...';
+
+            // Hide any previous messages
+            successMessage.classList.add('hidden');
+            errorMessage.classList.add('hidden');
+
+            // Gather form data
+            const formData = {
+                firstName: document.getElementById('firstName').value,
+                lastName: document.getElementById('lastName').value,
+                email: document.getElementById('email').value,
+                company: document.getElementById('company').value,
+                interest: document.getElementById('interest').value,
+                message: document.getElementById('message').value
+            };
+
+            try {
+                // Submit to API Gateway
+                const response = await fetch('https://dbfb5iv1d7.execute-api.us-east-1.amazonaws.com/prod/contact', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    // Show success message
+                    successMessage.classList.remove('hidden');
+                    // Hide the form
+                    form.classList.add('hidden');
+                    // Scroll to success message
+                    successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else {
+                    // Show error message
+                    errorMessage.querySelector('p').textContent = data.error || 'Something went wrong. Please try again.';
+                    errorMessage.classList.remove('hidden');
+                    errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                    // Re-enable submit button
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Book Free Consultation';
+                }
+            } catch (error) {
+                console.error('Error submitting form:', error);
+
+                // Show error message
+                errorMessage.querySelector('p').textContent = 'Network error. Please check your connection and try again.';
+                errorMessage.classList.remove('hidden');
+                errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                // Re-enable submit button
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Book Free Consultation';
+            }
+        });
+    </script>
 
     <!-- Footer -->
     <footer class="bg-deep-navy text-white py-12">

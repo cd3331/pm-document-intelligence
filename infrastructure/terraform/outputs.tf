@@ -246,16 +246,16 @@ output "route53_api_record" {
 output "deployment_info" {
   description = "Deployment information and next steps"
   value = {
-    environment    = var.environment
-    region         = var.aws_region
-    project_name   = var.project_name
-    api_endpoint   = var.domain_name != "" ? "https://api.${var.domain_name}" : "https://${aws_lb.main.dns_name}"
-    ecs_cluster    = aws_ecs_cluster.main.name
-    ecs_service    = aws_ecs_service.backend.name
-    database       = aws_db_instance.main.endpoint
-    redis          = "${aws_elasticache_cluster.main.cache_nodes[0].address}:${aws_elasticache_cluster.main.cache_nodes[0].port}"
+    environment      = var.environment
+    region           = var.aws_region
+    project_name     = var.project_name
+    api_endpoint     = var.domain_name != "" ? "https://api.${var.domain_name}" : "https://${aws_lb.main.dns_name}"
+    ecs_cluster      = aws_ecs_cluster.main.name
+    ecs_service      = aws_ecs_service.backend.name
+    database         = aws_db_instance.main.endpoint
+    redis            = "${aws_elasticache_cluster.main.cache_nodes[0].address}:${aws_elasticache_cluster.main.cache_nodes[0].port}"
     documents_bucket = aws_s3_bucket.documents.id
-    backups_bucket = aws_s3_bucket.backups.id
+    backups_bucket   = aws_s3_bucket.backups.id
   }
 }
 
