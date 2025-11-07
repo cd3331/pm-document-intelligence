@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PM Document Intelligence - JoyofPM AI Solutions</title>
+    <meta name="description" content="AI-powered project management document analysis platform. Upload documents and get instant summaries, action items, and risk assessments.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'joy-teal': '#4ECDC4',
+                        'deep-navy': '#1A2332',
+                        'warm-coral': '#FF6B6B',
+                        'cloud-gray': '#F7F9FC',
+                        'slate-gray': '#64748B',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="font-sans antialiased bg-cloud-gray text-deep-navy">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <a href="https://joyofpm.com" class="text-2xl font-bold text-joy-teal">JoyofPM</a>
+                <div class="hidden md:flex space-x-8">
+                    <a href="https://joyofpm.com" class="text-slate-gray hover:text-joy-teal transition">Home</a>
+                    <a href="https://joyofpm.com/resources.html" class="text-slate-gray hover:text-joy-teal transition">Resources</a>
+                    <a href="#" onclick="showLoginModal()" class="text-slate-gray hover:text-joy-teal transition">Sign In</a>
+                </div>
+                <div id="user-menu" class="hidden">
+                    <button onclick="logout()" class="bg-warm-coral text-white px-6 py-2 rounded-lg hover:bg-opacity-90 transition">
+                        Sign Out
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Welcome Screen (shown when not logged in) -->
+    <div id="welcome-screen" class="min-h-screen flex items-center justify-center py-20 px-4">
+        <div class="max-w-4xl w-full">
+            <div class="text-center mb-12">
+                <h1 class="text-5xl font-bold text-deep-navy mb-6">PM Document Intelligence</h1>
+                <p class="text-2xl text-joy-teal font-medium mb-4">
+                    Transform your project documents into actionable insights
+                </p>
+                <p class="text-xl text-slate-gray max-w-3xl mx-auto mb-8">
+                    Upload meeting notes, status reports, or project plans and get instant AI-powered summaries, action items, risk assessments, and intelligent Q&A.
+                </p>
+            </div>
+
+            <!-- Features Grid -->
+            <div class="grid md:grid-cols-2 gap-6 mb-12">
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <div class="text-4xl mb-4">🤖</div>
+                    <h3 class="text-xl font-bold text-deep-navy mb-2">Multi-Model AI</h3>
+                    <p class="text-slate-gray">
+                        Powered by Claude, GPT-4, and custom fine-tuned models for accurate analysis
+                    </p>
+                </div>
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <div class="text-4xl mb-4">📊</div>
+                    <h3 class="text-xl font-bold text-deep-navy mb-2">Instant Insights</h3>
+                    <p class="text-slate-gray">
+                        Get summaries, action items, and risk assessments in seconds
+                    </p>
+                </div>
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <div class="text-4xl mb-4">🔍</div>
+                    <h3 class="text-xl font-bold text-deep-navy mb-2">Semantic Search</h3>
+                    <p class="text-slate-gray">
+                        Find answers across all your documents with context-aware search
+                    </p>
+                </div>
+                <div class="bg-white rounded-xl p-6 shadow-sm">
+                    <div class="text-4xl mb-4">🆓</div>
+                    <h3 class="text-xl font-bold text-deep-navy mb-2">Free Beta</h3>
+                    <p class="text-slate-gray">
+                        Try it free and help shape the future of PM tools
+                    </p>
+                </div>
+            </div>
+
+            <!-- CTA Buttons -->
+            <div class="text-center">
+                <button onclick="showRegisterModal()" class="bg-warm-coral text-white px-8 py-4 rounded-lg text-lg font-medium hover:bg-opacity-90 transition mr-4">
+                    Get Started Free
+                </button>
+                <button onclick="showLoginModal()" class="bg-joy-teal text-white px-8 py-4 rounded-lg text-lg font-medium hover:bg-opacity-90 transition">
+                    Sign In
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App (hidden until logged in) -->
+    <div id="app-screen" class="hidden min-h-screen py-8 px-4">
+        <div class="max-w-7xl mx-auto">
+            <!-- Dashboard Header -->
+            <div class="mb-8">
+                <h1 class="text-4xl font-bold text-deep-navy mb-2">Document Dashboard</h1>
+                <p class="text-slate-gray">Upload and analyze your project management documents</p>
+            </div>
+
+            <!-- Upload Section -->
+            <div class="bg-white rounded-xl p-8 shadow-sm mb-8">
+                <h2 class="text-2xl font-bold text-deep-navy mb-4">Upload Document</h2>
+                <div class="border-2 border-dashed border-joy-teal rounded-xl p-12 text-center bg-joy-teal bg-opacity-5">
+                    <div class="text-6xl mb-4">📄</div>
+                    <input type="file" id="file-upload" class="hidden" accept=".txt,.pdf,.doc,.docx,.md" onchange="handleFileUpload(event)">
+                    <label for="file-upload" class="cursor-pointer">
+                        <span class="text-xl font-medium text-deep-navy">Drop a file here or click to browse</span>
+                        <p class="text-slate-gray mt-2">Supports: TXT, PDF, DOC, DOCX, MD</p>
+                    </label>
+                </div>
+                <div id="upload-progress" class="hidden mt-4">
+                    <div class="bg-gray-200 rounded-full h-2 overflow-hidden">
+                        <div id="progress-bar" class="bg-joy-teal h-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <p id="upload-status" class="text-center text-slate-gray mt-2">Uploading...</p>
+                </div>
+            </div>
+
+            <!-- Documents List -->
+            <div class="bg-white rounded-xl p-8 shadow-sm">
+                <h2 class="text-2xl font-bold text-deep-navy mb-6">Your Documents</h2>
+                <div id="documents-list" class="space-y-4">
+                    <div class="text-center text-slate-gray py-12">
+                        <div class="text-5xl mb-4">📋</div>
+                        <p>No documents yet. Upload your first document to get started!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl p-8 max-w-md w-full">
+            <h2 class="text-3xl font-bold text-deep-navy mb-6">Sign In</h2>
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-deep-navy mb-2">Email</label>
+                    <input type="email" id="login-email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-joy-teal focus:border-transparent" required>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-deep-navy mb-2">Password</label>
+                    <input type="password" id="login-password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-joy-teal focus:border-transparent" required>
+                </div>
+                <div id="login-error" class="hidden bg-red-50 border border-red-300 rounded-lg p-3 mb-4 text-red-800 text-sm"></div>
+                <button type="submit" class="w-full bg-joy-teal text-white px-8 py-3 rounded-lg text-lg font-medium hover:bg-opacity-90 transition">
+                    Sign In
+                </button>
+                <p class="text-center text-slate-gray mt-4">
+                    Don't have an account?
+                    <button type="button" onclick="closeLoginModal(); showRegisterModal()" class="text-joy-teal font-medium hover:underline">Sign up</button>
+                </p>
+            </form>
+            <button onclick="closeLoginModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div id="register-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl p-8 max-w-md w-full">
+            <h2 class="text-3xl font-bold text-deep-navy mb-6">Get Started Free</h2>
+            <form id="register-form" onsubmit="handleRegister(event)">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-deep-navy mb-2">Full Name</label>
+                    <input type="text" id="register-name" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-joy-teal focus:border-transparent" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-deep-navy mb-2">Email</label>
+                    <input type="email" id="register-email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-joy-teal focus:border-transparent" required>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-deep-navy mb-2">Password</label>
+                    <input type="password" id="register-password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-joy-teal focus:border-transparent" required minlength="8">
+                    <p class="text-xs text-slate-gray mt-1">Minimum 8 characters</p>
+                </div>
+                <div id="register-error" class="hidden bg-red-50 border border-red-300 rounded-lg p-3 mb-4 text-red-800 text-sm"></div>
+                <button type="submit" class="w-full bg-warm-coral text-white px-8 py-3 rounded-lg text-lg font-medium hover:bg-opacity-90 transition">
+                    Create Account
+                </button>
+                <p class="text-center text-slate-gray mt-4">
+                    Already have an account?
+                    <button type="button" onclick="closeRegisterModal(); showLoginModal()" class="text-joy-teal font-medium hover:underline">Sign in</button>
+                </p>
+            </form>
+            <button onclick="closeRegisterModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-deep-navy text-white py-12 mt-20">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="text-center text-gray-400">
+                <p class="mb-2">&copy; 2025 JoyofPM. All rights reserved.</p>
+                <p class="text-sm">
+                    <a href="https://joyofpm.com/privacy.html" class="hover:text-joy-teal transition">Privacy Policy & Terms of Service</a>
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const API_BASE_URL = 'https://api.joyofpm.com';
+        let authToken = localStorage.getItem('authToken');
+        let currentUser = null;
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', () => {
+            if (authToken) {
+                verifyToken();
+            }
+        });
+
+        // Modal functions
+        function showLoginModal() {
+            document.getElementById('login-modal').classList.remove('hidden');
+        }
+
+        function closeLoginModal() {
+            document.getElementById('login-modal').classList.add('hidden');
+            document.getElementById('login-error').classList.add('hidden');
+        }
+
+        function showRegisterModal() {
+            document.getElementById('register-modal').classList.remove('hidden');
+        }
+
+        function closeRegisterModal() {
+            document.getElementById('register-modal').classList.add('hidden');
+            document.getElementById('register-error').classList.add('hidden');
+        }
+
+        // Auth functions
+        async function handleLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const errorDiv = document.getElementById('login-error');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    authToken = data.access_token;
+                    localStorage.setItem('authToken', authToken);
+                    closeLoginModal();
+                    showApp();
+                    loadDocuments();
+                } else {
+                    errorDiv.textContent = data.detail || 'Login failed. Please try again.';
+                    errorDiv.classList.remove('hidden');
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Network error. Please try again.';
+                errorDiv.classList.remove('hidden');
+            }
+        }
+
+        async function handleRegister(event) {
+            event.preventDefault();
+            const name = document.getElementById('register-name').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const errorDiv = document.getElementById('register-error');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password, full_name: name })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Auto-login after registration
+                    authToken = data.access_token;
+                    localStorage.setItem('authToken', authToken);
+                    closeRegisterModal();
+                    showApp();
+                    loadDocuments();
+                } else {
+                    errorDiv.textContent = data.detail || 'Registration failed. Please try again.';
+                    errorDiv.classList.remove('hidden');
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Network error. Please try again.';
+                errorDiv.classList.remove('hidden');
+            }
+        }
+
+        async function verifyToken() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (response.ok) {
+                    currentUser = await response.json();
+                    showApp();
+                    loadDocuments();
+                } else {
+                    logout();
+                }
+            } catch (error) {
+                logout();
+            }
+        }
+
+        function logout() {
+            authToken = null;
+            currentUser = null;
+            localStorage.removeItem('authToken');
+            showWelcome();
+        }
+
+        function showApp() {
+            document.getElementById('welcome-screen').classList.add('hidden');
+            document.getElementById('app-screen').classList.remove('hidden');
+            document.getElementById('user-menu').classList.remove('hidden');
+        }
+
+        function showWelcome() {
+            document.getElementById('welcome-screen').classList.remove('hidden');
+            document.getElementById('app-screen').classList.add('hidden');
+            document.getElementById('user-menu').classList.add('hidden');
+        }
+
+        // Document functions
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const progressDiv = document.getElementById('upload-progress');
+            const progressBar = document.getElementById('progress-bar');
+            const statusText = document.getElementById('upload-status');
+
+            progressDiv.classList.remove('hidden');
+            progressBar.style.width = '0%';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/documents/upload`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: formData
+                });
+
+                if (response.ok) {
+                    progressBar.style.width = '100%';
+                    statusText.textContent = 'Upload complete! Analyzing...';
+
+                    setTimeout(() => {
+                        progressDiv.classList.add('hidden');
+                        loadDocuments();
+                    }, 1000);
+                } else {
+                    statusText.textContent = 'Upload failed. Please try again.';
+                    progressBar.classList.add('bg-red-500');
+                }
+            } catch (error) {
+                statusText.textContent = 'Network error. Please try again.';
+                progressBar.classList.add('bg-red-500');
+            }
+        }
+
+        async function loadDocuments() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/documents`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (response.ok) {
+                    const documents = await response.json();
+                    displayDocuments(documents);
+                }
+            } catch (error) {
+                console.error('Failed to load documents:', error);
+            }
+        }
+
+        function displayDocuments(documents) {
+            const listDiv = document.getElementById('documents-list');
+
+            if (documents.length === 0) {
+                listDiv.innerHTML = `
+                    <div class="text-center text-slate-gray py-12">
+                        <div class="text-5xl mb-4">📋</div>
+                        <p>No documents yet. Upload your first document to get started!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            listDiv.innerHTML = documents.map(doc => `
+                <div class="border border-gray-200 rounded-lg p-4 hover:border-joy-teal transition cursor-pointer">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <div class="text-3xl">📄</div>
+                            <div>
+                                <h3 class="font-bold text-deep-navy">${doc.filename}</h3>
+                                <p class="text-sm text-slate-gray">Uploaded ${new Date(doc.created_at).toLocaleDateString()}</p>
+                            </div>
+                        </div>
+                        <button onclick="viewDocument('${doc.id}')" class="bg-joy-teal text-white px-4 py-2 rounded-lg hover:bg-opacity-90 transition">
+                            View Analysis
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function viewDocument(documentId) {
+            // Navigate to document detail page
+            window.location.href = `/document.html?id=${documentId}`;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Analysis - PM Document Intelligence</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'joy-teal': '#4ECDC4',
+                        'deep-navy': '#1A2332',
+                        'warm-coral': '#FF6B6B',
+                        'cloud-gray': '#F7F9FC',
+                        'slate-gray': '#64748B',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="font-sans antialiased bg-cloud-gray text-deep-navy">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <a href="/index.html" class="text-2xl font-bold text-joy-teal">JoyofPM</a>
+                <div class="flex items-center space-x-4">
+                    <a href="/index.html" class="text-slate-gray hover:text-joy-teal transition">← Back to Dashboard</a>
+                    <button onclick="logout()" class="bg-warm-coral text-white px-6 py-2 rounded-lg hover:bg-opacity-90 transition">
+                        Sign Out
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Loading State -->
+    <div id="loading" class="flex items-center justify-center min-h-screen">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-joy-teal mx-auto mb-4"></div>
+            <p class="text-slate-gray">Loading document analysis...</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="content" class="hidden max-w-7xl mx-auto py-8 px-4">
+        <!-- Document Header -->
+        <div class="bg-white rounded-xl p-8 shadow-sm mb-8">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h1 id="doc-title" class="text-4xl font-bold text-deep-navy mb-2">Document Title</h1>
+                    <p id="doc-meta" class="text-slate-gray">Uploaded on...</p>
+                </div>
+                <div class="flex space-x-4">
+                    <button onclick="downloadDocument()" class="bg-joy-teal text-white px-6 py-3 rounded-lg hover:bg-opacity-90 transition">
+                        Download
+                    </button>
+                    <button onclick="deleteDocument()" class="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-opacity-90 transition">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analysis Tabs -->
+        <div class="bg-white rounded-xl shadow-sm mb-8">
+            <div class="border-b border-gray-200">
+                <div class="flex space-x-8 px-8">
+                    <button onclick="switchTab('summary')" class="tab-btn py-4 border-b-2 border-joy-teal text-joy-teal font-medium">
+                        Summary
+                    </button>
+                    <button onclick="switchTab('actions')" class="tab-btn py-4 border-b-2 border-transparent text-slate-gray hover:text-joy-teal">
+                        Action Items
+                    </button>
+                    <button onclick="switchTab('risks')" class="tab-btn py-4 border-b-2 border-transparent text-slate-gray hover:text-joy-teal">
+                        Risk Assessment
+                    </button>
+                    <button onclick="switchTab('qa')" class="tab-btn py-4 border-b-2 border-transparent text-slate-gray hover:text-joy-teal">
+                        Q&A
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="p-8">
+                <!-- Summary Tab -->
+                <div id="tab-summary" class="tab-content">
+                    <h2 class="text-2xl font-bold text-deep-navy mb-4">Document Summary</h2>
+                    <div id="summary-content" class="prose prose-lg max-w-none text-slate-gray">
+                        <p>Loading summary...</p>
+                    </div>
+                </div>
+
+                <!-- Action Items Tab -->
+                <div id="tab-actions" class="tab-content hidden">
+                    <h2 class="text-2xl font-bold text-deep-navy mb-4">Action Items</h2>
+                    <div id="actions-content" class="space-y-4">
+                        <p class="text-slate-gray">Loading action items...</p>
+                    </div>
+                </div>
+
+                <!-- Risk Assessment Tab -->
+                <div id="tab-risks" class="tab-content hidden">
+                    <h2 class="text-2xl font-bold text-deep-navy mb-4">Risk Assessment</h2>
+                    <div id="risks-content" class="space-y-4">
+                        <p class="text-slate-gray">Loading risk assessment...</p>
+                    </div>
+                </div>
+
+                <!-- Q&A Tab -->
+                <div id="tab-qa" class="tab-content hidden">
+                    <h2 class="text-2xl font-bold text-deep-navy mb-6">Ask Questions</h2>
+                    <div class="mb-6">
+                        <div class="flex space-x-4">
+                            <input type="text" id="question-input" placeholder="Ask a question about this document..." class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-joy-teal focus:border-transparent">
+                            <button onclick="askQuestion()" class="bg-joy-teal text-white px-8 py-3 rounded-lg hover:bg-opacity-90 transition">
+                                Ask
+                            </button>
+                        </div>
+                    </div>
+                    <div id="qa-history" class="space-y-6">
+                        <p class="text-slate-gray text-center py-8">Ask a question to get started</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feedback Section -->
+        <div class="bg-gradient-to-r from-joy-teal to-teal-400 rounded-xl p-8 text-white">
+            <h3 class="text-2xl font-bold mb-4">Help Us Improve</h3>
+            <p class="mb-4">Your feedback shapes the future of PM Document Intelligence. How accurate was this analysis?</p>
+            <div class="flex space-x-4">
+                <button onclick="submitFeedback('positive')" class="bg-white text-joy-teal px-6 py-3 rounded-lg hover:bg-opacity-90 transition font-medium">
+                    👍 Very Helpful
+                </button>
+                <button onclick="submitFeedback('neutral')" class="bg-white text-joy-teal px-6 py-3 rounded-lg hover:bg-opacity-90 transition font-medium">
+                    👌 Somewhat Helpful
+                </button>
+                <button onclick="submitFeedback('negative')" class="bg-white text-joy-teal px-6 py-3 rounded-lg hover:bg-opacity-90 transition font-medium">
+                    👎 Needs Improvement
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-deep-navy text-white py-12 mt-20">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="text-center text-gray-400">
+                <p class="mb-2">&copy; 2025 JoyofPM. All rights reserved.</p>
+                <p class="text-sm">
+                    <a href="https://joyofpm.com/privacy.html" class="hover:text-joy-teal transition">Privacy Policy & Terms of Service</a>
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const API_BASE_URL = 'https://api.joyofpm.com';
+        const authToken = localStorage.getItem('authToken');
+        let currentDocument = null;
+
+        // Get document ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const documentId = urlParams.get('id');
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!authToken) {
+                window.location.href = '/index.html';
+                return;
+            }
+
+            if (!documentId) {
+                window.location.href = '/index.html';
+                return;
+            }
+
+            loadDocument();
+        });
+
+        async function loadDocument() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/documents/${documentId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (response.ok) {
+                    currentDocument = await response.json();
+                    displayDocument();
+                } else {
+                    alert('Failed to load document');
+                    window.location.href = '/index.html';
+                }
+            } catch (error) {
+                console.error('Failed to load document:', error);
+                alert('Network error. Please try again.');
+            }
+        }
+
+        function displayDocument() {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('content').classList.remove('hidden');
+
+            // Set document metadata
+            document.getElementById('doc-title').textContent = currentDocument.filename;
+            document.getElementById('doc-meta').textContent = `Uploaded on ${new Date(currentDocument.created_at).toLocaleDateString()}`;
+
+            // Display analysis results
+            if (currentDocument.analysis) {
+                displaySummary(currentDocument.analysis.summary);
+                displayActionItems(currentDocument.analysis.action_items);
+                displayRisks(currentDocument.analysis.risks);
+            }
+        }
+
+        function displaySummary(summary) {
+            const summaryDiv = document.getElementById('summary-content');
+            if (summary) {
+                summaryDiv.innerHTML = `<p class="whitespace-pre-wrap">${summary}</p>`;
+            } else {
+                summaryDiv.innerHTML = '<p class="text-slate-gray">No summary available</p>';
+            }
+        }
+
+        function displayActionItems(actionItems) {
+            const actionsDiv = document.getElementById('actions-content');
+
+            if (actionItems && actionItems.length > 0) {
+                actionsDiv.innerHTML = actionItems.map((item, index) => `
+                    <div class="border-l-4 border-joy-teal pl-4 py-2">
+                        <div class="flex items-start space-x-3">
+                            <input type="checkbox" class="mt-1 h-5 w-5 text-joy-teal rounded">
+                            <div class="flex-1">
+                                <p class="font-medium text-deep-navy">${item.task || item}</p>
+                                ${item.owner ? `<p class="text-sm text-slate-gray">Owner: ${item.owner}</p>` : ''}
+                                ${item.due_date ? `<p class="text-sm text-slate-gray">Due: ${item.due_date}</p>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                actionsDiv.innerHTML = '<p class="text-slate-gray">No action items identified</p>';
+            }
+        }
+
+        function displayRisks(risks) {
+            const risksDiv = document.getElementById('risks-content');
+
+            if (risks && risks.length > 0) {
+                risksDiv.innerHTML = risks.map(risk => {
+                    const severityColor = risk.severity === 'high' ? 'red' : risk.severity === 'medium' ? 'yellow' : 'blue';
+                    return `
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="font-bold text-deep-navy">${risk.title || 'Risk'}</h3>
+                                <span class="bg-${severityColor}-100 text-${severityColor}-800 px-3 py-1 rounded-full text-sm font-medium">
+                                    ${risk.severity || 'Medium'}
+                                </span>
+                            </div>
+                            <p class="text-slate-gray mb-3">${risk.description || risk}</p>
+                            ${risk.mitigation ? `<p class="text-sm text-joy-teal"><strong>Mitigation:</strong> ${risk.mitigation}</p>` : ''}
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                risksDiv.innerHTML = '<p class="text-slate-gray">No risks identified</p>';
+            }
+        }
+
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.add('hidden');
+            });
+
+            // Reset all tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('border-joy-teal', 'text-joy-teal');
+                btn.classList.add('border-transparent', 'text-slate-gray');
+            });
+
+            // Show selected tab
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+
+            // Highlight selected tab button
+            event.target.classList.remove('border-transparent', 'text-slate-gray');
+            event.target.classList.add('border-joy-teal', 'text-joy-teal');
+        }
+
+        async function askQuestion() {
+            const input = document.getElementById('question-input');
+            const question = input.value.trim();
+
+            if (!question) return;
+
+            const historyDiv = document.getElementById('qa-history');
+
+            // Add question to history
+            const questionDiv = document.createElement('div');
+            questionDiv.className = 'bg-cloud-gray rounded-lg p-4';
+            questionDiv.innerHTML = `
+                <p class="font-medium text-deep-navy mb-2">Q: ${question}</p>
+                <p class="text-slate-gray">Analyzing...</p>
+            `;
+            historyDiv.appendChild(questionDiv);
+
+            input.value = '';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/documents/${documentId}/question`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ question })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    questionDiv.querySelector('.text-slate-gray').textContent = `A: ${data.answer}`;
+                } else {
+                    questionDiv.querySelector('.text-slate-gray').textContent = 'Failed to get answer. Please try again.';
+                }
+            } catch (error) {
+                questionDiv.querySelector('.text-slate-gray').textContent = 'Network error. Please try again.';
+            }
+        }
+
+        async function submitFeedback(type) {
+            try {
+                await fetch(`${API_BASE_URL}/documents/${documentId}/feedback`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ feedback_type: type })
+                });
+
+                alert('Thank you for your feedback!');
+            } catch (error) {
+                console.error('Failed to submit feedback:', error);
+            }
+        }
+
+        function downloadDocument() {
+            // TODO: Implement document download
+            window.location.href = `${API_BASE_URL}/documents/${documentId}/download`;
+        }
+
+        async function deleteDocument() {
+            if (!confirm('Are you sure you want to delete this document?')) return;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/documents/${documentId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (response.ok) {
+                    alert('Document deleted');
+                    window.location.href = '/index.html';
+                } else {
+                    alert('Failed to delete document');
+                }
+            } catch (error) {
+                alert('Network error. Please try again.');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('authToken');
+            window.location.href = '/index.html';
+        }
+    </script>
+</body>
+</html>
