@@ -134,22 +134,48 @@ async def upload_document(
 
 
 @router.get("/{document_id}")
-async def get_document(document_id: str):
+async def get_document(
+    document_id: str,
+    current_user: UserInDB = Depends(get_current_user),
+):
     """
     Get document by ID.
 
     Args:
         document_id: Document identifier
+        current_user: Authenticated user
 
     Returns:
         Document data
     """
-    # TODO: Implement get document
-    logger.info(f"Get document endpoint called: {document_id}")
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Get document endpoint not yet implemented",
-    )
+    try:
+        logger.info(f"Get document endpoint called: {document_id} by user {current_user.id}")
+
+        # Query document by ID
+        documents = await execute_select(
+            "documents",
+            match={"id": document_id, "user_id": current_user.id},
+        )
+
+        if not documents:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Document not found",
+            )
+
+        document = documents[0]
+        logger.info(f"Document retrieved: {document_id}")
+
+        return document
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get document: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve document",
+        )
 
 
 @router.get("")
