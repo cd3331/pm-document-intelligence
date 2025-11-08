@@ -73,8 +73,8 @@ class AWSConfig(BaseSettings):
 
     # S3 Configuration
     s3_bucket_name: str = Field(
-        default="pm-document-intelligence",
-        description="S3 bucket for document storage",
+        ...,
+        description="S3 bucket for document storage (REQUIRED - set via S3_BUCKET_NAME env var)",
     )
     s3_upload_path: str = Field(
         default="documents/",
@@ -228,27 +228,10 @@ class OpenAIConfig(BaseSettings):
     )
 
 
-class SupabaseConfig(BaseSettings):
-    """Supabase configuration for database and authentication."""
+class DatabaseConfig(BaseSettings):
+    """PostgreSQL database configuration for AWS RDS."""
 
-    supabase_url: AnyHttpUrl = Field(
-        ...,
-        description="Supabase project URL (required)",
-    )
-    supabase_key: str = Field(
-        ...,
-        description="Supabase anonymous key (required)",
-    )
-    supabase_service_key: str = Field(
-        ...,
-        description="Supabase service role key (required)",
-    )
-    supabase_jwt_secret: str = Field(
-        ...,
-        description="Supabase JWT secret for token verification (required)",
-    )
-
-    # Database Configuration
+    # Database Connection
     database_url: PostgresDsn = Field(
         ...,
         description="PostgreSQL connection URL (required)",
@@ -263,7 +246,21 @@ class SupabaseConfig(BaseSettings):
         default=10,
         ge=0,
         le=50,
-        description="Maximum overflow connections",
+        description="Maximum overflow connections beyond pool_size",
+    )
+    database_pool_recycle: int = Field(
+        default=3600,
+        ge=300,
+        le=7200,
+        description="Recycle database connections after N seconds",
+    )
+    database_pool_pre_ping: bool = Field(
+        default=True,
+        description="Enable connection health checks before use",
+    )
+    database_echo: bool = Field(
+        default=False,
+        description="Log all SQL statements (debug only)",
     )
 
 
@@ -776,7 +773,7 @@ class Settings(BaseSettings):
     textract: TextractConfig = Field(default_factory=TextractConfig)
     comprehend: ComprehendConfig = Field(default_factory=ComprehendConfig)
     openai: OpenAIConfig = Field(default_factory=OpenAIConfig)
-    supabase: SupabaseConfig = Field(default_factory=SupabaseConfig)
+    database: DatabaseConfig = Field(default_factory=DatabaseConfig)
     pubnub: PubNubConfig = Field(default_factory=PubNubConfig)
     security: SecurityConfig = Field(default_factory=SecurityConfig)
     rate_limit: RateLimitConfig = Field(default_factory=RateLimitConfig)
@@ -882,7 +879,7 @@ class Settings(BaseSettings):
         Returns:
             Database connection URL string
         """
-        url = str(self.supabase.database_url)
+        url = str(self.database.database_url)
         if async_driver:
             url = url.replace("postgresql://", "postgresql+asyncpg://")
         return url

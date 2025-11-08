@@ -791,10 +791,6 @@ resource "aws_ecs_task_definition" "backend" {
 
       environment = [
         {
-          name  = "APP_ENV"
-          value = var.environment
-        },
-        {
           name  = "ENVIRONMENT"
           value = var.environment
         },
@@ -807,7 +803,7 @@ resource "aws_ecs_task_definition" "backend" {
           value = "redis://${aws_elasticache_cluster.main.cache_nodes[0].address}:${aws_elasticache_cluster.main.cache_nodes[0].port}"
         },
         {
-          name  = "AWS_S3_BUCKET"
+          name  = "S3_BUCKET_NAME"
           value = aws_s3_bucket.documents.bucket
         },
         {
@@ -838,22 +834,6 @@ resource "aws_ecs_task_definition" "backend" {
           valueFrom = aws_secretsmanager_secret.openai_api_key.arn
         },
         {
-          name      = "SUPABASE_URL"
-          valueFrom = aws_secretsmanager_secret.supabase_url.arn
-        },
-        {
-          name      = "SUPABASE_KEY"
-          valueFrom = aws_secretsmanager_secret.supabase_key.arn
-        },
-        {
-          name      = "SUPABASE_SERVICE_KEY"
-          valueFrom = aws_secretsmanager_secret.supabase_service_key.arn
-        },
-        {
-          name      = "SUPABASE_JWT_SECRET"
-          valueFrom = aws_secretsmanager_secret.supabase_jwt_secret.arn
-        },
-        {
           name      = "PUBNUB_PUBLISH_KEY"
           valueFrom = aws_secretsmanager_secret.pubnub_publish_key.arn
         },
@@ -864,6 +844,10 @@ resource "aws_ecs_task_definition" "backend" {
         {
           name      = "PUBNUB_SECRET_KEY"
           valueFrom = aws_secretsmanager_secret.pubnub_secret_key.arn
+        },
+        {
+          name      = "CORS_ORIGINS"
+          valueFrom = aws_secretsmanager_secret.cors_origins.arn
         }
       ]
 
@@ -1286,6 +1270,14 @@ resource "aws_secretsmanager_secret" "api_key_salt" {
 
   tags = {
     Name = "${var.project_name}-api-key-salt-${var.environment}"
+  }
+}
+
+resource "aws_secretsmanager_secret" "cors_origins" {
+  name = "${var.project_name}/cors-origins-${var.environment}"
+
+  tags = {
+    Name = "${var.project_name}-cors-origins-${var.environment}"
   }
 }
 
