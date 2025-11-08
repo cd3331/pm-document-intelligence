@@ -217,12 +217,10 @@
             document.getElementById('doc-title').textContent = currentDocument.filename;
             document.getElementById('doc-meta').textContent = `Uploaded on ${new Date(currentDocument.created_at).toLocaleDateString()}`;
 
-            // Display analysis results
-            if (currentDocument.analysis) {
-                displaySummary(currentDocument.analysis.summary);
-                displayActionItems(currentDocument.analysis.action_items);
-                displayRisks(currentDocument.analysis.risks);
-            }
+            // Display analysis results (backend returns fields directly, not nested in 'analysis')
+            displaySummary(currentDocument.summary);
+            displayActionItems(currentDocument.action_items);
+            displayRisks(currentDocument.risks);
         }
 
         function displaySummary(summary) {
