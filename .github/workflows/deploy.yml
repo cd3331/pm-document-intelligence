@@ -447,8 +447,9 @@ jobs:
           echo "Smoke tests passed!"
 
       - name: Notify Slack - Success
-        if: success()
+        if: success() && env.SLACK_WEBHOOK_URL != ''
         uses: slackapi/slack-github-action@v1
+        continue-on-error: true
         with:
           payload: |
             {
@@ -458,7 +459,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "*Production Deployment*: ✅ SUCCESS\n*Commit*: ${{ github.sha }}\n*Author*: ${{ github.actor }}\n*URL*: https://api.example.com"
+                    "text": "*Production Deployment*: ✅ SUCCESS\n*Commit*: ${{ github.sha }}\n*Author*: ${{ github.actor }}\n*URL*: https://api.joyofpm.com"
                   }
                 }
               ]
@@ -467,8 +468,9 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: Notify Slack - Failure
-        if: failure()
+        if: failure() && env.SLACK_WEBHOOK_URL != ''
         uses: slackapi/slack-github-action@v1
+        continue-on-error: true
         with:
           payload: |
             {
