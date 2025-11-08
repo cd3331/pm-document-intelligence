@@ -166,6 +166,17 @@ async def get_document(
         document = documents[0]
         logger.info(f"Document retrieved: {document_id}")
 
+        # Add placeholder analysis if not processed
+        if not document.get("summary"):
+            document["summary"] = "This document hasn't been analyzed yet. Click 'Process Document' to generate AI-powered insights."
+            document["action_items"] = []
+            document["entities"] = []
+            document["key_phrases"] = []
+            document["risks"] = []
+            document["needs_processing"] = True
+        else:
+            document["needs_processing"] = False
+
         return document
 
     except HTTPException:
@@ -233,6 +244,66 @@ async def process_document(document_id: str):
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
         detail="Process document endpoint not yet implemented",
     )
+
+
+@router.post("/{document_id}/question")
+async def ask_question(
+    document_id: str,
+    question: dict,
+    current_user: UserInDB = Depends(get_current_user),
+):
+    """
+    Ask a question about a document.
+
+    Args:
+        document_id: Document identifier
+        question: Question data with 'question' field
+        current_user: Authenticated user
+
+    Returns:
+        Answer to the question
+    """
+    try:
+        logger.info(f"Question asked for document {document_id}: {question.get('question', '')}")
+
+        # Verify document exists and belongs to user
+        documents = await execute_select(
+            "documents",
+            match={"id": document_id, "user_id": current_user.id},
+        )
+
+        if not documents:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Document not found",
+            )
+
+        document = documents[0]
+
+        # Check if document has been analyzed
+        if not document.get("extracted_text"):
+            return {
+                "answer": "This document hasn't been analyzed yet. Please process the document first to ask questions about its content.",
+                "confidence": 0.0,
+                "sources": [],
+            }
+
+        # TODO: Implement actual Q&A with AI
+        # For now, return a placeholder response
+        return {
+            "answer": "Document Q&A is not yet fully implemented. Please check back later when AI processing is enabled.",
+            "confidence": 0.0,
+            "sources": [],
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to answer question: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get answer",
+        )
 
 
 @router.delete("/{document_id}")
