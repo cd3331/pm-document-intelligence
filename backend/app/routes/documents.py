@@ -17,7 +17,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 
-from app.database import execute_insert, execute_select
+from app.database import execute_insert, execute_select, execute_update
 from app.models.document import DocumentStatus
 from app.models.user import UserInDB
 from app.services.aws_service import S3Service
