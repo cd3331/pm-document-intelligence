@@ -168,7 +168,9 @@ async def get_document(
 
         # Add placeholder analysis if not processed
         if not document.get("summary"):
-            document["summary"] = "This document hasn't been analyzed yet. Click 'Process Document' to generate AI-powered insights."
+            document["summary"] = (
+                "This document hasn't been analyzed yet. Click 'Process Document' to generate AI-powered insights."
+            )
             document["action_items"] = []
             document["entities"] = []
             document["key_phrases"] = []
