@@ -413,8 +413,8 @@
                 });
 
                 if (response.ok) {
-                    const documents = await response.json();
-                    displayDocuments(documents);
+                    const data = await response.json();
+                    displayDocuments(data.documents || []);
                 }
             } catch (error) {
                 console.error('Failed to load documents:', error);
