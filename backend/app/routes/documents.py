@@ -230,22 +230,149 @@ async def list_documents(
 
 
 @router.post("/{document_id}/process")
-async def process_document(document_id: str):
+async def process_document(
+    document_id: str,
+    current_user: UserInDB = Depends(get_current_user),
+):
     """
     Process document with AI analysis.
 
     Args:
         document_id: Document identifier
+        current_user: Authenticated user
 
     Returns:
         Processing job information
     """
-    # TODO: Implement document processing
-    logger.info(f"Process document endpoint called: {document_id}")
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Process document endpoint not yet implemented",
-    )
+    try:
+        logger.info(f"Process document endpoint called: {document_id} by user {current_user.id}")
+
+        # Get document from database
+        documents = await execute_select(
+            "documents",
+            match={"id": document_id, "user_id": current_user.id},
+        )
+
+        if not documents:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Document not found",
+            )
+
+        document = documents[0]
+
+        # Check if already processing or processed
+        if document.get("status") == DocumentStatus.PROCESSING.value:
+            return {
+                "message": "Document is already being processed",
+                "status": "processing",
+                "document_id": document_id,
+            }
+
+        # Update status to processing
+        await execute_update(
+            "documents",
+            match={"id": document_id},
+            update={"status": DocumentStatus.PROCESSING.value, "updated_at": datetime.utcnow()},
+        )
+
+        # Import processor
+        from app.services.document_processor import DocumentProcessor, DocumentType
+        import tempfile
+        import os
+
+        # Download document from S3
+        s3_service = S3Service()
+        s3_ref = document.get("s3_reference", {})
+
+        if not s3_ref.get("key"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Document S3 reference not found",
+            )
+
+        # Download from S3 to temp file
+        file_content = await s3_service.download_document(s3_ref["key"])
+
+        # Create temp file
+        with tempfile.NamedTemporaryFile(
+            delete=False, suffix=os.path.splitext(document["filename"])[1]
+        ) as tmp_file:
+            tmp_file.write(file_content)
+            tmp_file_path = tmp_file.name
+
+        try:
+            # Process document
+            processor = DocumentProcessor()
+            results = await processor.process_document(
+                document_id=document_id,
+                user_id=current_user.id,
+                file_path=tmp_file_path,
+                filename=document["filename"],
+                document_type=DocumentType.GENERAL,
+                processing_options={
+                    "extract_actions": True,
+                    "extract_risks": True,
+                    "generate_summary": True,
+                },
+            )
+
+            # Update document with results
+            update_data = {
+                "status": DocumentStatus.PROCESSED.value,
+                "extracted_text": results.get("extracted_text"),
+                "summary": results.get("summary"),
+                "action_items": results.get("action_items", []),
+                "entities": results.get("entities", []),
+                "key_phrases": results.get("key_phrases", []),
+                "risks": results.get("risks", []),
+                "processing_metadata": results.get("metadata", {}),
+                "updated_at": datetime.utcnow(),
+            }
+
+            await execute_update(
+                "documents",
+                match={"id": document_id},
+                update=update_data,
+            )
+
+            logger.info(f"Document processed successfully: {document_id}")
+
+            return {
+                "message": "Document processed successfully",
+                "status": "processed",
+                "document_id": document_id,
+                "summary": results.get("summary", ""),
+            }
+
+        finally:
+            # Clean up temp file
+            if os.path.exists(tmp_file_path):
+                os.unlink(tmp_file_path)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Document processing failed: {e}", exc_info=True)
+
+        # Update status to failed
+        try:
+            await execute_update(
+                "documents",
+                match={"id": document_id},
+                update={
+                    "status": DocumentStatus.FAILED.value,
+                    "error_message": str(e),
+                    "updated_at": datetime.utcnow(),
+                },
+            )
+        except Exception as update_error:
+            logger.error(f"Failed to update document status: {update_error}")
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Document processing failed: {str(e)}",
+        )
 
 
 @router.post("/{document_id}/question")
