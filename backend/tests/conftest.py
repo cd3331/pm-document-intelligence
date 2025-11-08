@@ -19,25 +19,19 @@ os.environ["DEBUG"] = "true"
 # Pytest Configuration
 # ============================================================================
 
+
 def pytest_configure(config):
     """Configure pytest with custom markers."""
-    config.addinivalue_line(
-        "markers", "asyncio: mark test as async"
-    )
-    config.addinivalue_line(
-        "markers", "integration: mark test as integration test"
-    )
-    config.addinivalue_line(
-        "markers", "unit: mark test as unit test"
-    )
-    config.addinivalue_line(
-        "markers", "slow: mark test as slow running"
-    )
+    config.addinivalue_line("markers", "asyncio: mark test as async")
+    config.addinivalue_line("markers", "integration: mark test as integration test")
+    config.addinivalue_line("markers", "unit: mark test as unit test")
+    config.addinivalue_line("markers", "slow: mark test as slow running")
 
 
 # ============================================================================
 # Event Loop Fixture
 # ============================================================================
+
 
 @pytest.fixture(scope="session")
 def event_loop():
@@ -51,15 +45,18 @@ def event_loop():
 # Mock Services
 # ============================================================================
 
+
 @pytest.fixture
 def mock_bedrock_service():
     """Mock BedrockService for testing."""
     mock = Mock()
-    mock.invoke_claude = AsyncMock(return_value={
-        "text": '{"result": "success"}',
-        "cost": 0.001,
-        "tokens": {"input": 100, "output": 50}
-    })
+    mock.invoke_claude = AsyncMock(
+        return_value={
+            "text": '{"result": "success"}',
+            "cost": 0.001,
+            "tokens": {"input": 100, "output": 50},
+        }
+    )
     return mock
 
 
@@ -67,12 +64,12 @@ def mock_bedrock_service():
 def mock_comprehend_service():
     """Mock ComprehendService for testing."""
     mock = Mock()
-    mock.analyze_document_entities = AsyncMock(return_value={
-        "entities": [
-            {"text": "Test Entity", "type": "PERSON", "score": 0.95}
-        ],
-        "cost": 0.0001
-    })
+    mock.analyze_document_entities = AsyncMock(
+        return_value={
+            "entities": [{"text": "Test Entity", "type": "PERSON", "score": 0.95}],
+            "cost": 0.0001,
+        }
+    )
     return mock
 
 
@@ -80,20 +77,19 @@ def mock_comprehend_service():
 def mock_vector_search():
     """Mock VectorSearch for testing."""
     mock = Mock()
-    mock.semantic_search = AsyncMock(return_value={
-        "results": [
-            {
-                "document_id": "doc_test",
-                "filename": "test.pdf",
-                "matched_chunk": {
-                    "text": "Test context",
-                    "chunk_index": 0
-                },
-                "similarity_score": 0.85
-            }
-        ],
-        "total_results": 1
-    })
+    mock.semantic_search = AsyncMock(
+        return_value={
+            "results": [
+                {
+                    "document_id": "doc_test",
+                    "filename": "test.pdf",
+                    "matched_chunk": {"text": "Test context", "chunk_index": 0},
+                    "similarity_score": 0.85,
+                }
+            ],
+            "total_results": 1,
+        }
+    )
     return mock
 
 
@@ -101,18 +97,21 @@ def mock_vector_search():
 def mock_embedding_service():
     """Mock EmbeddingService for testing."""
     mock = Mock()
-    mock.generate_embeddings = AsyncMock(return_value={
-        "embeddings": [[0.1] * 1536],  # Mock 1536-dim embedding
-        "chunks": ["Test chunk"],
-        "cost": 0.0001,
-        "model": "text-embedding-3-small"
-    })
+    mock.generate_embeddings = AsyncMock(
+        return_value={
+            "embeddings": [[0.1] * 1536],  # Mock 1536-dim embedding
+            "chunks": ["Test chunk"],
+            "cost": 0.0001,
+            "model": "text-embedding-3-small",
+        }
+    )
     return mock
 
 
 # ============================================================================
 # Test Data Fixtures
 # ============================================================================
+
 
 @pytest.fixture
 def sample_user():
@@ -122,7 +121,7 @@ def sample_user():
         "email": "test@example.com",
         "username": "testuser",
         "is_active": True,
-        "role": "user"
+        "role": "user",
     }
 
 
@@ -148,25 +147,20 @@ def sample_analysis_result():
         "document_id": "doc_test_123",
         "analysis": {
             "executive_summary": "Test document analysis",
-            "key_insights": [
-                "Insight 1",
-                "Insight 2"
-            ],
-            "patterns_identified": [
-                "Pattern 1"
-            ],
+            "key_insights": ["Insight 1", "Insight 2"],
+            "patterns_identified": ["Pattern 1"],
             "recommendations": [
                 {
                     "recommendation": "Test recommendation",
                     "priority": "MEDIUM",
-                    "rationale": "Test rationale"
+                    "rationale": "Test rationale",
                 }
             ],
             "risks_and_concerns": [],
             "opportunities": [],
-            "confidence_score": 0.85
+            "confidence_score": 0.85,
         },
-        "cost": 0.003
+        "cost": 0.003,
     }
 
 
@@ -181,7 +175,7 @@ def sample_action_items():
             "priority": "HIGH",
             "status": "TODO",
             "dependencies": [],
-            "confidence": 0.9
+            "confidence": 0.9,
         },
         {
             "action": "Review documentation",
@@ -190,8 +184,8 @@ def sample_action_items():
             "priority": "MEDIUM",
             "status": "IN_PROGRESS",
             "dependencies": ["Complete testing"],
-            "confidence": 0.85
-        }
+            "confidence": 0.85,
+        },
     ]
 
 
@@ -200,27 +194,17 @@ def sample_summary():
     """Sample summary for testing."""
     return {
         "executive_summary": "Brief summary of the document",
-        "key_points": [
-            "Point 1",
-            "Point 2",
-            "Point 3"
-        ],
-        "decisions": [
-            "Decision 1"
-        ],
-        "next_steps": [
-            "Step 1",
-            "Step 2"
-        ],
-        "concerns": [
-            "Concern 1"
-        ]
+        "key_points": ["Point 1", "Point 2", "Point 3"],
+        "decisions": ["Decision 1"],
+        "next_steps": ["Step 1", "Step 2"],
+        "concerns": ["Concern 1"],
     }
 
 
 # ============================================================================
 # Database Fixtures (if needed)
 # ============================================================================
+
 
 @pytest.fixture
 async def db_session():
@@ -240,6 +224,7 @@ async def db_session():
 # API Client Fixtures
 # ============================================================================
 
+
 @pytest.fixture
 def api_client():
     """
@@ -248,6 +233,7 @@ def api_client():
     In a real implementation, this would use FastAPI TestClient.
     """
     from fastapi.testclient import TestClient
+
     # Would import app here
     # client = TestClient(app)
     # return client
@@ -257,6 +243,7 @@ def api_client():
 # ============================================================================
 # Environment Fixtures
 # ============================================================================
+
 
 @pytest.fixture(autouse=True)
 def setup_test_env(monkeypatch):
@@ -280,6 +267,7 @@ def setup_test_env(monkeypatch):
 # Cleanup Fixtures
 # ============================================================================
 
+
 @pytest.fixture(autouse=True)
 async def cleanup():
     """Clean up after each test."""
@@ -291,6 +279,7 @@ async def cleanup():
 # ============================================================================
 # Performance Testing Fixtures
 # ============================================================================
+
 
 @pytest.fixture
 def performance_timer():

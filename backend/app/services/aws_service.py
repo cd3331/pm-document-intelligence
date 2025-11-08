@@ -1434,7 +1434,7 @@ class S3Service:
         """Initialize S3 service."""
         self.session = aioboto3.Session()
         self.region = settings.aws.aws_region
-        self.bucket_name = settings.aws.aws_s3_bucket
+        self.bucket_name = settings.aws.s3_bucket_name
         self.circuit_breaker = CircuitBreaker()
 
         # Multipart upload threshold (5 MB)

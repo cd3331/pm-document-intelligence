@@ -41,6 +41,7 @@ from app.utils.exceptions import ValidationError, AIServiceError
 # Test Fixtures
 # ============================================================================
 
+
 @pytest.fixture
 def sample_document_text():
     """Sample document text for testing."""
@@ -102,6 +103,7 @@ def mock_vector_search_results():
 # ============================================================================
 # BaseAgent Tests
 # ============================================================================
+
 
 class TestAgentMetrics:
     """Test AgentMetrics functionality."""
@@ -200,8 +202,7 @@ class TestAgentCircuitBreaker:
     def test_circuit_half_open_after_timeout(self):
         """Test circuit transitions to half-open after timeout."""
         breaker = AgentCircuitBreaker(
-            failure_threshold=2,
-            recovery_timeout=0.1  # 100ms for testing
+            failure_threshold=2, recovery_timeout=0.1  # 100ms for testing
         )
 
         # Open the circuit
@@ -211,6 +212,7 @@ class TestAgentCircuitBreaker:
 
         # Wait for recovery timeout
         import time
+
         time.sleep(0.15)
 
         # Should transition to half-open
@@ -219,9 +221,7 @@ class TestAgentCircuitBreaker:
     def test_half_open_closes_on_success(self):
         """Test half-open circuit closes on success."""
         breaker = AgentCircuitBreaker(
-            failure_threshold=2,
-            recovery_timeout=0.1,
-            half_open_max_calls=2
+            failure_threshold=2, recovery_timeout=0.1, half_open_max_calls=2
         )
 
         # Open the circuit
@@ -230,6 +230,7 @@ class TestAgentCircuitBreaker:
 
         # Wait and transition to half-open
         import time
+
         time.sleep(0.15)
         breaker.can_execute()
 
@@ -251,9 +252,7 @@ class TestBaseAgent:
                 return {"result": "success"}
 
         agent = TestAgent(
-            name="TestAgent",
-            description="Test agent",
-            config={"max_requests_per_minute": 30}
+            name="TestAgent", description="Test agent", config={"max_requests_per_minute": 30}
         )
 
         assert agent.name == "TestAgent"
@@ -297,6 +296,7 @@ class TestBaseAgent:
 # ============================================================================
 # AgentOrchestrator Tests
 # ============================================================================
+
 
 class TestAgentOrchestrator:
     """Test AgentOrchestrator functionality."""
@@ -350,10 +350,7 @@ class TestAgentOrchestrator:
         agent = TestAgent(name="TestAgent", description="Test")
         orchestrator.register_agent(agent, [TaskType.EXTRACT_ACTIONS])
 
-        result = await orchestrator.route_task(
-            TaskType.EXTRACT_ACTIONS,
-            {"text": "test"}
-        )
+        result = await orchestrator.route_task(TaskType.EXTRACT_ACTIONS, {"text": "test"})
 
         assert result["processed"] is True
 
@@ -363,10 +360,7 @@ class TestAgentOrchestrator:
         orchestrator = AgentOrchestrator()
 
         with pytest.raises(ValidationError) as exc_info:
-            await orchestrator.route_task(
-                TaskType.DEEP_ANALYSIS,
-                {"text": "test"}
-            )
+            await orchestrator.route_task(TaskType.DEEP_ANALYSIS, {"text": "test"})
 
         assert "No agent registered" in str(exc_info.value)
 
@@ -375,9 +369,7 @@ class TestAgentOrchestrator:
         orchestrator = AgentOrchestrator()
 
         orchestrator.add_to_conversation(
-            "conv_123",
-            question="What is the project status?",
-            answer="The project is on track."
+            "conv_123", question="What is the project status?", answer="The project is on track."
         )
 
         history = orchestrator.get_conversation_history("conv_123")
@@ -395,9 +387,7 @@ class TestAgentOrchestrator:
         # Add more than max (10) exchanges
         for i in range(15):
             orchestrator.add_to_conversation(
-                "conv_123",
-                question=f"Question {i}",
-                answer=f"Answer {i}"
+                "conv_123", question=f"Question {i}", answer=f"Answer {i}"
             )
 
         history = orchestrator.get_conversation_history("conv_123")
@@ -408,17 +398,19 @@ class TestAgentOrchestrator:
 # Individual Agent Tests
 # ============================================================================
 
+
 class TestAnalysisAgent:
     """Test AnalysisAgent functionality."""
 
     @pytest.mark.asyncio
-    @patch('app.agents.analysis_agent.BedrockService')
+    @patch("app.agents.analysis_agent.BedrockService")
     async def test_analysis_agent(self, mock_bedrock, sample_document_text):
         """Test analysis agent processing."""
         # Mock Bedrock response
         mock_instance = mock_bedrock.return_value
-        mock_instance.invoke_claude = AsyncMock(return_value={
-            "text": '''{
+        mock_instance.invoke_claude = AsyncMock(
+            return_value={
+                "text": """{
                 "executive_summary": "Project on track with some risks",
                 "key_insights": ["Authentication nearly complete", "Security issues found"],
                 "patterns_identified": ["Timeline pressure", "Budget concerns"],
@@ -434,19 +426,22 @@ class TestAnalysisAgent:
                 }],
                 "opportunities": ["Opportunity to improve security posture"],
                 "confidence_score": 0.85
-            }''',
-            "cost": 0.003
-        })
+            }""",
+                "cost": 0.003,
+            }
+        )
 
         agent = AnalysisAgent()
-        result = await agent.execute({
-            "text": sample_document_text,
-            "options": {
-                "document_type": "meeting_notes",
-                "include_risks": True,
-                "include_opportunities": True
+        result = await agent.execute(
+            {
+                "text": sample_document_text,
+                "options": {
+                    "document_type": "meeting_notes",
+                    "include_risks": True,
+                    "include_opportunities": True,
+                },
             }
-        })
+        )
 
         assert "analysis" in result
         assert result["analysis"]["confidence_score"] == 0.85
@@ -457,12 +452,13 @@ class TestActionItemAgent:
     """Test ActionItemAgent functionality."""
 
     @pytest.mark.asyncio
-    @patch('app.agents.action_agent.BedrockService')
+    @patch("app.agents.action_agent.BedrockService")
     async def test_action_extraction(self, mock_bedrock, sample_document_text):
         """Test action item extraction."""
         mock_instance = mock_bedrock.return_value
-        mock_instance.invoke_claude = AsyncMock(return_value={
-            "text": '''{
+        mock_instance.invoke_claude = AsyncMock(
+            return_value={
+                "text": """{
                 "action_items": [
                     {
                         "action": "Schedule security review meeting",
@@ -483,15 +479,15 @@ class TestActionItemAgent:
                         "confidence": 0.95
                     }
                 ]
-            }''',
-            "cost": 0.002
-        })
+            }""",
+                "cost": 0.002,
+            }
+        )
 
         agent = ActionItemAgent()
-        result = await agent.execute({
-            "text": sample_document_text,
-            "options": {"track_dependencies": True}
-        })
+        result = await agent.execute(
+            {"text": sample_document_text, "options": {"track_dependencies": True}}
+        )
 
         assert "action_items" in result
         assert len(result["action_items"]) == 2
@@ -502,12 +498,13 @@ class TestSummaryAgent:
     """Test SummaryAgent functionality."""
 
     @pytest.mark.asyncio
-    @patch('app.agents.summary_agent.BedrockService')
+    @patch("app.agents.summary_agent.BedrockService")
     async def test_summary_generation(self, mock_bedrock, sample_document_text):
         """Test summary generation."""
         mock_instance = mock_bedrock.return_value
-        mock_instance.invoke_claude = AsyncMock(return_value={
-            "text": '''{
+        mock_instance.invoke_claude = AsyncMock(
+            return_value={
+                "text": """{
                 "executive_summary": "Q4 2024 project meeting discussing authentication module completion, security concerns, and budget issues.",
                 "key_points": [
                     "Authentication module 90% complete",
@@ -525,18 +522,15 @@ class TestSummaryAgent:
                     "Holiday timeline pressure",
                     "Budget overrun"
                 ]
-            }''',
-            "cost": 0.002
-        })
+            }""",
+                "cost": 0.002,
+            }
+        )
 
         agent = SummaryAgent()
-        result = await agent.execute({
-            "text": sample_document_text,
-            "options": {
-                "length": "medium",
-                "audience": "executive"
-            }
-        })
+        result = await agent.execute(
+            {"text": sample_document_text, "options": {"length": "medium", "audience": "executive"}}
+        )
 
         assert "summary" in result
         assert len(result["summary"]["key_points"]) > 0
@@ -548,26 +542,27 @@ class TestEntityAgent:
     """Test EntityAgent functionality."""
 
     @pytest.mark.asyncio
-    @patch('app.agents.entity_agent.BedrockService')
-    @patch('app.agents.entity_agent.ComprehendService')
-    async def test_entity_extraction(
-        self, mock_comprehend, mock_bedrock, sample_document_text
-    ):
+    @patch("app.agents.entity_agent.BedrockService")
+    @patch("app.agents.entity_agent.ComprehendService")
+    async def test_entity_extraction(self, mock_comprehend, mock_bedrock, sample_document_text):
         """Test entity extraction."""
         # Mock Comprehend response
         mock_comprehend_instance = mock_comprehend.return_value
-        mock_comprehend_instance.analyze_document_entities = AsyncMock(return_value={
-            "entities": [
-                {"text": "John Smith", "type": "PERSON", "score": 0.95},
-                {"text": "December 15, 2024", "type": "DATE", "score": 0.99}
-            ],
-            "cost": 0.0001
-        })
+        mock_comprehend_instance.analyze_document_entities = AsyncMock(
+            return_value={
+                "entities": [
+                    {"text": "John Smith", "type": "PERSON", "score": 0.95},
+                    {"text": "December 15, 2024", "type": "DATE", "score": 0.99},
+                ],
+                "cost": 0.0001,
+            }
+        )
 
         # Mock Bedrock response
         mock_bedrock_instance = mock_bedrock.return_value
-        mock_bedrock_instance.invoke_claude = AsyncMock(return_value={
-            "text": '''{
+        mock_bedrock_instance.invoke_claude = AsyncMock(
+            return_value={
+                "text": """{
                 "projects": [{"name": "Authentication Module", "status": "in_progress"}],
                 "stakeholders": [
                     {"name": "John Smith", "role": "Project Manager"},
@@ -579,9 +574,10 @@ class TestEntityAgent:
                 "budget_items": [],
                 "dependencies": [],
                 "teams": []
-            }''',
-            "cost": 0.002
-        })
+            }""",
+                "cost": 0.002,
+            }
+        )
 
         agent = EntityAgent()
         result = await agent.execute({"text": sample_document_text})
@@ -595,39 +591,45 @@ class TestQAAgent:
     """Test QAAgent functionality."""
 
     @pytest.mark.asyncio
-    @patch('app.agents.qa_agent.BedrockService')
-    @patch('app.agents.qa_agent.VectorSearch')
+    @patch("app.agents.qa_agent.BedrockService")
+    @patch("app.agents.qa_agent.VectorSearch")
     async def test_qa_with_context(self, mock_vector_search, mock_bedrock):
         """Test Q&A with document context."""
         # Mock vector search
         mock_vs_instance = mock_vector_search.return_value
-        mock_vs_instance.semantic_search = AsyncMock(return_value={
-            "results": [
-                {
-                    "document_id": "doc_123",
-                    "filename": "meeting_notes.pdf",
-                    "matched_chunk": {
-                        "text": "Authentication module is 90% complete",
-                        "chunk_index": 0
-                    },
-                    "similarity_score": 0.88
-                }
-            ]
-        })
+        mock_vs_instance.semantic_search = AsyncMock(
+            return_value={
+                "results": [
+                    {
+                        "document_id": "doc_123",
+                        "filename": "meeting_notes.pdf",
+                        "matched_chunk": {
+                            "text": "Authentication module is 90% complete",
+                            "chunk_index": 0,
+                        },
+                        "similarity_score": 0.88,
+                    }
+                ]
+            }
+        )
 
         # Mock Bedrock
         mock_bedrock_instance = mock_bedrock.return_value
-        mock_bedrock_instance.invoke_claude = AsyncMock(return_value={
-            "text": "The authentication module is currently 90% complete according to the meeting notes.",
-            "cost": 0.001
-        })
+        mock_bedrock_instance.invoke_claude = AsyncMock(
+            return_value={
+                "text": "The authentication module is currently 90% complete according to the meeting notes.",
+                "cost": 0.001,
+            }
+        )
 
         agent = QAAgent()
-        result = await agent.execute({
-            "question": "What is the status of the authentication module?",
-            "user_id": "user_123",
-            "use_context": True
-        })
+        result = await agent.execute(
+            {
+                "question": "What is the status of the authentication module?",
+                "user_id": "user_123",
+                "use_context": True,
+            }
+        )
 
         assert "answer" in result
         assert "citations" in result
@@ -638,26 +640,28 @@ class TestQAAgent:
 # Integration Tests
 # ============================================================================
 
+
 class TestMultiAgentIntegration:
     """Test multi-agent integration and workflows."""
 
     @pytest.mark.asyncio
-    @patch('app.agents.analysis_agent.BedrockService')
-    @patch('app.agents.action_agent.BedrockService')
+    @patch("app.agents.analysis_agent.BedrockService")
+    @patch("app.agents.action_agent.BedrockService")
     async def test_multi_agent_parallel_execution(
         self, mock_bedrock_action, mock_bedrock_analysis, sample_document_text
     ):
         """Test parallel multi-agent execution."""
         # Mock responses
-        mock_bedrock_analysis.return_value.invoke_claude = AsyncMock(return_value={
-            "text": '{"executive_summary": "Test", "key_insights": [], "patterns_identified": [], "recommendations": [], "risks_and_concerns": [], "opportunities": [], "confidence_score": 0.8}',
-            "cost": 0.003
-        })
+        mock_bedrock_analysis.return_value.invoke_claude = AsyncMock(
+            return_value={
+                "text": '{"executive_summary": "Test", "key_insights": [], "patterns_identified": [], "recommendations": [], "risks_and_concerns": [], "opportunities": [], "confidence_score": 0.8}',
+                "cost": 0.003,
+            }
+        )
 
-        mock_bedrock_action.return_value.invoke_claude = AsyncMock(return_value={
-            "text": '{"action_items": []}',
-            "cost": 0.002
-        })
+        mock_bedrock_action.return_value.invoke_claude = AsyncMock(
+            return_value={"text": '{"action_items": []}', "cost": 0.002}
+        )
 
         # Initialize orchestrator with agents
         orchestrator = initialize_agents()
@@ -668,7 +672,7 @@ class TestMultiAgentIntegration:
             document_text=sample_document_text,
             user_id="user_123",
             tasks=["deep_analysis", "extract_actions"],
-            parallel=True
+            parallel=True,
         )
 
         assert "results" in result
@@ -713,6 +717,7 @@ class TestMultiAgentIntegration:
 # ============================================================================
 # Error Handling Tests
 # ============================================================================
+
 
 class TestErrorHandling:
     """Test error handling across the agent system."""

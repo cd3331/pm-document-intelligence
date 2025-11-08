@@ -60,7 +60,7 @@ WORKDIR /app
 # Copy virtual environment from builder
 COPY --from=builder /opt/venv /opt/venv
 
-# Copy application code
+# Copy application code (includes scripts/ subdirectory)
 COPY backend/ /app/
 
 # Create necessary directories and set permissions

@@ -215,7 +215,8 @@ async def set_cache(
 
         # Serialize value if needed
         if serialize:
-            value = json.dumps(value)
+            # Use default parameter to handle datetime and other non-serializable objects
+            value = json.dumps(value, default=str)
 
         # Use default TTL if not specified
         if ttl is None:

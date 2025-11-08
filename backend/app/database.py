@@ -1,11 +1,11 @@
 """
-Supabase Database Integration for PM Document Intelligence.
+PostgreSQL Database Integration for PM Document Intelligence.
 
 This module provides database utilities, connection management, and query helpers
-for interacting with Supabase PostgreSQL database.
+for interacting with AWS RDS PostgreSQL database using SQLAlchemy.
 
 Features:
-- Supabase client initialization with connection pooling
+- SQLAlchemy async engine with connection pooling
 - Async context managers for database sessions
 - Connection health checks with retries
 - Query helper functions with SQL injection prevention
@@ -13,23 +13,31 @@ Features:
 - Transaction management
 
 Usage:
-    from app.database import get_supabase_client, execute_query
+    from app.database import execute_select, execute_insert
 
-    # Get Supabase client
-    supabase = get_supabase_client()
+    # Select data
+    users = await execute_select("users", match={"email": email})
 
-    # Execute query
-    result = await execute_query(
-        "SELECT * FROM users WHERE email = %s",
-        (email,)
-    )
+    # Insert data
+    user = await execute_insert("users", {"email": "user@example.com", "name": "John"})
 """
 
 from contextlib import asynccontextmanager
 from typing import Any
 
-from postgrest.exceptions import APIError
-from supabase import Client, create_client
+from sqlalchemy import (
+    MetaData,
+    Table,
+    and_,
+    delete,
+    func,
+    insert,
+    select,
+    text,
+    update,
+)
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
 from tenacity import (
     retry,
     retry_if_exception_type,
@@ -38,7 +46,7 @@ from tenacity import (
 )
 
 from app.config import settings
-from app.db.session import get_db
+from app.db.session import get_db, get_engine
 from app.utils.exceptions import DatabaseError, RecordNotFoundError
 from app.utils.logger import get_logger
 
@@ -46,70 +54,55 @@ logger = get_logger(__name__)
 
 
 # ============================================================================
-# Supabase Client Management
+# Global Metadata Cache
 # ============================================================================
 
-_supabase_client: Client | None = None
+_metadata_cache: MetaData | None = None
 
 
-def get_supabase_client() -> Client:
+async def get_metadata() -> MetaData:
     """
-    Get or create Supabase client.
+    Get or create metadata with table reflection.
 
     Returns:
-        Supabase client instance
-
-    Raises:
-        DatabaseError: If client creation fails
+        MetaData with reflected tables
     """
-    global _supabase_client
+    global _metadata_cache
 
-    if _supabase_client is None:
-        try:
-            _supabase_client = create_client(
-                supabase_url=str(settings.supabase.supabase_url),
-                supabase_key=settings.supabase.supabase_key,
-            )
+    if _metadata_cache is None:
+        _metadata_cache = MetaData()
+        engine = get_engine()
 
-            logger.info(f"Supabase client initialized: {settings.supabase.supabase_url}")
+        # Reflect tables using async engine
+        async with engine.begin() as conn:
+            await conn.run_sync(_metadata_cache.reflect)
 
-        except Exception as e:
-            logger.error(f"Failed to create Supabase client: {e}", exc_info=True)
-            raise DatabaseError(
-                message="Failed to initialize database client",
-                details={"error": str(e)},
-            )
+        logger.debug(f"Database metadata reflected: {len(_metadata_cache.tables)} tables")
 
-    return _supabase_client
+    return _metadata_cache
 
 
-def get_supabase_admin_client() -> Client:
+def get_table(metadata: MetaData, table_name: str) -> Table:
     """
-    Get Supabase admin client with service role key.
+    Get table from metadata.
 
-    Use this for operations that bypass Row Level Security.
+    Args:
+        metadata: SQLAlchemy metadata
+        table_name: Name of the table
 
     Returns:
-        Supabase admin client instance
+        Table object
 
     Raises:
-        DatabaseError: If client creation fails
+        DatabaseError: If table doesn't exist
     """
-    try:
-        admin_client = create_client(
-            supabase_url=str(settings.supabase.supabase_url),
-            supabase_key=settings.supabase.supabase_service_key,
-        )
-
-        logger.debug("Supabase admin client created")
-        return admin_client
-
-    except Exception as e:
-        logger.error(f"Failed to create Supabase admin client: {e}", exc_info=True)
+    if table_name not in metadata.tables:
         raise DatabaseError(
-            message="Failed to initialize admin database client",
-            details={"error": str(e)},
+            message=f"Table '{table_name}' does not exist",
+            details={"table": table_name},
         )
+
+    return metadata.tables[table_name]
 
 
 # ============================================================================
@@ -118,7 +111,7 @@ def get_supabase_admin_client() -> Client:
 
 
 @retry(
-    retry=retry_if_exception_type((DatabaseError, APIError)),
+    retry=retry_if_exception_type(DatabaseError),
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=1, min=2, max=10),
 )
@@ -133,10 +126,7 @@ async def check_database_connection() -> bool:
         DatabaseError: If connection check fails after retries
     """
     try:
-        # Use SQLAlchemy session to test connection
         async with get_db() as session:
-            from sqlalchemy import text
-
             result = await session.execute(text("SELECT 1"))
             result.scalar_one()
 
@@ -151,28 +141,6 @@ async def check_database_connection() -> bool:
         )
 
 
-async def test_supabase_connection() -> bool:
-    """
-    Test Supabase connection.
-
-    Returns:
-        True if connection successful, False otherwise
-    """
-    try:
-        supabase = get_supabase_client()
-
-        # Try to query a public table or use auth endpoint
-        # This is a lightweight check
-        supabase.table("users").select("id").limit(1).execute()
-
-        logger.debug("Supabase connection test successful")
-        return True
-
-    except Exception as e:
-        logger.warning(f"Supabase connection test failed: {e}")
-        return False
-
-
 # ============================================================================
 # Query Helper Functions
 # ============================================================================
@@ -184,11 +152,11 @@ async def execute_query(
     fetch_one: bool = False,
 ) -> list[dict[str, Any]] | dict[str, Any] | None:
     """
-    Execute SQL query with parameterized values to prevent SQL injection.
+    Execute raw SQL query with parameterized values to prevent SQL injection.
 
     Args:
-        query: SQL query with %s placeholders
-        params: Query parameters
+        query: SQL query with :param placeholders
+        params: Query parameters as tuple
         fetch_one: If True, return single row
 
     Returns:
@@ -199,18 +167,16 @@ async def execute_query(
 
     Example:
         result = await execute_query(
-            "SELECT * FROM users WHERE email = %s",
-            (email,)
+            "SELECT * FROM users WHERE email = :param_0",
+            ("user@example.com",)
         )
     """
     try:
         async with get_db() as session:
-            from sqlalchemy import text
-
-            # Convert params to dict for SQLAlchemy
+            # Convert positional params to named params
             if params:
-                # Replace %s with :param_N for SQLAlchemy
                 param_dict = {f"param_{i}": param for i, param in enumerate(params)}
+                # Replace %s with :param_N for SQLAlchemy
                 query_text = query
                 for i in range(len(params)):
                     query_text = query_text.replace("%s", f":param_{i}", 1)
@@ -222,9 +188,7 @@ async def execute_query(
 
             if fetch_one:
                 row = result.fetchone()
-                if row:
-                    return dict(row._mapping)
-                return None
+                return dict(row._mapping) if row else None
             else:
                 rows = result.fetchall()
                 return [dict(row._mapping) for row in rows]
@@ -263,23 +227,36 @@ async def execute_insert(
     Example:
         user = await execute_insert(
             "users",
-            {"email": "user@example.com", "name": "John Doe"}
+            {"email": "user@example.com", "full_name": "John Doe"}
         )
     """
     try:
-        supabase = get_supabase_client()
-        response = supabase.table(table).insert(data).execute()
+        async with get_db() as session:
+            metadata = await get_metadata()
+            table_obj = get_table(metadata, table)
 
-        if response.data:
-            logger.debug(f"Insert into {table} successful")
-            return response.data[0] if isinstance(response.data, list) else response.data
+            stmt = insert(table_obj).values(**data).returning(table_obj)
+            result = await session.execute(stmt)
+            await session.commit()
 
+            row = result.fetchone()
+            if row:
+                inserted_data = dict(row._mapping)
+                logger.debug(f"Insert into {table} successful: {inserted_data.get('id', 'N/A')}")
+                return inserted_data
+
+            raise DatabaseError(
+                message="Insert returned no data",
+                details={"table": table},
+            )
+
+    except IntegrityError as e:
+        logger.error(f"Insert integrity error: {e}", exc_info=True)
         raise DatabaseError(
-            message="Insert returned no data",
-            details={"table": table},
+            message=f"Failed to insert into {table}: integrity constraint violated",
+            details={"error": str(e), "data": data},
         )
-
-    except APIError as e:
+    except Exception as e:
         logger.error(f"Insert failed: {e}", exc_info=True)
         raise DatabaseError(
             message=f"Failed to insert into {table}",
@@ -307,35 +284,42 @@ async def execute_update(
 
     Raises:
         DatabaseError: If update fails
+        RecordNotFoundError: If no matching record found
 
     Example:
         user = await execute_update(
             "users",
-            {"name": "Jane Doe"},
+            {"full_name": "Jane Doe"},
             {"id": user_id}
         )
     """
     try:
-        supabase = get_supabase_client()
+        async with get_db() as session:
+            metadata = await get_metadata()
+            table_obj = get_table(metadata, table)
 
-        # Build query with match conditions
-        query = supabase.table(table).update(data)
+            # Build WHERE conditions
+            conditions = [table_obj.c[key] == value for key, value in match.items()]
 
-        for key, value in match.items():
-            query = query.eq(key, value)
+            stmt = update(table_obj).where(and_(*conditions)).values(**data).returning(table_obj)
 
-        response = query.execute()
+            result = await session.execute(stmt)
+            await session.commit()
 
-        if response.data:
-            logger.debug(f"Update in {table} successful")
-            return response.data[0] if isinstance(response.data, list) else response.data
+            row = result.fetchone()
+            if row:
+                updated_data = dict(row._mapping)
+                logger.debug(f"Update in {table} successful")
+                return updated_data
 
-        raise RecordNotFoundError(
-            message=f"No record found in {table}",
-            details={"match": match},
-        )
+            raise RecordNotFoundError(
+                message=f"No record found in {table}",
+                details={"match": match},
+            )
 
-    except APIError as e:
+    except RecordNotFoundError:
+        raise
+    except Exception as e:
         logger.error(f"Update failed: {e}", exc_info=True)
         raise DatabaseError(
             message=f"Failed to update {table}",
@@ -364,20 +348,21 @@ async def execute_delete(
         success = await execute_delete("users", {"id": user_id})
     """
     try:
-        supabase = get_supabase_client()
+        async with get_db() as session:
+            metadata = await get_metadata()
+            table_obj = get_table(metadata, table)
 
-        # Build query with match conditions
-        query = supabase.table(table).delete()
+            # Build WHERE conditions
+            conditions = [table_obj.c[key] == value for key, value in match.items()]
 
-        for key, value in match.items():
-            query = query.eq(key, value)
+            stmt = delete(table_obj).where(and_(*conditions))
+            await session.execute(stmt)
+            await session.commit()
 
-        query.execute()
+            logger.debug(f"Delete from {table} successful")
+            return True
 
-        logger.debug(f"Delete from {table} successful")
-        return True
-
-    except APIError as e:
+    except Exception as e:
         logger.error(f"Delete failed: {e}", exc_info=True)
         raise DatabaseError(
             message=f"Failed to delete from {table}",
@@ -398,9 +383,9 @@ async def execute_select(
 
     Args:
         table: Table name
-        columns: Columns to select
+        columns: Columns to select (comma-separated or "*")
         match: Match conditions
-        order: Order by clause
+        order: Order by clause (e.g., "created_at.desc" or "name")
         limit: Limit results
         offset: Offset results
 
@@ -413,41 +398,57 @@ async def execute_select(
     Example:
         users = await execute_select(
             "users",
-            columns="id,email,name",
-            match={"organization_id": org_id},
+            columns="id,email,full_name",
+            match={"is_active": True},
             order="created_at.desc",
             limit=10
         )
     """
     try:
-        supabase = get_supabase_client()
+        async with get_db() as session:
+            metadata = await get_metadata()
+            table_obj = get_table(metadata, table)
 
-        # Build query
-        query = supabase.table(table).select(columns)
+            # Build SELECT columns
+            if columns == "*":
+                stmt = select(table_obj)
+            else:
+                col_list = [table_obj.c[col.strip()] for col in columns.split(",")]
+                stmt = select(*col_list)
 
-        # Add match conditions
-        if match:
-            for key, value in match.items():
-                query = query.eq(key, value)
+            # Add WHERE conditions
+            if match:
+                conditions = [table_obj.c[key] == value for key, value in match.items()]
+                stmt = stmt.where(and_(*conditions))
 
-        # Add order
-        if order:
-            query = query.order(order)
+            # Add ORDER BY
+            if order:
+                # Handle Supabase-style ordering (e.g., "created_at.desc")
+                if "." in order:
+                    col_name, direction = order.split(".")
+                    order_col = table_obj.c[col_name]
+                    stmt = stmt.order_by(
+                        order_col.desc() if direction == "desc" else order_col.asc()
+                    )
+                else:
+                    stmt = stmt.order_by(table_obj.c[order])
 
-        # Add limit
-        if limit:
-            query = query.limit(limit)
+            # Add LIMIT
+            if limit:
+                stmt = stmt.limit(limit)
 
-        # Add offset
-        if offset:
-            query = query.offset(offset)
+            # Add OFFSET
+            if offset:
+                stmt = stmt.offset(offset)
 
-        response = query.execute()
+            result = await session.execute(stmt)
+            rows = result.fetchall()
 
-        logger.debug(f"Select from {table} successful")
-        return response.data if response.data else []
+            data = [dict(row._mapping) for row in rows]
+            logger.debug(f"Select from {table} returned {len(data)} rows")
+            return data
 
-    except APIError as e:
+    except Exception as e:
         logger.error(f"Select failed: {e}", exc_info=True)
         raise DatabaseError(
             message=f"Failed to select from {table}",
@@ -473,23 +474,24 @@ async def execute_count(
         DatabaseError: If count fails
     """
     try:
-        supabase = get_supabase_client()
+        async with get_db() as session:
+            metadata = await get_metadata()
+            table_obj = get_table(metadata, table)
 
-        # Build query
-        query = supabase.table(table).select("*", count="exact")
+            stmt = select(func.count()).select_from(table_obj)
 
-        # Add match conditions
-        if match:
-            for key, value in match.items():
-                query = query.eq(key, value)
+            # Add WHERE conditions
+            if match:
+                conditions = [table_obj.c[key] == value for key, value in match.items()]
+                stmt = stmt.where(and_(*conditions))
 
-        response = query.execute()
+            result = await session.execute(stmt)
+            count = result.scalar_one()
 
-        count = response.count if hasattr(response, "count") else 0
-        logger.debug(f"Count from {table}: {count}")
-        return count
+            logger.debug(f"Count from {table}: {count}")
+            return count
 
-    except APIError as e:
+    except Exception as e:
         logger.error(f"Count failed: {e}", exc_info=True)
         raise DatabaseError(
             message=f"Failed to count {table}",
@@ -547,24 +549,30 @@ async def batch_insert(
         DatabaseError: If batch insert fails
     """
     try:
-        supabase = get_supabase_client()
-        all_results = []
+        async with get_db() as session:
+            metadata = await get_metadata()
+            table_obj = get_table(metadata, table)
 
-        # Process in chunks
-        for i in range(0, len(data_list), chunk_size):
-            chunk = data_list[i : i + chunk_size]
+            all_results = []
 
-            response = supabase.table(table).insert(chunk).execute()
+            # Process in chunks
+            for i in range(0, len(data_list), chunk_size):
+                chunk = data_list[i : i + chunk_size]
 
-            if response.data:
-                all_results.extend(response.data)
+                stmt = insert(table_obj).values(chunk).returning(table_obj)
+                result = await session.execute(stmt)
 
-            logger.debug(f"Batch insert into {table}: {len(chunk)} rows")
+                rows = result.fetchall()
+                all_results.extend([dict(row._mapping) for row in rows])
 
-        logger.info(f"Batch insert into {table} completed: {len(all_results)} total rows")
-        return all_results
+                logger.debug(f"Batch insert into {table}: {len(chunk)} rows")
 
-    except APIError as e:
+            await session.commit()
+
+            logger.info(f"Batch insert into {table} completed: {len(all_results)} total rows")
+            return all_results
+
+    except Exception as e:
         logger.error(f"Batch insert failed: {e}", exc_info=True)
         raise DatabaseError(
             message=f"Failed to batch insert into {table}",
@@ -585,7 +593,7 @@ async def search_full_text(
     limit: int = 10,
 ) -> list[dict[str, Any]]:
     """
-    Perform full-text search.
+    Perform full-text search using PostgreSQL ILIKE.
 
     Args:
         table: Table name
@@ -601,20 +609,30 @@ async def search_full_text(
         DatabaseError: If search fails
     """
     try:
-        supabase = get_supabase_client()
+        async with get_db() as session:
+            metadata = await get_metadata()
+            table_obj = get_table(metadata, table)
 
-        response = (
-            supabase.table(table)
-            .select(columns)
-            .text_search(column, search_term)
-            .limit(limit)
-            .execute()
-        )
+            # Build SELECT columns
+            if columns == "*":
+                stmt = select(table_obj)
+            else:
+                col_list = [table_obj.c[col.strip()] for col in columns.split(",")]
+                stmt = select(*col_list)
 
-        logger.debug(f"Full-text search in {table}.{column}: {len(response.data)} results")
-        return response.data if response.data else []
+            # Add ILIKE search condition
+            search_pattern = f"%{search_term}%"
+            stmt = stmt.where(table_obj.c[column].ilike(search_pattern))
+            stmt = stmt.limit(limit)
 
-    except APIError as e:
+            result = await session.execute(stmt)
+            rows = result.fetchall()
+
+            data = [dict(row._mapping) for row in rows]
+            logger.debug(f"Full-text search in {table}.{column}: {len(data)} results")
+            return data
+
+    except Exception as e:
         logger.error(f"Full-text search failed: {e}", exc_info=True)
         raise DatabaseError(
             message=f"Failed to search {table}",
@@ -642,14 +660,39 @@ async def upsert_data(
         DatabaseError: If upsert fails
     """
     try:
-        supabase = get_supabase_client()
+        async with get_db() as session:
+            from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-        response = supabase.table(table).upsert(data, on_conflict=on_conflict).execute()
+            metadata = await get_metadata(session)
+            table_obj = get_table(metadata, table)
 
-        logger.debug(f"Upsert into {table} successful")
-        return response.data
+            is_list = isinstance(data, list)
+            data_list = data if is_list else [data]
 
-    except APIError as e:
+            stmt = pg_insert(table_obj).values(data_list)
+
+            # Get all columns except the conflict column for update
+            update_cols = {
+                col.name: stmt.excluded[col.name]
+                for col in table_obj.columns
+                if col.name != on_conflict
+            }
+
+            stmt = stmt.on_conflict_do_update(
+                index_elements=[on_conflict],
+                set_=update_cols,
+            ).returning(table_obj)
+
+            result = await session.execute(stmt)
+            await session.commit()
+
+            rows = result.fetchall()
+            results = [dict(row._mapping) for row in rows]
+
+            logger.debug(f"Upsert into {table} successful: {len(results)} rows")
+            return results if is_list else results[0]
+
+    except Exception as e:
         logger.error(f"Upsert failed: {e}", exc_info=True)
         raise DatabaseError(
             message=f"Failed to upsert into {table}",
@@ -682,27 +725,27 @@ def sanitize_table_name(table_name: str) -> str:
     return table_name
 
 
-def build_filter_query(
-    base_query: Any,
+def build_filter_conditions(
+    table_obj: Table,
     filters: dict[str, Any],
-) -> Any:
+) -> list:
     """
-    Build query with multiple filters.
+    Build WHERE conditions from filters.
 
     Args:
-        base_query: Base Supabase query
+        table_obj: SQLAlchemy Table object
         filters: Filter conditions
 
     Returns:
-        Query with filters applied
+        List of SQLAlchemy conditions
     """
-    query = base_query
+    conditions = []
 
     for key, value in filters.items():
         if value is not None:
             if isinstance(value, list):
-                query = query.in_(key, value)
+                conditions.append(table_obj.c[key].in_(value))
             else:
-                query = query.eq(key, value)
+                conditions.append(table_obj.c[key] == value)
 
-    return query
+    return conditions

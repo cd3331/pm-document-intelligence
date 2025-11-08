@@ -544,7 +544,7 @@ async def api_exception_handler(request: Request, exc: BaseAPIException) -> JSON
         extra={
             "error_code": exc.error_code,
             "status_code": exc.status_code,
-            "message": exc.message,
+            "error_message": exc.message,
             "details": exc.details,
             "path": request.url.path,
             "method": request.method,

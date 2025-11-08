@@ -21,7 +21,11 @@ from app.core.config import settings
 from app.models.user import User
 from app.models.document import Document
 from app.models.organization import (
-    Organization, OrganizationMember, OrganizationUsage, PlanTier, OrganizationStatus
+    Organization,
+    OrganizationMember,
+    OrganizationUsage,
+    PlanTier,
+    OrganizationStatus,
 )
 from app.services.audit_logger import AuditLogger
 
@@ -33,9 +37,7 @@ def create_default_organization(db: Session) -> Organization:
     print("Creating default organization...")
 
     # Check if default org already exists
-    existing = db.query(Organization).filter(
-        Organization.slug == "default-org"
-    ).first()
+    existing = db.query(Organization).filter(Organization.slug == "default-org").first()
 
     if existing:
         print(f"Default organization already exists: {existing.name}")
@@ -47,7 +49,7 @@ def create_default_organization(db: Session) -> Organization:
         slug="default-org",
         plan=PlanTier.PRO,  # Start with PRO plan for existing users
         status=OrganizationStatus.ACTIVE,
-        settings={}
+        settings={},
     )
 
     db.add(org)
@@ -73,7 +75,7 @@ def create_default_organization(db: Session) -> Organization:
         ai_queries=0,
         storage_used_bytes=0,
         total_cost=0,
-        usage_details={}
+        usage_details={},
     )
 
     db.add(usage)
@@ -97,10 +99,14 @@ def migrate_users_to_organization(db: Session, organization: Organization):
 
     for user in users:
         # Check if already a member
-        existing = db.query(OrganizationMember).filter(
-            OrganizationMember.organization_id == organization.id,
-            OrganizationMember.user_id == user.id
-        ).first()
+        existing = (
+            db.query(OrganizationMember)
+            .filter(
+                OrganizationMember.organization_id == organization.id,
+                OrganizationMember.user_id == user.id,
+            )
+            .first()
+        )
 
         if existing:
             print(f"  - User {user.username} already a member, skipping")
@@ -114,7 +120,7 @@ def migrate_users_to_organization(db: Session, organization: Organization):
             user_id=user.id,
             role=role,
             is_active=True,
-            joined_at=user.created_at if hasattr(user, 'created_at') else datetime.utcnow()
+            joined_at=user.created_at if hasattr(user, "created_at") else datetime.utcnow(),
         )
 
         db.add(member)
@@ -138,9 +144,7 @@ def migrate_documents_to_organization(db: Session, organization: Organization):
     print("\nMigrating documents to organization...")
 
     # Count documents without organization
-    documents = db.query(Document).filter(
-        Document.organization_id.is_(None)
-    ).all()
+    documents = db.query(Document).filter(Document.organization_id.is_(None)).all()
 
     print(f"Found {len(documents)} documents to migrate")
 
@@ -157,9 +161,11 @@ def migrate_documents_to_organization(db: Session, organization: Organization):
     print(f"Successfully migrated {migrated} documents")
 
     # Update usage stats
-    usage = db.query(OrganizationUsage).filter(
-        OrganizationUsage.organization_id == organization.id
-    ).first()
+    usage = (
+        db.query(OrganizationUsage)
+        .filter(OrganizationUsage.organization_id == organization.id)
+        .first()
+    )
 
     if usage:
         usage.documents_created = migrated
@@ -178,21 +184,19 @@ def verify_migration(db: Session, organization: Organization):
     print(f"✓ Organizations: {org_count}")
 
     # Check members
-    member_count = db.query(OrganizationMember).filter(
-        OrganizationMember.organization_id == organization.id
-    ).count()
+    member_count = (
+        db.query(OrganizationMember)
+        .filter(OrganizationMember.organization_id == organization.id)
+        .count()
+    )
     print(f"✓ Organization members: {member_count}")
 
     # Check documents
-    doc_count = db.query(Document).filter(
-        Document.organization_id == organization.id
-    ).count()
+    doc_count = db.query(Document).filter(Document.organization_id == organization.id).count()
     print(f"✓ Documents in organization: {doc_count}")
 
     # Check for unmigrated documents
-    unmigrated_docs = db.query(Document).filter(
-        Document.organization_id.is_(None)
-    ).count()
+    unmigrated_docs = db.query(Document).filter(Document.organization_id.is_(None)).count()
 
     if unmigrated_docs > 0:
         print(f"⚠ Warning: {unmigrated_docs} documents not yet migrated")
@@ -223,8 +227,8 @@ async def log_migration_event(db: Session, organization: Organization):
         details={
             "migration_type": "single_tenant_to_multi_tenant",
             "organization_name": organization.name,
-            "migration_date": datetime.utcnow().isoformat()
-        }
+            "migration_date": datetime.utcnow().isoformat(),
+        },
     )
 
     print("\n✓ Migration event logged to audit trail")
@@ -275,6 +279,7 @@ def main():
         print(f"\n✗ Migration failed: {str(e)}")
         db.rollback()
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

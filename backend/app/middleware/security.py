@@ -104,30 +104,36 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
                 "default-src": "'self'",
                 # Script sources: removed unsafe-eval, kept unsafe-inline for templates
                 # Explicit CDN allowlist for external libraries
-                "script-src": " ".join([
-                    "'self'",
-                    "'unsafe-inline'",  # TODO: Replace with nonce-based CSP
-                    "https://cdn.tailwindcss.com",
-                    "https://unpkg.com",
-                    "https://cdn.jsdelivr.net",
-                    "https://cdn.pubnub.com",
-                ]),
+                "script-src": " ".join(
+                    [
+                        "'self'",
+                        "'unsafe-inline'",  # TODO: Replace with nonce-based CSP
+                        "https://cdn.tailwindcss.com",
+                        "https://unpkg.com",
+                        "https://cdn.jsdelivr.net",
+                        "https://cdn.pubnub.com",
+                    ]
+                ),
                 # Style sources: kept unsafe-inline for Tailwind and inline styles
-                "style-src": " ".join([
-                    "'self'",
-                    "'unsafe-inline'",  # TODO: Replace with nonce-based CSP
-                    "https://cdn.tailwindcss.com",
-                    "https://cdn.jsdelivr.net",
-                ]),
+                "style-src": " ".join(
+                    [
+                        "'self'",
+                        "'unsafe-inline'",  # TODO: Replace with nonce-based CSP
+                        "https://cdn.tailwindcss.com",
+                        "https://cdn.jsdelivr.net",
+                    ]
+                ),
                 "img-src": "'self' data: https:",
                 "font-src": "'self' data:",
                 # Connect sources: Updated for RDS migration (removed Supabase)
-                "connect-src": " ".join([
-                    "'self'",
-                    "https://api.openai.com",
-                    "https://pubsub.pubnub.com",
-                    "https://*.pubnub.com",
-                ]),
+                "connect-src": " ".join(
+                    [
+                        "'self'",
+                        "https://api.openai.com",
+                        "https://pubsub.pubnub.com",
+                        "https://*.pubnub.com",
+                    ]
+                ),
                 "frame-ancestors": "'none'",
                 "base-uri": "'self'",
                 "form-action": "'self'",

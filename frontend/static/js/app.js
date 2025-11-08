@@ -519,7 +519,7 @@ async function uploadFileWithProgress(file, onProgress) {
     return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         const formData = new FormData();
-        formData.append('files', file);
+        formData.append('file', file);
 
         // Progress tracking
         xhr.upload.addEventListener('progress', (e) => {
@@ -544,7 +544,7 @@ async function uploadFileWithProgress(file, onProgress) {
         });
 
         // Send request
-        xhr.open('POST', '/api/upload');
+        xhr.open('POST', '/api/v1/documents/upload');
         xhr.setRequestHeader('Authorization', `Bearer ${localStorage.getItem('auth_token')}`);
         xhr.send(formData);
     });

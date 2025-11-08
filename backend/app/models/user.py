@@ -27,6 +27,7 @@ Usage:
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any
+from uuid import UUID
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -293,6 +294,14 @@ class UserInDB(UserBase):
     last_login: datetime | None = Field(None, description="Last login timestamp")
     email_verified: bool = Field(default=False, description="Email verification status")
 
+    @field_validator("id", mode="before")
+    @classmethod
+    def convert_uuid_to_str(cls, v: UUID | str) -> str:
+        """Convert UUID to string if needed."""
+        if isinstance(v, UUID):
+            return str(v)
+        return v
+
     class Config:
         """Pydantic configuration."""
 
@@ -320,6 +329,14 @@ class User(UserBase):
     updated_at: datetime = Field(..., description="Last update timestamp")
     last_login: datetime | None = Field(None, description="Last login timestamp")
     email_verified: bool = Field(default=False, description="Email verification status")
+
+    @field_validator("id", mode="before")
+    @classmethod
+    def convert_uuid_to_str(cls, v: UUID | str) -> str:
+        """Convert UUID to string if needed."""
+        if isinstance(v, UUID):
+            return str(v)
+        return v
 
     class Config:
         """Pydantic configuration."""

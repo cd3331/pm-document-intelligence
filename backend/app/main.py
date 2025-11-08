@@ -926,7 +926,7 @@ try:
     from pathlib import Path
 
     # Mount static files for frontend
-    static_path = Path(__file__).parent.parent.parent / "frontend" / "static"
+    static_path = Path(__file__).parent.parent / "frontend" / "static"
     if static_path.exists():
         app.mount(
             "/static",
@@ -936,7 +936,7 @@ try:
         logger.info(f"✓ Static files mounted from {static_path}")
 
     # Mount templates for htmx
-    templates_path = Path(__file__).parent.parent.parent / "frontend" / "templates"
+    templates_path = Path(__file__).parent.parent / "frontend" / "templates"
     if templates_path.exists():
         from fastapi.templating import Jinja2Templates
 

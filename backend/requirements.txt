@@ -12,12 +12,14 @@ pydantic-settings==2.6.1
 # ============================================================================
 # Database & ORM
 # ============================================================================
-supabase==2.23.2
-postgrest==2.23.2
+# PostgreSQL drivers for async and sync operations
 psycopg2-binary==2.9.9
 asyncpg==0.29.0
+# Vector search support for embeddings
 pgvector==0.2.4
+# SQLAlchemy ORM with async support
 sqlalchemy==2.0.25
+# Database migrations
 alembic==1.13.1
 
 # ============================================================================
