@@ -103,7 +103,7 @@ async def upload_document(
             "file_size": file_size,
             "s3_key": upload_result["s3_key"],
             "s3_bucket": upload_result.get("bucket", ""),
-            "status": DocumentStatus.PENDING.value,
+            "status": DocumentStatus.UPLOADED.value,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow(),
         }
