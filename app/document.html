@@ -61,6 +61,9 @@
                     <p id="doc-meta" class="text-slate-gray">Uploaded on...</p>
                 </div>
                 <div class="flex space-x-4">
+                    <button id="process-btn" onclick="processDocument()" class="bg-gradient-to-r from-joy-teal to-teal-400 text-white px-8 py-3 rounded-lg hover:opacity-90 transition font-semibold shadow-lg">
+                        Process Document
+                    </button>
                     <button onclick="downloadDocument()" class="bg-joy-teal text-white px-6 py-3 rounded-lg hover:bg-opacity-90 transition">
                         Download
                     </button>
@@ -216,6 +219,14 @@
             // Set document metadata
             document.getElementById('doc-title').textContent = currentDocument.filename;
             document.getElementById('doc-meta').textContent = `Uploaded on ${new Date(currentDocument.created_at).toLocaleDateString()}`;
+
+            // Hide Process button if document is already processed
+            if (!currentDocument.needs_processing) {
+                const processBtn = document.getElementById('process-btn');
+                if (processBtn) {
+                    processBtn.classList.add('hidden');
+                }
+            }
 
             // Display analysis results (backend returns fields directly, not nested in 'analysis')
             displaySummary(currentDocument.summary);
@@ -378,6 +389,42 @@
                 }
             } catch (error) {
                 alert('Network error. Please try again.');
+            }
+        }
+
+        async function processDocument() {
+            const processBtn = document.getElementById('process-btn');
+            const originalText = processBtn.textContent;
+
+            try {
+                processBtn.disabled = true;
+                processBtn.textContent = 'Processing...';
+                processBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+                const response = await fetch(`${API_BASE_URL}/documents/${documentId}/process`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (response.ok) {
+                    alert('Document processing started! This may take a few minutes. The page will refresh when complete.');
+                    // Poll for completion or reload page
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 3000);
+                } else {
+                    const error = await response.json();
+                    alert(error.error?.message || 'Failed to process document. This feature is not yet implemented.');
+                }
+            } catch (error) {
+                console.error('Failed to process document:', error);
+                alert('Network error. Please try again.');
+            } finally {
+                processBtn.disabled = false;
+                processBtn.textContent = originalText;
+                processBtn.classList.remove('opacity-50', 'cursor-not-allowed');
             }
         }
 
