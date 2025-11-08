@@ -100,9 +100,11 @@ async def upload_document(
             "user_id": current_user.id,
             "filename": file.filename or "unnamed",
             "file_type": file.content_type or "application/octet-stream",
-            "file_size": file_size,
-            "s3_key": upload_result["s3_key"],
-            "s3_bucket": upload_result.get("bucket", ""),
+            "size": file_size,
+            "s3_reference": {
+                "bucket": upload_result.get("bucket", ""),
+                "key": upload_result["s3_key"],
+            },
             "status": DocumentStatus.UPLOADED.value,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow(),
@@ -116,7 +118,7 @@ async def upload_document(
             "id": document["id"],
             "filename": document["filename"],
             "file_type": document["file_type"],
-            "file_size": document["file_size"],
+            "file_size": document["size"],
             "status": document["status"],
             "created_at": document["created_at"],
         }
