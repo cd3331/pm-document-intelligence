@@ -737,7 +737,9 @@ resource "aws_iam_role_policy" "ecs_task" {
         Effect = "Allow"
         Action = [
           "textract:AnalyzeDocument",
-          "textract:DetectDocumentText"
+          "textract:DetectDocumentText",
+          "textract:GetDocumentAnalysis",
+          "textract:GetDocumentTextDetection"
         ]
         Resource = "*"
       },
@@ -752,9 +754,11 @@ resource "aws_iam_role_policy" "ecs_task" {
       {
         Effect = "Allow"
         Action = [
-          "bedrock:InvokeModel"
+          "bedrock:InvokeModel",
+          "bedrock:ListFoundationModels",
+          "bedrock:GetFoundationModel"
         ]
-        Resource = "arn:aws:bedrock:${var.aws_region}::foundation-model/*"
+        Resource = "*"
       },
       {
         Effect = "Allow"
