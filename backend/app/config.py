@@ -267,17 +267,21 @@ class DatabaseConfig(BaseSettings):
 class PubNubConfig(BaseSettings):
     """PubNub configuration for real-time messaging."""
 
+    pubnub_enabled: bool = Field(
+        default=False,
+        description="Enable PubNub real-time messaging",
+    )
     pubnub_publish_key: str = Field(
-        ...,
-        description="PubNub publish key (required)",
+        default="",
+        description="PubNub publish key",
     )
     pubnub_subscribe_key: str = Field(
-        ...,
-        description="PubNub subscribe key (required)",
+        default="",
+        description="PubNub subscribe key",
     )
     pubnub_secret_key: str = Field(
-        ...,
-        description="PubNub secret key (required)",
+        default="",
+        description="PubNub secret key",
     )
     pubnub_ssl: bool = Field(
         default=True,
