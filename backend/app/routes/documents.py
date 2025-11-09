@@ -292,7 +292,7 @@ async def process_document(
             )
 
         # Download from S3 to temp file
-        file_content = await s3_service.download_document(s3_ref["key"])
+        file_content, _ = await s3_service.download_document(s3_ref["key"])
 
         # Create temp file
         with tempfile.NamedTemporaryFile(
@@ -361,7 +361,6 @@ async def process_document(
                 "documents",
                 data={
                     "status": DocumentStatus.FAILED.value,
-                    "error_message": str(e),
                     "updated_at": datetime.utcnow(),
                 },
                 match={"id": document_id},
