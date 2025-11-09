@@ -272,8 +272,8 @@ async def process_document(
         # Update status to processing
         await execute_update(
             "documents",
+            data={"status": DocumentStatus.PROCESSING.value, "updated_at": datetime.utcnow()},
             match={"id": document_id},
-            update={"status": DocumentStatus.PROCESSING.value, "updated_at": datetime.utcnow()},
         )
 
         # Import processor
@@ -332,8 +332,8 @@ async def process_document(
 
             await execute_update(
                 "documents",
+                data=update_data,
                 match={"id": document_id},
-                update=update_data,
             )
 
             logger.info(f"Document processed successfully: {document_id}")
@@ -359,12 +359,12 @@ async def process_document(
         try:
             await execute_update(
                 "documents",
-                match={"id": document_id},
-                update={
+                data={
                     "status": DocumentStatus.FAILED.value,
                     "error_message": str(e),
                     "updated_at": datetime.utcnow(),
                 },
+                match={"id": document_id},
             )
         except Exception as update_error:
             logger.error(f"Failed to update document status: {update_error}")
