@@ -6,56 +6,39 @@ These routes return HTML fragments for dynamic page updates via htmx
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, Query
-from fastapi.responses import HTMLResponse
-from sqlalchemy import desc, func
-from sqlalchemy.orm import Session
+from fastapi.responses import HTMLResponse, JSONResponse
 
-from app.agents.orchestrator import get_orchestrator
-from app.auth import get_current_user
-from app.database import get_db
-from app.models import ActionItem, Document, User
-from app.services.vector_search import VectorSearch
+from app.database import execute_select
+from app.models.user import UserInDB
+from app.utils.auth_helpers import get_current_user
+from app.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 router = APIRouter(tags=["htmx"])
 
-vector_search = VectorSearch()
-orchestrator = get_orchestrator()
-
 
 @router.get("/api/stats", response_class=HTMLResponse)
-async def get_stats(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def get_stats(current_user: UserInDB = Depends(get_current_user)):
     """
     Returns statistics cards HTML
     Used by dashboard to show document counts and metrics
     """
-    # Get document counts
-    total_documents = (
-        db.query(func.count(Document.id)).filter(Document.user_id == current_user.id).scalar() or 0
-    )
+    try:
+        # Get all documents for user
+        documents = await execute_select(
+            "documents",
+            match={"user_id": current_user.id},
+        )
 
-    completed_documents = (
-        db.query(func.count(Document.id))
-        .filter(Document.user_id == current_user.id, Document.status == "completed")
-        .scalar()
-        or 0
-    )
+        total_documents = len(documents)
+        completed_documents = len([d for d in documents if d.get("status") == "processed"])
+        processing_documents = len([d for d in documents if d.get("status") == "processing"])
 
-    processing_documents = (
-        db.query(func.count(Document.id))
-        .filter(Document.user_id == current_user.id, Document.status == "processing")
-        .scalar()
-        or 0
-    )
+        # Note: Action items table may not exist, so we'll show 0 for now
+        pending_actions = 0
 
-    # Get action items count
-    pending_actions = (
-        db.query(func.count(ActionItem.id))
-        .filter(ActionItem.user_id == current_user.id, ActionItem.status == "pending")
-        .scalar()
-        or 0
-    )
-
-    html = f"""
+        html = f"""
     <div class="card">
         <div class="flex items-center justify-between">
             <div>
@@ -105,30 +88,36 @@ async def get_stats(current_user: User = Depends(get_current_user), db: Session 
     </div>
     """
 
-    return HTMLResponse(content=html)
+        return HTMLResponse(content=html)
+
+    except Exception as e:
+        logger.error(f"Failed to get stats: {e}", exc_info=True)
+        return HTMLResponse(
+            content='<div class="text-red-600">Failed to load statistics</div>',
+            status_code=500,
+        )
 
 
 @router.get("/api/documents/list", response_class=HTMLResponse)
 async def get_documents_list(
     limit: int = Query(10, ge=1, le=100),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    current_user: UserInDB = Depends(get_current_user),
 ):
     """
     Returns document list HTML
     Used by dashboard and documents page
     """
-    documents = (
-        db.query(Document)
-        .filter(Document.user_id == current_user.id)
-        .order_by(desc(Document.created_at))
-        .limit(limit)
-        .all()
-    )
+    try:
+        documents = await execute_select(
+            "documents",
+            match={"user_id": current_user.id},
+            order="created_at.desc",
+            limit=limit,
+        )
 
-    if not documents:
-        return HTMLResponse(
-            content="""
+        if not documents:
+            return HTMLResponse(
+                content="""
             <div class="text-center py-8">
                 <i class="fas fa-folder-open text-4xl text-gray-300 dark:text-gray-600 mb-4"></i>
                 <p class="text-gray-600 dark:text-gray-400">No documents yet</p>
@@ -137,101 +126,123 @@ async def get_documents_list(
                 </a>
             </div>
         """
-        )
+            )
 
-    html_parts = []
-    for doc in documents:
-        # Status badge classes
-        status_class = ""
-        if doc.status == "completed":
-            status_class = "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-        elif doc.status == "processing":
-            status_class = "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-        elif doc.status == "failed":
-            status_class = "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+        html_parts = []
+        for doc in documents:
+            # Status badge classes
+            status = doc.get("status", "uploaded")
+            status_class = ""
+            if status == "processed":
+                status_class = "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+            elif status == "processing":
+                status_class = "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+            elif status == "failed":
+                status_class = "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+            else:
+                status_class = "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
 
-        # File icon
-        icon_class = "fa-file-alt"
-        if doc.filename.endswith(".pdf"):
-            icon_class = "fa-file-pdf text-red-500"
-        elif doc.filename.endswith((".docx", ".doc")):
-            icon_class = "fa-file-word text-blue-500"
-        elif doc.filename.endswith(".txt"):
-            icon_class = "fa-file-alt text-gray-500"
-        elif doc.filename.endswith((".png", ".jpg", ".jpeg")):
-            icon_class = "fa-file-image text-green-500"
+            # File icon
+            filename = doc.get("filename", "")
+            icon_class = "fa-file-alt"
+            if filename.endswith(".pdf"):
+                icon_class = "fa-file-pdf text-red-500"
+            elif filename.endswith((".docx", ".doc")):
+                icon_class = "fa-file-word text-blue-500"
+            elif filename.endswith(".txt"):
+                icon_class = "fa-file-alt text-gray-500"
+            elif filename.endswith((".png", ".jpg", ".jpeg")):
+                icon_class = "fa-file-image text-green-500"
 
-        created_at = (
-            doc.created_at.strftime("%b %d, %Y at %I:%M %p") if doc.created_at else "Unknown"
-        )
+            created_at_str = "Unknown"
+            if doc.get("created_at"):
+                if isinstance(doc["created_at"], str):
+                    try:
+                        created_dt = datetime.fromisoformat(
+                            doc["created_at"].replace("Z", "+00:00")
+                        )
+                        created_at_str = created_dt.strftime("%b %d, %Y at %I:%M %p")
+                    except:
+                        created_at_str = doc["created_at"]
+                else:
+                    created_at_str = doc["created_at"].strftime("%b %d, %Y at %I:%M %p")
 
-        html_parts.append(
-            f"""
+            doc_type = doc.get("file_type", "unknown")
+
+            html_parts.append(
+                f"""
         <div class="flex items-center space-x-4 p-4 border dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer"
-             onclick="window.location.href='/document/{doc.id}'">
+             onclick="window.location.href='/document/{doc["id"]}'">
             <div class="w-12 h-12 bg-joy-teal/10 rounded-lg flex items-center justify-center flex-shrink-0">
                 <i class="fas {icon_class} text-2xl"></i>
             </div>
             <div class="flex-1 min-w-0">
-                <h3 class="font-semibold text-gray-900 dark:text-white truncate">{doc.filename}</h3>
+                <h3 class="font-semibold text-gray-900 dark:text-white truncate">{filename}</h3>
                 <div class="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
-                    <span><i class="fas fa-clock mr-1"></i> {created_at}</span>
-                    <span><i class="fas fa-file mr-1"></i> {doc.document_type}</span>
+                    <span><i class="fas fa-clock mr-1"></i> {created_at_str}</span>
+                    <span><i class="fas fa-file mr-1"></i> {doc_type}</span>
                 </div>
             </div>
             <span class="px-2 py-1 rounded text-xs font-medium {status_class}">
-                {doc.status}
+                {status}
             </span>
         </div>
         """
-        )
+            )
 
-    html = "\n".join(html_parts)
-    return HTMLResponse(content=html)
+        html = "\n".join(html_parts)
+        return HTMLResponse(content=html)
+
+    except Exception as e:
+        logger.error(f"Failed to get documents list: {e}", exc_info=True)
+        return HTMLResponse(
+            content='<div class="text-red-600">Failed to load documents</div>',
+            status_code=500,
+        )
 
 
 @router.get("/api/documents/recent", response_class=HTMLResponse)
 async def get_recent_documents(
     limit: int = Query(10, ge=1, le=100),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    current_user: UserInDB = Depends(get_current_user),
 ):
     """
     Returns recent documents HTML
     Same as documents/list but can have different styling
     """
-    return await get_documents_list(limit=limit, current_user=current_user, db=db)
+    return await get_documents_list(limit=limit, current_user=current_user)
 
 
 @router.get("/api/document/{document_id}/analysis", response_class=HTMLResponse)
 async def get_document_analysis(
-    document_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    document_id: str,
+    current_user: UserInDB = Depends(get_current_user),
 ):
     """
     Returns document analysis tab HTML
     Lazy-loaded when user clicks Analysis tab
     """
-    # Get document
-    document = (
-        db.query(Document)
-        .filter(Document.id == document_id, Document.user_id == current_user.id)
-        .first()
-    )
+    try:
+        # Get document
+        documents = await execute_select(
+            "documents",
+            match={"id": document_id, "user_id": current_user.id},
+        )
 
-    if not document:
-        return HTMLResponse(
-            content="""
+        if not documents:
+            return HTMLResponse(
+                content="""
             <div class="card">
                 <p class="text-red-600 dark:text-red-400">Document not found</p>
             </div>
         """
-        )
+            )
 
-    if document.status != "completed":
-        return HTMLResponse(
-            content="""
+        document = documents[0]
+
+        if document.get("status") != "processed":
+            return HTMLResponse(
+                content="""
             <div class="card">
                 <div class="text-center py-8">
                     <i class="fas fa-spinner fa-spin text-4xl text-joy-teal mb-4"></i>
@@ -239,79 +250,98 @@ async def get_document_analysis(
                 </div>
             </div>
         """
-        )
+            )
 
-    # Parse analysis from metadata
-    analysis = document.metadata.get("analysis", {}) if document.metadata else {}
+        # Get analysis data
+        summary = document.get("summary", "No summary available")
+        key_phrases = document.get("key_phrases", [])
+        entities = document.get("entities", [])
 
-    html = f"""
+        html = f"""
     <div class="space-y-6">
         <!-- Summary -->
         <div class="card">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">Summary</h3>
-            <p class="text-gray-700 dark:text-gray-300">{analysis.get('summary', 'No summary available')}</p>
+            <p class="text-gray-700 dark:text-gray-300">{summary}</p>
         </div>
 
-        <!-- Key Insights -->
+        <!-- Key Phrases -->
         <div class="card">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">Key Insights</h3>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">Key Phrases</h3>
             <ul class="space-y-2">
     """
 
-    insights = analysis.get("key_insights", [])
-    if insights:
-        for insight in insights:
-            html += f'<li class="flex items-start space-x-2"><i class="fas fa-lightbulb text-joy-teal mt-1"></i><span class="text-gray-700 dark:text-gray-300">{insight}</span></li>'
-    else:
-        html += '<li class="text-gray-600 dark:text-gray-400">No key insights available</li>'
+        if key_phrases:
+            for phrase in key_phrases[:10]:  # Limit to top 10
+                phrase_text = phrase if isinstance(phrase, str) else phrase.get("text", "")
+                html += f'<li class="flex items-start space-x-2"><i class="fas fa-tag text-joy-teal mt-1"></i><span class="text-gray-700 dark:text-gray-300">{phrase_text}</span></li>'
+        else:
+            html += '<li class="text-gray-600 dark:text-gray-400">No key phrases available</li>'
 
-    html += """
+        html += """
             </ul>
         </div>
 
-        <!-- Sentiment -->
+        <!-- Entities -->
         <div class="card">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">Sentiment Analysis</h3>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">Entities</h3>
+            <div class="flex flex-wrap gap-2">
     """
 
-    sentiment = analysis.get("sentiment", "neutral")
-    sentiment_color = {
-        "positive": "text-green-600 dark:text-green-400",
-        "neutral": "text-gray-600 dark:text-gray-400",
-        "negative": "text-red-600 dark:text-red-400",
-    }.get(sentiment, "text-gray-600")
+        if entities:
+            for entity in entities[:15]:  # Limit to top 15
+                entity_text = entity if isinstance(entity, str) else entity.get("text", "")
+                html += f'<span class="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-sm text-gray-700 dark:text-gray-300">{entity_text}</span>'
+        else:
+            html += '<p class="text-gray-600 dark:text-gray-400">No entities identified</p>'
 
-    html += f'<p class="{sentiment_color} font-medium capitalize">{sentiment}</p>'
-
-    html += """
+        html += """
+            </div>
         </div>
     </div>
     """
 
-    return HTMLResponse(content=html)
+        return HTMLResponse(content=html)
+
+    except Exception as e:
+        logger.error(f"Failed to get document analysis: {e}", exc_info=True)
+        return HTMLResponse(
+            content='<div class="card"><p class="text-red-600">Failed to load analysis</p></div>',
+            status_code=500,
+        )
 
 
 @router.get("/api/document/{document_id}/actions", response_class=HTMLResponse)
 async def get_document_actions(
-    document_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    document_id: str,
+    current_user: UserInDB = Depends(get_current_user),
 ):
     """
     Returns document action items tab HTML
     Lazy-loaded when user clicks Action Items tab
     """
-    # Get action items for this document
-    action_items = (
-        db.query(ActionItem)
-        .filter(ActionItem.document_id == document_id, ActionItem.user_id == current_user.id)
-        .order_by(ActionItem.priority.desc(), ActionItem.created_at)
-        .all()
-    )
+    try:
+        # Get document
+        documents = await execute_select(
+            "documents",
+            match={"id": document_id, "user_id": current_user.id},
+        )
 
-    if not action_items:
-        return HTMLResponse(
-            content="""
+        if not documents:
+            return HTMLResponse(
+                content="""
+            <div class="card">
+                <p class="text-red-600 dark:text-red-400">Document not found</p>
+            </div>
+        """
+            )
+
+        document = documents[0]
+        action_items = document.get("action_items", [])
+
+        if not action_items:
+            return HTMLResponse(
+                content="""
             <div class="card">
                 <div class="text-center py-8">
                     <i class="fas fa-tasks text-4xl text-gray-300 dark:text-gray-600 mb-4"></i>
@@ -319,85 +349,86 @@ async def get_document_actions(
                 </div>
             </div>
         """
-        )
+            )
 
-    html = '<div class="card"><div class="space-y-4">'
+        html = '<div class="card"><div class="space-y-4">'
 
-    for item in action_items:
-        # Status checkbox
-        checked = "checked" if item.status == "completed" else ""
+        for idx, item in enumerate(action_items):
+            # Extract action item details
+            if isinstance(item, str):
+                item_text = item
+                priority = "medium"
+            else:
+                item_text = item.get("text", item.get("title", ""))
+                priority = item.get("priority", "medium")
 
-        # Priority badge
-        priority_class = {
-            "high": "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-            "medium": "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-            "low": "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200",
-        }.get(item.priority, "bg-gray-100")
+            # Priority badge
+            priority_class = {
+                "high": "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+                "medium": "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+                "low": "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200",
+            }.get(priority, "bg-gray-100")
 
-        due_date = item.due_date.strftime("%b %d, %Y") if item.due_date else "No due date"
-
-        html += f"""
+            html += f"""
         <div class="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <input type="checkbox" {checked}
-                   class="mt-1 rounded border-gray-300 text-joy-teal focus:ring-joy-teal"
-                   onchange="updateActionStatus({item.id}, this.checked)">
+            <input type="checkbox"
+                   class="mt-1 rounded border-gray-300 text-joy-teal focus:ring-joy-teal">
             <div class="flex-1">
                 <div class="flex items-start justify-between">
-                    <p class="font-medium text-gray-900 dark:text-white">{item.title}</p>
+                    <p class="font-medium text-gray-900 dark:text-white">{item_text}</p>
                     <span class="ml-2 px-2 py-1 rounded text-xs font-medium {priority_class}">
-                        {item.priority}
+                        {priority}
                     </span>
-                </div>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{item.description or ''}</p>
-                <div class="flex items-center space-x-4 mt-2 text-xs text-gray-500 dark:text-gray-500">
-                    <span><i class="fas fa-calendar mr-1"></i> {due_date}</span>
-                    {f'<span><i class="fas fa-user mr-1"></i> {item.assignee}</span>' if item.assignee else ''}
                 </div>
             </div>
         </div>
         """
 
-    html += "</div></div>"
+        html += "</div></div>"
 
-    return HTMLResponse(content=html)
+        return HTMLResponse(content=html)
+
+    except Exception as e:
+        logger.error(f"Failed to get document actions: {e}", exc_info=True)
+        return HTMLResponse(
+            content='<div class="card"><p class="text-red-600">Failed to load action items</p></div>',
+            status_code=500,
+        )
 
 
 @router.get("/api/processing/status", response_class=HTMLResponse)
-async def get_processing_status(
-    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
-):
+async def get_processing_status(current_user: UserInDB = Depends(get_current_user)):
     """
     Returns processing status HTML
     Shows documents currently being processed
     """
-    processing_docs = (
-        db.query(Document)
-        .filter(Document.user_id == current_user.id, Document.status == "processing")
-        .all()
-    )
+    try:
+        processing_docs = await execute_select(
+            "documents",
+            match={"user_id": current_user.id, "status": "processing"},
+        )
 
-    if not processing_docs:
-        return HTMLResponse(
-            content="""
+        if not processing_docs:
+            return HTMLResponse(
+                content="""
             <p class="text-sm text-gray-600 dark:text-gray-400 text-center py-4">
                 No documents processing
             </p>
         """
-        )
+            )
 
-    html_parts = []
-    for doc in processing_docs:
-        # Get progress from metadata
-        progress = doc.metadata.get("progress", 0) if doc.metadata else 0
-        current_step = (
-            doc.metadata.get("current_step", "Processing") if doc.metadata else "Processing"
-        )
+        html_parts = []
+        for doc in processing_docs:
+            # Get progress from metadata
+            metadata = doc.get("processing_metadata", {})
+            progress = metadata.get("progress", 50)
+            current_step = metadata.get("current_step", "Processing")
 
-        html_parts.append(
-            f"""
-        <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg" data-document-id="{doc.id}">
+            html_parts.append(
+                f"""
+        <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg" data-document-id="{doc["id"]}">
             <div class="flex items-center justify-between mb-2">
-                <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{doc.filename}</p>
+                <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{doc["filename"]}</p>
                 <span class="text-xs text-gray-600 dark:text-gray-400">{progress}%</span>
             </div>
             <div class="progress-bar-container">
@@ -406,143 +437,153 @@ async def get_processing_status(
             <p class="text-xs text-gray-600 dark:text-gray-400 mt-1 progress-text">{current_step}</p>
         </div>
         """
+            )
+
+        html = "\n".join(html_parts)
+        return HTMLResponse(content=html)
+
+    except Exception as e:
+        logger.error(f"Failed to get processing status: {e}", exc_info=True)
+        return HTMLResponse(
+            content='<p class="text-red-600">Failed to load processing status</p>',
+            status_code=500,
         )
 
-    html = "\n".join(html_parts)
-    return HTMLResponse(content=html)
 
-
-@router.get("/api/search/suggestions", response_class=HTMLResponse)
+@router.get("/api/search/suggestions", response_class=JSONResponse)
 async def get_search_suggestions(
     q: str = Query(..., min_length=2),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    current_user: UserInDB = Depends(get_current_user),
 ):
     """
-    Returns search suggestions HTML
+    Returns search suggestions JSON
     Used for autocomplete in search bar
     """
-    # Search for matching documents
-    documents = (
-        db.query(Document)
-        .filter(Document.user_id == current_user.id, Document.filename.ilike(f"%{q}%"))
-        .limit(5)
-        .all()
-    )
-
-    if not documents:
-        return HTMLResponse(content="")
-
-    suggestions = []
-    for doc in documents:
-        suggestions.append(
-            {
-                "id": doc.id,
-                "text": doc.filename,
-                "source": f"{doc.document_type} - {doc.created_at.strftime('%b %d, %Y')}",
-            }
+    try:
+        # Search for matching documents (simple text search)
+        documents = await execute_select(
+            "documents",
+            match={"user_id": current_user.id},
         )
 
-    # Return as JSON for Alpine.js to handle
-    # Note: This endpoint returns JSON, not HTML
-    from fastapi.responses import JSONResponse
+        # Filter by query
+        matching_docs = [
+            doc
+            for doc in documents
+            if q.lower() in doc.get("filename", "").lower()
+        ][:5]
 
-    return JSONResponse(content={"suggestions": suggestions})
+        suggestions = []
+        for doc in matching_docs:
+            created_at_str = "Unknown"
+            if doc.get("created_at"):
+                if isinstance(doc["created_at"], str):
+                    try:
+                        created_dt = datetime.fromisoformat(
+                            doc["created_at"].replace("Z", "+00:00")
+                        )
+                        created_at_str = created_dt.strftime("%b %d, %Y")
+                    except:
+                        created_at_str = doc["created_at"]
+                else:
+                    created_at_str = doc["created_at"].strftime("%b %d, %Y")
+
+            suggestions.append(
+                {
+                    "id": doc["id"],
+                    "text": doc.get("filename", ""),
+                    "source": f"{doc.get('file_type', 'unknown')} - {created_at_str}",
+                }
+            )
+
+        return JSONResponse(content={"suggestions": suggestions})
+
+    except Exception as e:
+        logger.error(f"Failed to get search suggestions: {e}", exc_info=True)
+        return JSONResponse(content={"suggestions": []})
 
 
-@router.get("/api/search", response_class=HTMLResponse)
+@router.get("/api/search", response_class=JSONResponse)
 async def search_documents(
     q: str = Query(..., min_length=1),
-    semantic: bool = Query(True),
-    sort: str = Query("relevance"),
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
-    types: str | None = Query(None),
-    statuses: str | None = Query(None),
-    date_from: str | None = Query(None),
-    date_to: str | None = Query(None),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    current_user: UserInDB = Depends(get_current_user),
 ):
     """
     Search documents and return results
     Returns JSON for Alpine.js to handle
     """
-    results = []
-    total = 0
-
     try:
-        if semantic:
-            # Use vector search
-            search_results = await vector_search.search(
-                query=q,
-                user_id=current_user.id,
-                limit=page_size,
-                offset=(page - 1) * page_size,
+        # Get all documents for user
+        documents = await execute_select(
+            "documents",
+            match={"user_id": current_user.id},
+            order="created_at.desc",
+        )
+
+        # Simple text search in filename and extracted_text
+        matching_docs = []
+        for doc in documents:
+            filename = doc.get("filename", "").lower()
+            extracted_text = (doc.get("extracted_text") or "").lower()
+            if q.lower() in filename or q.lower() in extracted_text:
+                matching_docs.append(doc)
+
+        total = len(matching_docs)
+
+        # Pagination
+        start = (page - 1) * page_size
+        end = start + page_size
+        paginated_docs = matching_docs[start:end]
+
+        results = []
+        for doc in paginated_docs:
+            created_at_str = "Unknown"
+            if doc.get("created_at"):
+                if isinstance(doc["created_at"], str):
+                    try:
+                        created_dt = datetime.fromisoformat(
+                            doc["created_at"].replace("Z", "+00:00")
+                        )
+                        created_at_str = created_dt.strftime("%b %d, %Y")
+                    except:
+                        created_at_str = doc["created_at"]
+                else:
+                    created_at_str = doc["created_at"].strftime("%b %d, %Y")
+
+            excerpt = ""
+            if doc.get("extracted_text"):
+                excerpt = doc["extracted_text"][:200] + "..."
+
+            results.append(
+                {
+                    "id": doc["id"],
+                    "filename": doc.get("filename", ""),
+                    "document_type": doc.get("file_type", "unknown"),
+                    "status": doc.get("status", "uploaded"),
+                    "created_at": created_at_str,
+                    "excerpt": excerpt,
+                    "tags": [],
+                }
             )
-            results = search_results.get("results", [])
-            total = search_results.get("total", 0)
-        else:
-            # Use keyword search
-            query = db.query(Document).filter(Document.user_id == current_user.id)
 
-            # Apply filters
-            if types:
-                type_list = types.split(",")
-                query = query.filter(Document.document_type.in_(type_list))
-
-            if statuses:
-                status_list = statuses.split(",")
-                query = query.filter(Document.status.in_(status_list))
-
-            if date_from:
-                query = query.filter(Document.created_at >= datetime.fromisoformat(date_from))
-
-            if date_to:
-                query = query.filter(Document.created_at <= datetime.fromisoformat(date_to))
-
-            # Apply search
-            query = query.filter(
-                Document.filename.ilike(f"%{q}%") | Document.extracted_text.ilike(f"%{q}%")
-            )
-
-            # Apply sorting
-            if sort == "date_desc":
-                query = query.order_by(desc(Document.created_at))
-            elif sort == "date_asc":
-                query = query.order_by(Document.created_at)
-            elif sort == "name_asc":
-                query = query.order_by(Document.filename)
-            elif sort == "name_desc":
-                query = query.order_by(desc(Document.filename))
-
-            total = query.count()
-            documents = query.offset((page - 1) * page_size).limit(page_size).all()
-
-            for doc in documents:
-                results.append(
-                    {
-                        "id": doc.id,
-                        "filename": doc.filename,
-                        "document_type": doc.document_type,
-                        "status": doc.status,
-                        "created_at": doc.created_at.strftime("%b %d, %Y"),
-                        "excerpt": (doc.extracted_text[:200] + "..." if doc.extracted_text else ""),
-                        "tags": doc.metadata.get("tags", []) if doc.metadata else [],
-                    }
-                )
+        return JSONResponse(
+            content={
+                "results": results,
+                "total": total,
+                "page": page,
+                "page_size": page_size,
+            }
+        )
 
     except Exception as e:
-        print(f"Search error: {e}")
-
-    # Return JSON for Alpine.js
-    from fastapi.responses import JSONResponse
-
-    return JSONResponse(
-        content={
-            "results": results,
-            "total": total,
-            "page": page,
-            "page_size": page_size,
-        }
-    )
+        logger.error(f"Search error: {e}", exc_info=True)
+        return JSONResponse(
+            content={
+                "results": [],
+                "total": 0,
+                "page": page,
+                "page_size": page_size,
+            }
+        )

@@ -435,19 +435,65 @@ async def ask_question(
 
 
 @router.delete("/{document_id}")
-async def delete_document(document_id: str):
+async def delete_document(
+    document_id: str,
+    current_user: UserInDB = Depends(get_current_user),
+):
     """
     Delete document.
 
     Args:
         document_id: Document identifier
+        current_user: Authenticated user
 
     Returns:
         Success message
     """
-    # TODO: Implement delete document
-    logger.info(f"Delete document endpoint called: {document_id}")
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Delete document endpoint not yet implemented",
-    )
+    try:
+        logger.info(f"Delete document endpoint called: {document_id} by user {current_user.id}")
+
+        # Get document from database
+        documents = await execute_select(
+            "documents",
+            match={"id": document_id, "user_id": current_user.id},
+        )
+
+        if not documents:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Document not found",
+            )
+
+        document = documents[0]
+
+        # Delete from S3 if reference exists
+        s3_ref = document.get("s3_reference", {})
+        if s3_ref.get("key"):
+            try:
+                s3_service = S3Service()
+                await s3_service.delete_document(s3_ref["key"])
+                logger.info(f"Deleted document from S3: {s3_ref['key']}")
+            except Exception as s3_error:
+                logger.warning(f"Failed to delete from S3: {s3_error}")
+                # Continue with database deletion even if S3 delete fails
+
+        # Delete from database
+        from app.database import execute_delete
+
+        await execute_delete("documents", match={"id": document_id})
+
+        logger.info(f"Document deleted successfully: {document_id}")
+
+        return {
+            "message": "Document deleted successfully",
+            "document_id": document_id,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Document deletion failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete document",
+        )
