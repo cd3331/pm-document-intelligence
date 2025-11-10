@@ -9,7 +9,7 @@
 [![License: Custom](https://img.shields.io/badge/License-Portfolio%20Demo-blue.svg?style=flat-square)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg?style=flat-square)](https://www.python.org/downloads/)
 
-[Live Demo](https://demo.pmdocintel.com) • [Documentation](docs/) • [API Docs](https://api.pmdocintel.com/docs)
+[Live Demo](https://app.joyofpm.com) • [Documentation](docs/) • [API](https://api.joyofpm.com)
 
 </div>
 
@@ -74,12 +74,19 @@ High-level system architecture:
 
 **Infrastructure Highlights:**
 - **Multi-layered Security**: WAF → ALB → Application → Database
-- **High Availability**: Multi-AZ deployment with auto-scaling
-- **Production Database**: AWS RDS PostgreSQL with automated backups
-- **Distributed Caching**: Redis ElastiCache for performance
+- **Auto-scaling**: ECS Fargate (1-4 tasks) with CPU-based scaling
+- **Production Database**: AWS RDS PostgreSQL 15.14 with pgvector
+- **Distributed Caching**: Redis ElastiCache for rate limiting & performance
 - **Enterprise Monitoring**: CloudWatch metrics, logs, and alarms
+- **Cost-Optimized**: ~$246/month for small-scale production
 
-See [Architecture Documentation](docs/ARCHITECTURE.md) for detailed diagrams.
+**Latest Updates (January 2025)**:
+- ✅ Migrated from Supabase to AWS RDS PostgreSQL
+- ✅ Fixed document deletion and processing endpoints
+- ✅ Fixed HTMX routes for dynamic UI updates
+- ✅ Optimized infrastructure costs (-21%)
+
+See [Technical Architecture](TECHNICAL_ARCHITECTURE.md) for comprehensive details.
 
 ---
 
@@ -119,15 +126,22 @@ Enterprise-grade security with defense-in-depth approach:
 
 ### Prerequisites
 
-- Python 3.11+
-- AWS Account with:
-  - RDS PostgreSQL 15+ (pgvector enabled)
+- **Python 3.11+**
+- **AWS Account** with:
+  - RDS PostgreSQL 15.14+ (with pgvector extension)
   - ElastiCache Redis 7+
-  - S3 Buckets
-  - WAF & ALB
-  - ECS Fargate
-- OpenAI API Key
-- PubNub Account (for real-time features)
+  - S3 Bucket for document storage
+  - Bedrock (Claude 3.5 Sonnet access)
+  - Textract & Comprehend (for document processing)
+  - ECS Fargate, ALB, VPC (for deployment)
+- **Environment Variables**:
+  - `DATABASE_URL` - PostgreSQL connection string
+  - `S3_BUCKET_NAME` - S3 bucket name
+  - `JWT_SECRET_KEY` - JWT signing key (32+ chars)
+  - `API_KEY_SALT` - API key salt (16+ chars)
+- **Optional**:
+  - OpenAI API Key (fallback AI)
+  - PubNub Account (real-time features)
 
 ### Installation
 
@@ -169,13 +183,17 @@ open http://localhost:8000
 
 | Document | Description |
 |----------|-------------|
+| [Technical Architecture](TECHNICAL_ARCHITECTURE.md) | **Complete tech stack & architecture** |
+| [Functionality Test Report](FUNCTIONALITY_TEST_REPORT.md) | Production testing results (Jan 2025) |
 | [Architecture](docs/ARCHITECTURE.md) | System design and components |
 | [API Reference](docs/API.md) | Complete API documentation |
 | [User Guide](docs/USER_GUIDE.md) | End-user tutorials |
 | [Development](docs/DEVELOPMENT.md) | Developer setup guide |
 | [Deployment](docs/DEPLOYMENT.md) | Production deployment |
+| [Security](docs/SECURITY.md) | Security architecture & best practices |
 | [Multi-Tenancy](docs/MULTI_TENANCY_GUIDE.md) | Enterprise features |
 | [ML Optimization](docs/ML_OPTIMIZATION_GUIDE.md) | AI fine-tuning guide |
+| [Cost Analysis](docs/COST_ANALYSIS.md) | Infrastructure cost breakdown |
 | [Changelog](docs/CHANGELOG.md) | Version history and updates |
 
 ---
@@ -197,9 +215,22 @@ locust -f tests/load/locustfile.py
 
 ## 💰 Cost Estimation
 
-Monthly costs at 10,000 documents/month: **$600-1,050**
+**Current Infrastructure**: ~$246/month (cost-optimized for small-scale production)
 
-See [Cost Analysis](docs/COST_ANALYSIS.md) for breakdown and optimization.
+**At Scale (10,000 documents/month)**:
+- Infrastructure: ~$246-310/month
+- AWS AI Services (variable): ~$330-740/month
+- **Total**: ~$600-1,050/month
+
+**Cost Breakdown**:
+- ECS Fargate (1 vCPU, 2GB): $37
+- RDS PostgreSQL (db.t3.medium, Single-AZ): $60
+- ElastiCache Redis: $25
+- ALB: $24
+- NAT Gateways (2): $80
+- S3 + CloudWatch: $20
+
+See [Cost Analysis](docs/COST_ANALYSIS.md) for detailed breakdown and [Cost Optimization Report](infrastructure/COST_OPTIMIZATION_2025-01-10.md) for recent optimizations.
 
 ---
 
