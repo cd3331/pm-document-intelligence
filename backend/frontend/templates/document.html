@@ -48,23 +48,26 @@
                 </button>
                 <div x-data="{ open: false }" class="relative">
                     <button @click="open = !open" class="btn-secondary">
-                        <i class="fas fa-download mr-2"></i> Export
+                        <i class="fas fa-download mr-2"></i> Download
                     </button>
                     <div x-show="open"
                          @click.away="open = false"
                          x-transition
                          class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden z-10">
-                        <a href="/api/document/{{ document.id }}/export/pdf" class="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="fas fa-file-pdf mr-2 text-red-500"></i> Export as PDF
+                        <a href="/api/v1/documents/{{ document.id }}/download" class="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="fas fa-download mr-2 text-joy-teal"></i> Download Original
                         </a>
-                        <a href="/api/document/{{ document.id }}/export/json" class="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="fas fa-code mr-2 text-blue-500"></i> Export as JSON
-                        </a>
-                        <a href="/api/document/{{ document.id }}/export/excel" class="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="fas fa-file-excel mr-2 text-green-500"></i> Export as Excel
-                        </a>
+                        <button onclick="showToast('Export features coming soon!', 'info')" class="w-full text-left block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400">
+                            <i class="fas fa-file-pdf mr-2"></i> Export as PDF (Soon)
+                        </button>
+                        <button onclick="showToast('Export features coming soon!', 'info')" class="w-full text-left block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400">
+                            <i class="fas fa-code mr-2"></i> Export as JSON (Soon)
+                        </button>
                     </div>
                 </div>
+                <button onclick="deleteDocument('{{ document.id }}')" class="btn-danger">
+                    <i class="fas fa-trash mr-2"></i> Delete
+                </button>
             </div>
         </div>
     </div>
@@ -303,6 +306,37 @@ async function processDocument(documentId) {
     } catch (error) {
         console.error('Error processing document:', error);
         showToast('Failed to process document. Please try again.', 'error');
+    }
+}
+
+async function deleteDocument(documentId) {
+    if (!confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/v1/documents/${documentId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showToast(data.message || 'Document deleted successfully', 'success');
+            // Redirect to documents page after deletion
+            setTimeout(() => {
+                window.location.href = '/documents';
+            }, 1500);
+        } else {
+            showToast(data.detail || 'Failed to delete document', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting document:', error);
+        showToast('Failed to delete document. Please try again.', 'error');
     }
 }
 </script>
