@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="PM Document Intelligence - AI-powered document analysis for project managers">
+    <title>{% block title %}PM Document Intelligence{% endblock %}</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'joy-teal': '#00B4B4',
+                        'deep-navy': '#1B3A5F',
+                        'warm-coral': '#FF6B6B',
+                    }
+                }
+            },
+            darkMode: 'class'
+        }
+    </script>
+
+    <!-- htmx -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
+
+    <!-- Hyperscript -->
+    <script src="https://unpkg.com/hyperscript.org@0.9.12"></script>
+
+    <!-- PubNub -->
+    <script src="https://cdn.pubnub.com/sdk/javascript/pubnub.7.4.4.min.js"></script>
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/style.css">
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="h-full bg-gray-50 dark:bg-gray-900" x-data="{ darkMode: localStorage.getItem('darkMode') === 'true' }"
+      x-init="$watch('darkMode', val => localStorage.setItem('darkMode', val))"
+      :class="{ 'dark': darkMode }">
+
+    <!-- Navigation -->
+    <nav class="bg-deep-navy text-white shadow-lg" x-data="{ mobileMenuOpen: false }">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <!-- Logo and primary nav -->
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <a href="/" class="flex items-center space-x-2">
+                            <i class="fas fa-file-invoice text-joy-teal text-2xl"></i>
+                            <span class="font-bold text-xl">PM DocIntel</span>
+                        </a>
+                    </div>
+
+                    <!-- Desktop navigation -->
+                    <div class="hidden md:ml-6 md:flex md:space-x-4">
+                        <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">
+                            <i class="fas fa-home mr-1"></i> Dashboard
+                        </a>
+                        <a href="/upload" class="nav-link {% if '/upload' in request.path %}active{% endif %}">
+                            <i class="fas fa-upload mr-1"></i> Upload
+                        </a>
+                        <a href="/search" class="nav-link {% if '/search' in request.path %}active{% endif %}">
+                            <i class="fas fa-search mr-1"></i> Search
+                        </a>
+                        <a href="/documents" class="nav-link {% if '/documents' in request.path %}active{% endif %}">
+                            <i class="fas fa-folder mr-1"></i> Documents
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Right side nav -->
+                <div class="hidden md:flex md:items-center md:space-x-4">
+                    <!-- Notifications -->
+                    <div x-data="{ open: false, unread: 0 }" class="relative">
+                        <button @click="open = !open"
+                                class="relative p-2 rounded-full hover:bg-deep-navy/50 transition"
+                                aria-label="Notifications">
+                            <i class="fas fa-bell text-xl"></i>
+                            <span x-show="unread > 0"
+                                  class="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-warm-coral rounded-full"
+                                  x-text="unread"></span>
+                        </button>
+
+                        <!-- Notifications dropdown -->
+                        <div x-show="open"
+                             @click.away="open = false"
+                             x-transition
+                             class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden z-50"
+                             id="notifications-container">
+                            <div class="p-4 bg-gray-50 dark:bg-gray-700 border-b">
+                                <h3 class="font-semibold text-gray-900 dark:text-white">Notifications</h3>
+                            </div>
+                            <div class="max-h-96 overflow-y-auto" id="notification-list">
+                                <p class="p-4 text-sm text-gray-500 dark:text-gray-400 text-center">
+                                    No new notifications
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dark mode toggle -->
+                    <button @click="darkMode = !darkMode"
+                            class="p-2 rounded-full hover:bg-deep-navy/50 transition"
+                            aria-label="Toggle dark mode">
+                        <i class="fas" :class="darkMode ? 'fa-sun' : 'fa-moon'"></i>
+                    </button>
+
+                    {% if user %}
+                    <!-- User menu -->
+                    <div x-data="{ open: false }" class="relative">
+                        <button @click="open = !open"
+                                class="flex items-center space-x-2 p-2 rounded-lg hover:bg-deep-navy/50 transition">
+                            <div class="w-8 h-8 rounded-full bg-joy-teal flex items-center justify-center">
+                                <span class="text-sm font-semibold">{{ user.username[0].upper() }}</span>
+                            </div>
+                            <span class="hidden lg:block">{{ user.username }}</span>
+                            <i class="fas fa-chevron-down text-xs"></i>
+                        </button>
+
+                        <div x-show="open"
+                             @click.away="open = false"
+                             x-transition
+                             class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden z-50">
+                            <a href="/settings" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="fas fa-cog mr-2"></i> Settings
+                            </a>
+                            <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="fas fa-user mr-2"></i> Profile
+                            </a>
+                            <div class="border-t dark:border-gray-700"></div>
+                            <form action="/logout" method="POST" class="block">
+                                <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% else %}
+                    <a href="/login" class="btn-primary">
+                        <i class="fas fa-sign-in-alt mr-1"></i> Login
+                    </a>
+                    {% endif %}
+                </div>
+
+                <!-- Mobile menu button -->
+                <div class="flex items-center md:hidden">
+                    <button @click="mobileMenuOpen = !mobileMenuOpen"
+                            class="p-2 rounded-lg hover:bg-deep-navy/50"
+                            aria-label="Toggle menu">
+                        <i class="fas" :class="mobileMenuOpen ? 'fa-times' : 'fa-bars'"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile menu -->
+        <div x-show="mobileMenuOpen"
+             x-transition
+             class="md:hidden border-t border-deep-navy/50">
+            <div class="px-2 pt-2 pb-3 space-y-1">
+                <a href="/" class="mobile-nav-link">
+                    <i class="fas fa-home mr-2"></i> Dashboard
+                </a>
+                <a href="/upload" class="mobile-nav-link">
+                    <i class="fas fa-upload mr-2"></i> Upload
+                </a>
+                <a href="/search" class="mobile-nav-link">
+                    <i class="fas fa-search mr-2"></i> Search
+                </a>
+                <a href="/documents" class="mobile-nav-link">
+                    <i class="fas fa-folder mr-2"></i> Documents
+                </a>
+                {% if user %}
+                <a href="/settings" class="mobile-nav-link">
+                    <i class="fas fa-cog mr-2"></i> Settings
+                </a>
+                <form action="/logout" method="POST">
+                    <button type="submit" class="mobile-nav-link w-full text-left">
+                        <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                    </button>
+                </form>
+                {% else %}
+                <a href="/login" class="mobile-nav-link">
+                    <i class="fas fa-sign-in-alt mr-2"></i> Login
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash messages -->
+    <div id="flash-messages" class="fixed top-20 right-4 z-50 space-y-2" aria-live="polite">
+        {% if messages %}
+            {% for message in messages %}
+            <div class="flash-message flash-{{ message.category }}"
+                 x-data="{ show: true }"
+                 x-show="show"
+                 x-transition
+                 x-init="setTimeout(() => show = false, 5000)">
+                <div class="flex items-start">
+                    <i class="fas fa-{{ 'check-circle' if message.category == 'success' else 'exclamation-circle' if message.category == 'error' else 'info-circle' }} mr-2 mt-0.5"></i>
+                    <div class="flex-1">{{ message.text }}</div>
+                    <button @click="show = false" class="ml-4 text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- Main content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white dark:bg-gray-800 border-t dark:border-gray-700 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <p class="text-sm text-gray-600 dark:text-gray-400">
+                    &copy; 2024 PM Document Intelligence. Powered by AI.
+                </p>
+                <div class="flex space-x-4 mt-4 md:mt-0">
+                    <a href="/docs" class="text-sm text-gray-600 dark:text-gray-400 hover:text-joy-teal">Documentation</a>
+                    <a href="/api/docs" class="text-sm text-gray-600 dark:text-gray-400 hover:text-joy-teal">API</a>
+                    <a href="/help" class="text-sm text-gray-600 dark:text-gray-400 hover:text-joy-teal">Help</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Loading overlay -->
+    <div id="loading-overlay"
+         class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"
+         htmx-indicator>
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl">
+            <div class="flex items-center space-x-3">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-joy-teal"></div>
+                <span class="text-gray-900 dark:text-white">Loading...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom JavaScript -->
+    <script src="/static/js/app.js"></script>
+
+    {% block extra_scripts %}{% endblock %}
+
+    <!-- htmx config -->
+    <script>
+        // Configure htmx
+        document.body.addEventListener('htmx:configRequest', (event) => {
+            // Add auth token to all requests
+            const token = localStorage.getItem('auth_token');
+            if (token) {
+                event.detail.headers['Authorization'] = `Bearer ${token}`;
+            }
+        });
+
+        // Show loading indicator
+        document.body.addEventListener('htmx:beforeRequest', () => {
+            document.getElementById('loading-overlay').classList.remove('hidden');
+        });
+
+        document.body.addEventListener('htmx:afterRequest', () => {
+            document.getElementById('loading-overlay').classList.add('hidden');
+        });
+
+        // Handle errors
+        document.body.addEventListener('htmx:responseError', (event) => {
+            showToast('Request failed. Please try again.', 'error');
+        });
+    </script>
+</body>
+</html>

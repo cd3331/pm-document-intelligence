@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+
+{% block title %}{{ document.filename }} - PM Document Intelligence{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Document header -->
+    <div class="card">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
+            <div class="flex items-start space-x-4">
+                <div class="w-12 h-12 bg-joy-teal/10 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-file-alt text-2xl text-joy-teal"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ document.filename }}</h1>
+                    <div class="flex items-center space-x-4 mt-1 text-sm text-gray-600 dark:text-gray-400">
+                        <span><i class="fas fa-clock mr-1"></i> {{ document.created_at }}</span>
+                        <span><i class="fas fa-file mr-1"></i> {{ document.document_type }}</span>
+                        <span class="px-2 py-1 rounded text-xs font-medium"
+                              :class="{
+                                  'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200': '{{ document.status }}' === 'completed',
+                                  'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200': '{{ document.status }}' === 'processing',
+                                  'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200': '{{ document.status }}' === 'failed'
+                              }">
+                            {{ document.status }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex space-x-2 mt-4 md:mt-0" x-data="{ processing: false }">
+                {% if document.status in ['uploaded', 'failed'] %}
+                <button @click="processDocument('{{ document.id }}')"
+                        :disabled="processing"
+                        class="btn-primary"
+                        :class="{ 'opacity-50 cursor-not-allowed': processing }">
+                    <template x-if="!processing">
+                        <span><i class="fas fa-cog mr-2"></i> Process Document</span>
+                    </template>
+                    <template x-if="processing">
+                        <span><i class="fas fa-spinner fa-spin mr-2"></i> Processing...</span>
+                    </template>
+                </button>
+                {% endif %}
+                <button onclick="shareDocument('{{ document.id }}')" class="btn-secondary">
+                    <i class="fas fa-share-alt mr-2"></i> Share
+                </button>
+                <div x-data="{ open: false }" class="relative">
+                    <button @click="open = !open" class="btn-secondary">
+                        <i class="fas fa-download mr-2"></i> Export
+                    </button>
+                    <div x-show="open"
+                         @click.away="open = false"
+                         x-transition
+                         class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden z-10">
+                        <a href="/api/document/{{ document.id }}/export/pdf" class="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="fas fa-file-pdf mr-2 text-red-500"></i> Export as PDF
+                        </a>
+                        <a href="/api/document/{{ document.id }}/export/json" class="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="fas fa-code mr-2 text-blue-500"></i> Export as JSON
+                        </a>
+                        <a href="/api/document/{{ document.id }}/export/excel" class="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="fas fa-file-excel mr-2 text-green-500"></i> Export as Excel
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div x-data="{ activeTab: 'original' }">
+        <div class="border-b border-gray-200 dark:border-gray-700">
+            <nav class="flex space-x-8" aria-label="Tabs">
+                <button @click="activeTab = 'original'"
+                        :class="{ 'border-joy-teal text-joy-teal': activeTab === 'original', 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:border-gray-300': activeTab !== 'original' }"
+                        class="py-4 px-1 border-b-2 font-medium text-sm transition">
+                    <i class="fas fa-file-alt mr-2"></i> Original
+                </button>
+                <button @click="activeTab = 'analysis'"
+                        :class="{ 'border-joy-teal text-joy-teal': activeTab === 'analysis', 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:border-gray-300': activeTab !== 'analysis' }"
+                        class="py-4 px-1 border-b-2 font-medium text-sm transition"
+                        hx-get="/api/document/{{ document.id }}/analysis"
+                        hx-trigger="click once"
+                        hx-target="#analysis-content"
+                        hx-swap="innerHTML">
+                    <i class="fas fa-brain mr-2"></i> Analysis
+                </button>
+                <button @click="activeTab = 'actions'"
+                        :class="{ 'border-joy-teal text-joy-teal': activeTab === 'actions', 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:border-gray-300': activeTab !== 'actions' }"
+                        class="py-4 px-1 border-b-2 font-medium text-sm transition"
+                        hx-get="/api/document/{{ document.id }}/actions"
+                        hx-trigger="click once"
+                        hx-target="#actions-content"
+                        hx-swap="innerHTML">
+                    <i class="fas fa-tasks mr-2"></i> Action Items
+                </button>
+                <button @click="activeTab = 'qa'"
+                        :class="{ 'border-joy-teal text-joy-teal': activeTab === 'qa', 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:border-gray-300': activeTab !== 'qa' }"
+                        class="py-4 px-1 border-b-2 font-medium text-sm transition">
+                    <i class="fas fa-comments mr-2"></i> Q&A
+                </button>
+            </nav>
+        </div>
+
+        <!-- Tab content -->
+        <div class="mt-6">
+            <!-- Original document -->
+            <div x-show="activeTab === 'original'" class="card">
+                <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Extracted Text</h2>
+                <div class="prose dark:prose-invert max-w-none">
+                    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 font-mono text-sm overflow-auto max-h-96">
+                        {{ document.extracted_text or 'Text extraction in progress...' }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analysis -->
+            <div x-show="activeTab === 'analysis'">
+                <div id="analysis-content" class="space-y-6">
+                    <div class="card">
+                        <div class="text-center py-8">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-joy-teal mx-auto"></div>
+                            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Loading analysis...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action items -->
+            <div x-show="activeTab === 'actions'">
+                <div id="actions-content" class="card">
+                    <div class="text-center py-8">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-joy-teal mx-auto"></div>
+                        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Loading action items...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Q&A -->
+            <div x-show="activeTab === 'qa'" x-data="qaHandler()">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Chat interface -->
+                    <div class="lg:col-span-2 card">
+                        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                            Ask Questions About This Document
+                        </h2>
+
+                        <!-- Messages -->
+                        <div id="qa-messages" class="space-y-4 max-h-96 overflow-y-auto mb-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                            <template x-for="message in messages" :key="message.id">
+                                <div :class="message.role === 'user' ? 'text-right' : 'text-left'">
+                                    <div :class="message.role === 'user' ? 'bg-joy-teal text-white ml-auto' : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white'"
+                                         class="inline-block max-w-[80%] rounded-lg p-3 shadow">
+                                        <p class="text-sm" x-text="message.content"></p>
+                                        <div class="text-xs opacity-75 mt-1" x-text="message.time"></div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Input -->
+                        <form @submit.prevent="sendQuestion" class="flex space-x-2">
+                            <input type="text"
+                                   x-model="question"
+                                   placeholder="Ask a question about this document..."
+                                   class="input flex-1"
+                                   :disabled="loading">
+                            <button type="submit"
+                                    :disabled="loading || !question.trim()"
+                                    class="btn-primary"
+                                    :class="{ 'opacity-50 cursor-not-allowed': loading || !question.trim() }">
+                                <template x-if="!loading">
+                                    <i class="fas fa-paper-plane"></i>
+                                </template>
+                                <template x-if="loading">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                </template>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Suggested questions -->
+                    <div class="card">
+                        <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Suggested Questions</h3>
+                        <div class="space-y-2">
+                            <button @click="question = 'What are the key insights from this document?'"
+                                    class="w-full text-left p-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg text-sm transition">
+                                What are the key insights?
+                            </button>
+                            <button @click="question = 'What action items are mentioned?'"
+                                    class="w-full text-left p-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg text-sm transition">
+                                What action items are mentioned?
+                            </button>
+                            <button @click="question = 'Summarize this document in 3 bullet points'"
+                                    class="w-full text-left p-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg text-sm transition">
+                                Summarize in 3 bullet points
+                            </button>
+                            <button @click="question = 'What are the main risks or concerns?'"
+                                    class="w-full text-left p-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg text-sm transition">
+                                What are the main risks?
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function qaHandler() {
+    return {
+        question: '',
+        messages: [],
+        loading: false,
+
+        async sendQuestion() {
+            if (!this.question.trim()) return;
+
+            const userMessage = {
+                id: Date.now(),
+                role: 'user',
+                content: this.question,
+                time: new Date().toLocaleTimeString()
+            };
+
+            this.messages.push(userMessage);
+            this.loading = true;
+
+            const questionText = this.question;
+            this.question = '';
+
+            try {
+                const response = await fetch('/api/agents/ask', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                    },
+                    body: JSON.stringify({
+                        question: questionText,
+                        document_id: '{{ document.id }}',
+                        use_context: true
+                    })
+                });
+
+                const data = await response.json();
+
+                const assistantMessage = {
+                    id: Date.now() + 1,
+                    role: 'assistant',
+                    content: data.answer || 'Sorry, I could not process your question.',
+                    time: new Date().toLocaleTimeString()
+                };
+
+                this.messages.push(assistantMessage);
+
+                // Scroll to bottom
+                this.$nextTick(() => {
+                    const container = document.getElementById('qa-messages');
+                    container.scrollTop = container.scrollHeight;
+                });
+            } catch (error) {
+                console.error('Error asking question:', error);
+                showToast('Failed to get answer. Please try again.', 'error');
+            } finally {
+                this.loading = false;
+            }
+        }
+    }
+}
+
+function shareDocument(documentId) {
+    // Implementation for sharing
+    showToast('Share functionality coming soon!', 'info');
+}
+
+async function processDocument(documentId) {
+    try {
+        const response = await fetch(`/api/v1/documents/${documentId}/process`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showToast(data.message || 'Document processing started', 'success');
+            // Reload the page after a short delay to show updated status
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            showToast(data.detail || 'Failed to process document', 'error');
+        }
+    } catch (error) {
+        console.error('Error processing document:', error);
+        showToast('Failed to process document. Please try again.', 'error');
+    }
+}
+</script>
+{% endblock %}
