@@ -199,12 +199,6 @@ jobs:
           AWS_DEFAULT_REGION: us-east-1
           AWS_S3_BUCKET: test-bucket
 
-          # Supabase (mock)
-          SUPABASE_URL: https://test.supabase.co
-          SUPABASE_KEY: test-supabase-key-for-testing-environment-secure-12345
-          SUPABASE_SERVICE_KEY: test-supabase-service-key-for-testing-environment
-          SUPABASE_JWT_SECRET: test-supabase-jwt-secret-for-testing-environment
-
           # PubNub (mock)
           PUBNUB_PUBLISH_KEY: test-pubnub-publish-key-for-testing-environment
           PUBNUB_SUBSCRIBE_KEY: test-pubnub-subscribe-key-for-testing-environment
