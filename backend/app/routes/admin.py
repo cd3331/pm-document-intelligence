@@ -84,6 +84,10 @@ async def migrate_processing_columns():
                     "analysis.processing_cost",
                     "ALTER TABLE analysis ADD COLUMN IF NOT EXISTS processing_cost FLOAT",
                 ),
+                (
+                    "analysis.processing_duration",
+                    "ALTER TABLE analysis ADD COLUMN IF NOT EXISTS processing_duration FLOAT",
+                ),
             ]
 
             added_columns = []
