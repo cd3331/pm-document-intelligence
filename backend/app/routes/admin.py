@@ -64,6 +64,14 @@ async def migrate_processing_columns():
                     "processing_metadata",
                     "ALTER TABLE documents ADD COLUMN IF NOT EXISTS processing_metadata JSONB DEFAULT '{}'::jsonb",
                 ),
+                (
+                    "processed_at",
+                    "ALTER TABLE documents ADD COLUMN IF NOT EXISTS processed_at TIMESTAMP WITH TIME ZONE",
+                ),
+                (
+                    "extraction_method",
+                    "ALTER TABLE documents ADD COLUMN IF NOT EXISTS extraction_method TEXT",
+                ),
             ]
 
             added_columns = []
