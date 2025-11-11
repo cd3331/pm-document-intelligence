@@ -398,62 +398,9 @@ jobs:
             --output text)
           echo "task_def_arn=$TASK_DEF_ARN" >> $GITHUB_OUTPUT
 
-      - name: Run database migrations
+      - name: Deploy with database migrations
         run: |
-          echo "Running database migrations via ECS task..."
-
-          # Get the VPC configuration from the existing service
-          TASK_INFO=$(aws ecs describe-services \
-            --cluster ${{ env.ECS_CLUSTER }}-production \
-            --services ${{ env.ECS_SERVICE }}-production \
-            --query 'services[0].networkConfiguration.awsvpcConfiguration' \
-            --output json)
-
-          SUBNETS=$(echo $TASK_INFO | jq -r '.subnets | join(",")')
-          SECURITY_GROUPS=$(echo $TASK_INFO | jq -r '.securityGroups | join(",")')
-
-          # Get the latest task definition
-          TASK_DEF=$(aws ecs describe-task-definition \
-            --task-definition pm-doc-intel-backend-production \
-            --query 'taskDefinition.family' \
-            --output text)
-
-          # Run migration as an ECS task (one-off)
-          TASK_ARN=$(aws ecs run-task \
-            --cluster ${{ env.ECS_CLUSTER }}-production \
-            --task-definition $TASK_DEF \
-            --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SECURITY_GROUPS],assignPublicIp=DISABLED}" \
-            --launch-type FARGATE \
-            --overrides '{
-              "containerOverrides": [{
-                "name": "pm-doc-intel-backend-production",
-                "command": ["python3", "scripts/run_migrations.py"]
-              }]
-            }' \
-            --query 'tasks[0].taskArn' \
-            --output text)
-
-          echo "Migration task started: $TASK_ARN"
-          echo "Waiting for migration to complete..."
-
-          # Wait for task to complete
-          aws ecs wait tasks-stopped \
-            --cluster ${{ env.ECS_CLUSTER }}-production \
-            --tasks $TASK_ARN
-
-          # Check if migration succeeded
-          EXIT_CODE=$(aws ecs describe-tasks \
-            --cluster ${{ env.ECS_CLUSTER }}-production \
-            --tasks $TASK_ARN \
-            --query 'tasks[0].containers[0].exitCode' \
-            --output text)
-
-          if [ "$EXIT_CODE" != "0" ]; then
-            echo "❌ Migration failed with exit code: $EXIT_CODE"
-            exit 1
-          fi
-
-          echo "✅ Database migrations completed successfully"
+          echo "📦 Deploying new version (migrations run on container startup)..."
 
       - name: Update ECS service
         id: deploy

@@ -65,6 +65,7 @@ COPY backend/ /app/
 
 # Create necessary directories and set permissions
 RUN mkdir -p /app/logs /app/temp && \
+    chmod +x /app/scripts/startup.sh && \
     chown -R appuser:appuser /app
 
 # Switch to non-root user
@@ -73,12 +74,12 @@ USER appuser
 # Expose application port
 EXPOSE 8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+# Health check (increase start period for migrations)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8000/health/live || exit 1
 
-# Default command - can be overridden
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+# Run migrations on startup, then start application
+CMD ["/app/scripts/startup.sh"]
 
 # ============================================
 # Stage 3: Development (optional)
