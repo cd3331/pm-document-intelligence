@@ -242,13 +242,13 @@ class DocumentProcessor:
 
             doc_status = status_map.get(state, DocumentStatus.PROCESSING)
 
+            # Only update the status field that exists in the database
+            # Note: processing_state, processing_checkpoint, error_message columns don't exist
             await execute_update(
                 "documents",
                 {
                     "status": doc_status.value,
-                    "processing_state": state.value,
-                    "processing_checkpoint": json.dumps(checkpoint.to_dict()),
-                    "error_message": error,
+                    "updated_at": datetime.utcnow(),
                 },
                 match={"id": document_id},
             )
@@ -289,8 +289,7 @@ class DocumentProcessor:
             "documents",
             {
                 "status": DocumentStatus.FAILED.value,
-                "processing_state": ProcessingState.CANCELLED.value,
-                "error_message": "Processing cancelled by user",
+                "updated_at": datetime.utcnow(),
             },
             match={"id": document_id},
         )

@@ -33,7 +33,9 @@ router = APIRouter()
 
 # File upload constraints
 MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB
-ALLOWED_EXTENSIONS = {".pdf", ".doc", ".docx", ".txt", ".md", ".ppt", ".pptx", ".xls", ".xlsx"}
+# Note: Currently only PDF, images, and text files are supported by document processor
+# Office formats (.doc, .docx, .ppt, .pptx, .xls, .xlsx) require additional processing
+ALLOWED_EXTENSIONS = {".pdf", ".txt", ".md", ".png", ".jpg", ".jpeg", ".tiff"}
 
 
 @router.post("/upload", status_code=status.HTTP_201_CREATED)
