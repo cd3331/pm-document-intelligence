@@ -48,6 +48,7 @@ from app.services.aws_service import (
     TextractService,
     cost_tracker,
 )
+from app.services.office_extractor import OfficeExtractor
 from app.utils.exceptions import (
     DocumentProcessingError,
 )
@@ -130,6 +131,7 @@ class DocumentProcessor:
         self.textract = TextractService()
         self.comprehend = ComprehendService()
         self.s3 = S3Service()
+        self.office_extractor = OfficeExtractor()
 
         # Processing state tracking
         self.checkpoints: dict[str, ProcessingCheckpoint] = {}
@@ -702,6 +704,19 @@ class DocumentProcessor:
                 "confidence": result.get("average_confidence", 0),
                 "tables": result.get("tables", []),
                 "forms": result.get("forms", []),
+            }
+
+        # Microsoft Office documents
+        elif file_extension in [".docx", ".doc", ".xlsx", ".xls", ".pptx", ".ppt"]:
+            logger.info(f"Extracting Office document: {filename}")
+            result = await self.office_extractor.extract_text(file_content, filename)
+
+            return {
+                "text": result["text"],
+                "method": result["method"],
+                "pages": result.get("pages", 1),
+                "confidence": result.get("confidence", 100.0),
+                "metadata": result.get("metadata", {}),
             }
 
         else:
