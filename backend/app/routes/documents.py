@@ -449,16 +449,9 @@ async def process_document(
                 },
             )
 
-            # Update document with results
+            # Update document status only (analysis data is in analysis table)
             update_data = {
                 "status": DocumentStatus.COMPLETED.value,
-                "extracted_text": results.get("extracted_text"),
-                "summary": results.get("summary"),
-                "action_items": results.get("action_items", []),
-                "entities": results.get("entities", []),
-                "key_phrases": results.get("key_phrases", []),
-                "risks": results.get("risks", []),
-                "processing_metadata": results.get("metadata", {}),
                 "updated_at": datetime.utcnow(),
             }
 
