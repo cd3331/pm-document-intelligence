@@ -1173,6 +1173,9 @@ Provide ONLY the JSON object, no other text."""
             raise ValueError(f"Could not find user_id for document {document_id}")
 
         # Store analysis results
+        summary = results.get("summary", {})
+        summary_text = json.dumps(summary) if isinstance(summary, dict) else str(summary)
+
         analysis_data = {
             "document_id": document_id,
             "user_id": user_id,
@@ -1182,7 +1185,7 @@ Provide ONLY the JSON object, no other text."""
             "key_phrases": results.get("key_phrases", []),
             "action_items": results.get("action_items", []),
             "risks": results.get("risks", []),
-            "summary": results.get("summary", {}),
+            "summary": summary_text,
             "processing_cost": results.get("cost", 0),
             "processing_duration_seconds": results.get("duration_seconds", 0),
         }
