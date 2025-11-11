@@ -749,7 +749,9 @@ resource "aws_iam_role_policy" "ecs_task" {
         Effect = "Allow"
         Action = [
           "comprehend:DetectEntities",
-          "comprehend:DetectSentiment"
+          "comprehend:DetectSentiment",
+          "comprehend:DetectKeyPhrases",
+          "comprehend:DetectDominantLanguage"
         ]
         Resource = "*"
       },
