@@ -738,6 +738,8 @@ resource "aws_iam_role_policy" "ecs_task" {
         Action = [
           "textract:AnalyzeDocument",
           "textract:DetectDocumentText",
+          "textract:StartDocumentAnalysis",
+          "textract:StartDocumentTextDetection",
           "textract:GetDocumentAnalysis",
           "textract:GetDocumentTextDetection"
         ]
