@@ -383,7 +383,11 @@ async def get_document_actions(
                 "low": "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200",
             }.get(priority, "bg-gray-100")
 
-            assignee_html = f'<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Assignee: {assignee}</p>' if assignee else ''
+            assignee_html = (
+                f'<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Assignee: {assignee}</p>'
+                if assignee
+                else ""
+            )
 
             html += f"""
         <div class="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
