@@ -38,7 +38,7 @@ from pathlib import Path
 from typing import Any
 
 from app.config import settings
-from app.database import execute_insert, execute_update
+from app.database import execute_insert, execute_query, execute_update
 from app.models.document import DocumentStatus
 from app.services.aws_service import (
     BedrockService,
@@ -1164,7 +1164,6 @@ Provide ONLY the JSON object, no other text."""
         await execute_update("documents", document_updates, match={"id": document_id})
 
         # Get user_id from document
-        from app.database import execute_query
         document_result = await execute_query(
             "SELECT user_id FROM documents WHERE id = :document_id",
             {"document_id": document_id}
