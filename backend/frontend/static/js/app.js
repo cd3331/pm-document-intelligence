@@ -3,6 +3,11 @@
  * Handles PubNub real-time updates, notifications, and UI interactions
  */
 
+// API Base URL - use environment-specific API endpoint
+const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:8000'
+    : 'https://api.joyofpm.com';
+
 // Global PubNub client instance
 let pubnubClient = null;
 
@@ -18,7 +23,7 @@ async function initializePubNub() {
         }
 
         // Get PubNub credentials from server
-        const response = await fetch('/api/realtime/status', {
+        const response = await fetch(`${API_BASE_URL}/api/v1/realtime/status`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -544,7 +549,7 @@ async function uploadFileWithProgress(file, onProgress) {
         });
 
         // Send request
-        xhr.open('POST', '/api/v1/documents/upload');
+        xhr.open('POST', `${API_BASE_URL}/api/v1/documents/upload`);
         xhr.setRequestHeader('Authorization', `Bearer ${localStorage.getItem('auth_token')}`);
         xhr.send(formData);
     });
