@@ -38,7 +38,7 @@ from pathlib import Path
 from typing import Any
 
 from app.config import settings
-from app.database import execute_insert, execute_query, execute_update
+from app.database import execute_insert, execute_query, execute_select, execute_update
 from app.models.document import DocumentStatus
 from app.services.aws_service import (
     BedrockService,
@@ -1172,7 +1172,7 @@ Provide ONLY the JSON object, no other text."""
         if not user_id:
             raise ValueError(f"Could not find user_id for document {document_id}")
 
-        # Store analysis results
+        # Store analysis results (use UPSERT logic for reprocessing)
         summary = results.get("summary", {})
         summary_text = json.dumps(summary) if isinstance(summary, dict) else str(summary)
 
@@ -1190,7 +1190,17 @@ Provide ONLY the JSON object, no other text."""
             "processing_duration_seconds": results.get("duration_seconds", 0),
         }
 
-        await execute_insert("analysis", analysis_data)
+        # Check if analysis already exists
+        existing_analysis = await execute_select("analysis", match={"document_id": document_id})
+
+        if existing_analysis:
+            # Update existing analysis
+            await execute_update("analysis", data=analysis_data, match={"document_id": document_id})
+            logger.info(f"Updated existing analysis for document {document_id}")
+        else:
+            # Insert new analysis
+            await execute_insert("analysis", analysis_data)
+            logger.info(f"Created new analysis for document {document_id}")
 
         logger.info(f"Stored results for document {document_id}")
 

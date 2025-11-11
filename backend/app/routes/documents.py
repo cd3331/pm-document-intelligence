@@ -362,6 +362,26 @@ async def process_document(
                 "document_id": document_id,
             }
 
+        # If already completed, return existing results
+        if document.get("status") == DocumentStatus.COMPLETED.value:
+            # Fetch analysis results
+            analysis_results = await execute_select(
+                "analysis",
+                match={"document_id": document_id},
+            )
+            if analysis_results:
+                analysis = analysis_results[0]
+                return {
+                    "message": "Document already processed",
+                    "status": "completed",
+                    "document_id": document_id,
+                    "summary": analysis.get("summary", ""),
+                    "entities": analysis.get("entities", []),
+                    "action_items": analysis.get("action_items", []),
+                    "risks": analysis.get("risks", []),
+                    "sentiment": analysis.get("sentiment", {}),
+                }
+
         # Update status to processing
         await execute_update(
             "documents",
