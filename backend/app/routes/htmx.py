@@ -339,7 +339,17 @@ async def get_document_actions(
             )
 
         document = documents[0]
-        action_items = document.get("action_items", [])
+
+        # Fetch action items from analysis table
+        analysis_results = await execute_select(
+            "analysis",
+            match={"document_id": document_id},
+        )
+
+        if analysis_results:
+            action_items = analysis_results[0].get("action_items", [])
+        else:
+            action_items = []
 
         if not action_items:
             return HTMLResponse(
@@ -360,9 +370,11 @@ async def get_document_actions(
             if isinstance(item, str):
                 item_text = item
                 priority = "medium"
+                assignee = ""
             else:
-                item_text = item.get("text", item.get("title", ""))
-                priority = item.get("priority", "medium")
+                item_text = item.get("action", item.get("text", item.get("title", str(item))))
+                priority = item.get("priority", "medium").lower()
+                assignee = item.get("assignee", "")
 
             # Priority badge
             priority_class = {
@@ -371,13 +383,18 @@ async def get_document_actions(
                 "low": "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200",
             }.get(priority, "bg-gray-100")
 
+            assignee_html = f'<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Assignee: {assignee}</p>' if assignee else ''
+
             html += f"""
         <div class="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
             <input type="checkbox"
                    class="mt-1 rounded border-gray-300 text-joy-teal focus:ring-joy-teal">
             <div class="flex-1">
                 <div class="flex items-start justify-between">
-                    <p class="font-medium text-gray-900 dark:text-white">{item_text}</p>
+                    <div>
+                        <p class="font-medium text-gray-900 dark:text-white">{item_text}</p>
+                        {assignee_html}
+                    </div>
                     <span class="ml-2 px-2 py-1 rounded text-xs font-medium {priority_class}">
                         {priority}
                     </span>
