@@ -100,8 +100,8 @@ class BedrockConfig(BaseSettings):
     """AWS Bedrock configuration for Claude API."""
 
     bedrock_model_id: str = Field(
-        default="anthropic.claude-3-5-sonnet-20241022-v2:0",
-        description="Bedrock model identifier",
+        default="us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+        description="Bedrock model identifier (cross-region inference profile)",
     )
     bedrock_max_tokens: int = Field(
         default=4096,
