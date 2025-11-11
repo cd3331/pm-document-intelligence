@@ -1165,8 +1165,7 @@ Provide ONLY the JSON object, no other text."""
 
         # Get user_id from document
         document_result = await execute_query(
-            "SELECT user_id FROM documents WHERE id = :document_id",
-            {"document_id": document_id}
+            "SELECT user_id FROM documents WHERE id = :document_id", {"document_id": document_id}
         )
         user_id = document_result[0]["user_id"] if document_result else None
 
