@@ -8,7 +8,9 @@ Routes:
     POST /api/v1/documents/upload - Upload document
     GET /api/v1/documents/{document_id} - Get document
     GET /api/v1/documents - List documents
+    GET /api/v1/documents/{document_id}/download - Download original file
     POST /api/v1/documents/{document_id}/process - Process document
+    POST /api/v1/documents/{document_id}/question - Ask questions about document
     DELETE /api/v1/documents/{document_id} - Delete document
 """
 
@@ -226,6 +228,77 @@ async def list_documents(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve documents",
+        )
+
+
+@router.get("/{document_id}/download")
+async def download_document(
+    document_id: str,
+    current_user: UserInDB = Depends(get_current_user),
+):
+    """
+    Download original document file.
+
+    Args:
+        document_id: Document identifier
+        current_user: Authenticated user
+
+    Returns:
+        File stream response with original document
+    """
+    try:
+        from fastapi.responses import StreamingResponse
+        import io
+
+        logger.info(f"Download document endpoint called: {document_id} by user {current_user.id}")
+
+        # Get document from database
+        documents = await execute_select(
+            "documents",
+            match={"id": document_id, "user_id": current_user.id},
+        )
+
+        if not documents:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Document not found",
+            )
+
+        document = documents[0]
+
+        # Get S3 reference
+        s3_ref = document.get("s3_reference", {})
+        if not s3_ref.get("key"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Document file not available for download",
+            )
+
+        # Download from S3
+        s3_service = S3Service()
+        file_content, metadata = await s3_service.download_document(s3_ref["key"])
+
+        # Determine content type
+        filename = document.get("filename", "document")
+        content_type = metadata.get("ContentType", "application/octet-stream")
+
+        # Create streaming response
+        return StreamingResponse(
+            io.BytesIO(file_content),
+            media_type=content_type,
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Content-Length": str(len(file_content)),
+            },
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Document download failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to download document",
         )
 
 
