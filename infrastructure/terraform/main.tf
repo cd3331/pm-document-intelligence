@@ -760,7 +760,8 @@ resource "aws_iam_role_policy" "ecs_task" {
         Action = [
           "bedrock:InvokeModel",
           "bedrock:ListFoundationModels",
-          "bedrock:GetFoundationModel"
+          "bedrock:GetFoundationModel",
+          "aws-marketplace:ViewSubscriptions"
         ]
         Resource = "*"
       },

@@ -510,7 +510,7 @@ Be thorough and structured in your analysis.""",
                     )
 
                     # Parse response
-                    response_body = json.loads(response["body"].read())
+                    response_body = json.loads(await response["body"].read())
 
                     duration = time.time() - start_time
 

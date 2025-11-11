@@ -72,6 +72,18 @@ async def migrate_processing_columns():
                     "extraction_method",
                     "ALTER TABLE documents ADD COLUMN IF NOT EXISTS extraction_method TEXT",
                 ),
+                (
+                    "processing_duration",
+                    "ALTER TABLE documents ADD COLUMN IF NOT EXISTS processing_duration FLOAT",
+                ),
+                (
+                    "summary",
+                    "ALTER TABLE documents ADD COLUMN IF NOT EXISTS summary TEXT",
+                ),
+                (
+                    "processing_cost",
+                    "ALTER TABLE documents ADD COLUMN IF NOT EXISTS processing_cost FLOAT",
+                ),
             ]
 
             added_columns = []
