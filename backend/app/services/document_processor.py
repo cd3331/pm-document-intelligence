@@ -1163,9 +1163,22 @@ Provide ONLY the JSON object, no other text."""
 
         await execute_update("documents", document_updates, match={"id": document_id})
 
+        # Get user_id from document
+        from app.database import execute_query
+        document_result = await execute_query(
+            "SELECT user_id FROM documents WHERE id = :document_id",
+            {"document_id": document_id}
+        )
+        user_id = document_result[0]["user_id"] if document_result else None
+
+        if not user_id:
+            raise ValueError(f"Could not find user_id for document {document_id}")
+
         # Store analysis results
         analysis_data = {
             "document_id": document_id,
+            "user_id": user_id,
+            "ai_models_used": results.get("ai_models_used", []),
             "sentiment": results.get("sentiment", {}),
             "entities": results.get("entities", []),
             "key_phrases": results.get("key_phrases", []),
@@ -1173,7 +1186,7 @@ Provide ONLY the JSON object, no other text."""
             "risks": results.get("risks", []),
             "summary": results.get("summary", {}),
             "processing_cost": results.get("cost", 0),
-            "processing_duration": results.get("duration_seconds", 0),
+            "processing_duration_seconds": results.get("duration_seconds", 0),
         }
 
         await execute_insert("analysis", analysis_data)

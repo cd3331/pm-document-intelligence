@@ -77,12 +77,12 @@ async def migrate_processing_columns():
                     "ALTER TABLE documents ADD COLUMN IF NOT EXISTS processing_duration FLOAT",
                 ),
                 (
-                    "summary",
-                    "ALTER TABLE documents ADD COLUMN IF NOT EXISTS summary TEXT",
+                    "analysis.summary",
+                    "ALTER TABLE analysis ADD COLUMN IF NOT EXISTS summary TEXT",
                 ),
                 (
-                    "processing_cost",
-                    "ALTER TABLE documents ADD COLUMN IF NOT EXISTS processing_cost FLOAT",
+                    "analysis.processing_cost",
+                    "ALTER TABLE analysis ADD COLUMN IF NOT EXISTS processing_cost FLOAT",
                 ),
             ]
 
