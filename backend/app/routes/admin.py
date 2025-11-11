@@ -44,11 +44,26 @@ async def migrate_processing_columns():
 
             # Add missing columns
             migrations = [
-                ("processing_checkpoint", "ALTER TABLE documents ADD COLUMN IF NOT EXISTS processing_checkpoint JSONB DEFAULT NULL"),
-                ("processing_state", "ALTER TABLE documents ADD COLUMN IF NOT EXISTS processing_state JSONB DEFAULT NULL"),
-                ("error_message", "ALTER TABLE documents ADD COLUMN IF NOT EXISTS error_message TEXT DEFAULT NULL"),
-                ("risks", "ALTER TABLE documents ADD COLUMN IF NOT EXISTS risks JSONB DEFAULT '[]'::jsonb"),
-                ("processing_metadata", "ALTER TABLE documents ADD COLUMN IF NOT EXISTS processing_metadata JSONB DEFAULT '{}'::jsonb"),
+                (
+                    "processing_checkpoint",
+                    "ALTER TABLE documents ADD COLUMN IF NOT EXISTS processing_checkpoint JSONB DEFAULT NULL",
+                ),
+                (
+                    "processing_state",
+                    "ALTER TABLE documents ADD COLUMN IF NOT EXISTS processing_state JSONB DEFAULT NULL",
+                ),
+                (
+                    "error_message",
+                    "ALTER TABLE documents ADD COLUMN IF NOT EXISTS error_message TEXT DEFAULT NULL",
+                ),
+                (
+                    "risks",
+                    "ALTER TABLE documents ADD COLUMN IF NOT EXISTS risks JSONB DEFAULT '[]'::jsonb",
+                ),
+                (
+                    "processing_metadata",
+                    "ALTER TABLE documents ADD COLUMN IF NOT EXISTS processing_metadata JSONB DEFAULT '{}'::jsonb",
+                ),
             ]
 
             added_columns = []

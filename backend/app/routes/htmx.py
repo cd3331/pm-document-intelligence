@@ -136,7 +136,9 @@ async def get_documents_list(
             if status == "processed":
                 status_class = "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
             elif status == "processing":
-                status_class = "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                status_class = (
+                    "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                )
             elif status == "failed":
                 status_class = "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
             else:
@@ -467,11 +469,9 @@ async def get_search_suggestions(
         )
 
         # Filter by query
-        matching_docs = [
-            doc
-            for doc in documents
-            if q.lower() in doc.get("filename", "").lower()
-        ][:5]
+        matching_docs = [doc for doc in documents if q.lower() in doc.get("filename", "").lower()][
+            :5
+        ]
 
         suggestions = []
         for doc in matching_docs:
