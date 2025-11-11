@@ -412,7 +412,7 @@ async def process_document(
 
             # Update document with results
             update_data = {
-                "status": DocumentStatus.PROCESSED.value,
+                "status": DocumentStatus.COMPLETED.value,
                 "extracted_text": results.get("extracted_text"),
                 "summary": results.get("summary"),
                 "action_items": results.get("action_items", []),
