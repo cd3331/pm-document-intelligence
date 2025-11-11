@@ -657,9 +657,9 @@ class Settings(BaseSettings):
     )
 
     # Vector Search Configuration
-    vector_db_type: Literal["supabase", "pinecone", "weaviate"] = Field(
-        default="supabase",
-        description="Vector database type",
+    vector_db_type: Literal["postgresql", "pinecone", "weaviate"] = Field(
+        default="postgresql",
+        description="Vector database type (using RDS PostgreSQL with pgvector)",
     )
     vector_dimension: int = Field(
         default=1536,
