@@ -188,8 +188,27 @@ async def get_document(
         document = documents[0]
         logger.info(f"Document retrieved: {document_id}")
 
-        # Add placeholder analysis if not processed
-        if not document.get("summary"):
+        # Fetch analysis data if it exists
+        analysis_results = await execute_select(
+            "analysis",
+            match={"document_id": document_id},
+        )
+
+        if analysis_results:
+            # Merge analysis data into document response
+            analysis = analysis_results[0]
+            document["summary"] = analysis.get("summary", "")
+            document["action_items"] = analysis.get("action_items", [])
+            document["entities"] = analysis.get("entities", [])
+            document["key_phrases"] = analysis.get("key_phrases", [])
+            document["risks"] = analysis.get("risks", [])
+            document["sentiment"] = analysis.get("sentiment", {})
+            document["processing_cost"] = analysis.get("processing_cost", 0)
+            document["processing_duration_seconds"] = analysis.get("processing_duration_seconds", 0)
+            document["needs_processing"] = False
+            logger.info(f"Analysis data included for document {document_id}")
+        else:
+            # Add placeholder analysis if not processed
             document["summary"] = (
                 "This document hasn't been analyzed yet. Click 'Process Document' to generate AI-powered insights."
             )
@@ -197,9 +216,9 @@ async def get_document(
             document["entities"] = []
             document["key_phrases"] = []
             document["risks"] = []
+            document["sentiment"] = {}
             document["needs_processing"] = True
-        else:
-            document["needs_processing"] = False
+            logger.info(f"No analysis found for document {document_id}")
 
         return document
 
