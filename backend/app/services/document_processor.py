@@ -684,18 +684,24 @@ class DocumentProcessor:
 
         # PDF and images - Use Textract
         elif file_extension in [".pdf", ".png", ".jpg", ".jpeg", ".tiff"]:
-            # Determine sync vs async
-            file_size = len(file_content)
-
-            if file_size < 5 * 1024 * 1024:  # < 5MB, use sync
-                result = await self.textract.extract_text_synchronous(
-                    file_content, feature_types=["TABLES", "FORMS"]
-                )
-            else:
-                # Use async for large files
+            # PDFs must use S3 reference (multi-page support)
+            # Images can use bytes (single page only)
+            if file_extension == ".pdf":
+                # Always use S3 for PDFs (supports multi-page)
                 result = await self.textract.extract_text_asynchronous(
                     s3_bucket, s3_key, feature_types=["TABLES", "FORMS"]
                 )
+            else:
+                # Images: use bytes for small files, S3 for large
+                file_size = len(file_content)
+                if file_size < 5 * 1024 * 1024:  # < 5MB
+                    result = await self.textract.extract_text_synchronous(
+                        file_content, feature_types=["TABLES", "FORMS"]
+                    )
+                else:
+                    result = await self.textract.extract_text_asynchronous(
+                        s3_bucket, s3_key, feature_types=["TABLES", "FORMS"]
+                    )
 
             return {
                 "text": result["text"],
